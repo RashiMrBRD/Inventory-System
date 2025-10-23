@@ -1,0 +1,26 @@
+# API Directory .htaccess
+# This file provides security and configuration for API endpoints
+
+# Enable CORS for API
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Content-Type "application/json"
+</IfModule>
+
+# Handle OPTIONS request for CORS preflight
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Security - Prevent direct access to sensitive files
+<FilesMatch "\.(log|ini|conf)$">
+    Require all denied
+</FilesMatch>
+
+# Rate Limiting (requires mod_ratelimit)
+<IfModule mod_ratelimit.c>
+    SetOutputFilter RATE_LIMIT
+    SetEnv rate-limit 400
+</IfModule>

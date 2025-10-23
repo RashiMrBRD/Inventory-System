@@ -1,0 +1,67 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+var/logs/
+*.log
+
+# Cache and temporary files
+var/cache/
+var/sessions/
+tmp/
+temp/
+
+# Vendor directory (will be installed in container)
+vendor/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+*.sublime-project
+*.sublime-workspace
+
+# Test files
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# Build artifacts
+build/
+dist/
+
+# Backup files
+*.bak
+*.backup
+*.old

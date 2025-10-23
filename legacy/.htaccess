@@ -1,0 +1,13 @@
+# Legacy Files Security
+# These files are archived and should NEVER be accessed
+
+# Deny all access to legacy files
+Require all denied
+
+# Prevent directory listing
+Options -Indexes
+
+# Block all file types
+<FilesMatch ".*">
+    Require all denied
+</FilesMatch>

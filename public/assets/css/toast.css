@@ -1,0 +1,302 @@
+/**
+ * Toast Notification Styles
+ * Unified toast notification styles for the entire application
+ * 
+ * @author Inventory Management System
+ * @version 1.0.0
+ */
+
+/* ===================================
+   TOAST CONTAINER
+   =================================== */
+
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 24rem;
+  pointer-events: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .toast-container {
+    top: 1rem;
+    right: 1rem;
+    left: 1rem;
+    max-width: 100%;
+  }
+}
+
+/* ===================================
+   TOAST BASE
+   =================================== */
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 1rem 1rem;
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(0 0% 89.8%);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(0 0% 3.9%);
+  line-height: 1.5;
+  min-width: 320px;
+  max-width: 420px;
+  animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  transition: all 0.2s ease;
+}
+
+.toast:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile toast adjustments */
+@media (max-width: 640px) {
+  .toast {
+    min-width: auto;
+    width: 100%;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Mobile slide animation */
+@media (max-width: 640px) {
+  @keyframes slideIn {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOut {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+  }
+}
+
+/* ===================================
+   TOAST TYPES
+   =================================== */
+
+.toast-success {
+  background: hsl(143 85% 96%);
+  border-color: hsl(142 76% 36%);
+  border-left-width: 3px;
+  border-left-color: hsl(142 76% 36%);
+  color: hsl(140 61% 13%);
+}
+
+.toast-success svg {
+  color: hsl(142 76% 36%);
+  flex-shrink: 0;
+}
+
+.toast-warning {
+  background: hsl(48 96% 89%);
+  border-color: hsl(32 95% 44%);
+  border-left-width: 3px;
+  border-left-color: hsl(32 95% 44%);
+  color: hsl(25 95% 16%);
+}
+
+.toast-warning svg {
+  color: hsl(32 95% 44%);
+  flex-shrink: 0;
+}
+
+.toast-danger {
+  background: hsl(0 86% 97%);
+  border-color: hsl(0 84% 60%);
+  border-left-width: 3px;
+  border-left-color: hsl(0 84% 60%);
+  color: hsl(0 74% 24%);
+}
+
+.toast-danger svg {
+  color: hsl(0 84% 60%);
+  flex-shrink: 0;
+}
+
+.toast-info {
+  background: hsl(214 95% 93%);
+  border-color: hsl(221 83% 53%);
+  border-left-width: 3px;
+  border-left-color: hsl(221 83% 53%);
+  color: hsl(222 47% 17%);
+}
+
+.toast-info svg {
+  color: hsl(221 83% 53%);
+  flex-shrink: 0;
+}
+
+/* ===================================
+   TOAST ELEMENTS
+   =================================== */
+
+.toast svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.toast-message {
+  flex: 1;
+  line-height: 1.5;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  padding: 0.375rem;
+  margin: -0.25rem -0.5rem -0.25rem 0;
+  background: transparent;
+  border: none;
+  color: hsl(0 0% 45%);
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.toast-close:hover {
+  opacity: 1;
+  background: hsl(0 0% 0% / 0.05);
+  color: hsl(0 0% 10%);
+}
+
+.toast-close:focus-visible {
+  outline: 2px solid hsl(0 0% 45%);
+  outline-offset: 2px;
+}
+
+.toast-close:active {
+  transform: scale(0.95);
+}
+
+.toast-close svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ===================================
+   DARK MODE SUPPORT
+   =================================== */
+
+@media (prefers-color-scheme: dark) {
+  .toast {
+    background: hsl(0 0% 12%);
+    border-color: hsl(0 0% 24%);
+    color: hsl(0 0% 98%);
+  }
+
+  .toast-success {
+    background: hsl(142 76% 12%);
+    border-color: hsl(142 76% 36%);
+    color: hsl(142 76% 86%);
+  }
+
+  .toast-warning {
+    background: hsl(32 95% 12%);
+    border-color: hsl(32 95% 44%);
+    color: hsl(48 96% 76%);
+  }
+
+  .toast-danger {
+    background: hsl(0 84% 12%);
+    border-color: hsl(0 84% 60%);
+    color: hsl(0 86% 86%);
+  }
+
+  .toast-info {
+    background: hsl(221 83% 12%);
+    border-color: hsl(221 83% 53%);
+    color: hsl(214 95% 86%);
+  }
+
+  .toast-close {
+    color: hsl(0 0% 65%);
+  }
+
+  .toast-close:hover {
+    background: hsl(0 0% 100% / 0.1);
+    color: hsl(0 0% 98%);
+  }
+}
+
+/* ===================================
+   ACCESSIBILITY
+   =================================== */
+
+.toast:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+
+  .toast:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .toast {
+    border-width: 2px;
+  }
+}

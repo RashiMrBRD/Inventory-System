@@ -1,0 +1,19 @@
+# Scripts Directory Security
+# This folder contains setup and maintenance scripts
+
+# Allow setup script during initial installation
+# In production, consider denying all access or removing this folder
+
+<Files "setup_mongodb.php">
+    # Allow during development
+    # For production, uncomment the line below to deny access
+    # Require all denied
+</Files>
+
+# Deny access to all other potential script files
+<FilesMatch "\.(php|sh|bat|cmd|ps1)$">
+    # Require all denied
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes
