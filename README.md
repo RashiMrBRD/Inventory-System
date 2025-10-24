@@ -296,11 +296,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
+We welcome contributions! Please see our [Contributing Guidelines](.github/CONTRIBUTING.md) and [Code of Conduct](.github/CODE_OF_CONDUCT.md).
 
 ## 🔐 Security
 
-For security issues, please see our [Security Policy](SECURITY.md).
+For security issues, please see our [Security Policy](.github/SECURITY.md).
 
 ## 🎯 Production Best Practices
 
