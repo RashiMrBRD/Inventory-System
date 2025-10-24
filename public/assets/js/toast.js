@@ -10,7 +10,7 @@
  *   Toast.info('Here is some information');
  * 
  * @author Inventory Management System
- * @version 1.0.0
+ * @version 0.1.4
  */
 
 (function(window) {
