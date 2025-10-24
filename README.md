@@ -1,5 +1,5 @@
 # Inventory Management System
-![status](https://img.shields.io/badge/status-alpha-yellow) ![php](https://img.shields.io/badge/PHP-8.2-blue) ![db](https://img.shields.io/badge/MongoDB-7.x-green) ![server](https://img.shields.io/badge/Apache-2.4-lightgrey) ![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED)
+![status](https://img.shields.io/badge/status-alpha-yellow) ![php](https://img.shields.io/badge/PHP-8.2-blue) ![db](https://img.shields.io/badge/MongoDB-7.x-green) ![server](https://img.shields.io/badge/Apache-2.4-lightgrey) ![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED) ![license](https://img.shields.io/badge/license-MIT-green)
 
 A modern, secure inventory management system built with PHP 8.2, Apache 2.4, MongoDB 7, and Docker. It features a RESTful API architecture designed for production deployment. The application provides a comprehensive solution for tracking inventory items while maintaining security best practices and follows industry-standard code organization patterns.
 
@@ -292,7 +292,15 @@ DocumentRoot "/path/to/inventory_demo/public"
 
 ## 📝 License
 
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## 🔐 Security
+
+For security issues, please see our [Security Policy](SECURITY.md).
 
 ## 🎯 Production Best Practices
 
