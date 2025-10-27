@@ -74,6 +74,10 @@ COPY container/docker/apache/000-default.conf /etc/apache2/sites-available/000-d
 # Copy PHP configuration
 COPY container/docker/php/php.ini /usr/local/etc/php/php.ini
 
+# Copy entrypoint script
+COPY container/docker/scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Set working directory
 WORKDIR /var/www/html
 
@@ -86,7 +90,9 @@ COPY --from=builder --chown=www-data:www-data /var/www/html/vendor /var/www/html
 # Create necessary directories and set permissions
 RUN mkdir -p /var/www/html/var/cache /var/www/html/var/logs /var/www/html/var/sessions \
     && chown -R www-data:www-data /var/www/html/var \
-    && chmod -R 755 /var/www/html/var
+    && chmod -R 775 /var/www/html/var/logs \
+    && chmod -R 775 /var/www/html/var/sessions \
+    && chmod -R 755 /var/www/html/var/cache
 
 # Expose port 80
 EXPOSE 80
@@ -94,6 +100,9 @@ EXPOSE 80
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
+
+# Set entrypoint to run permission fixes
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Start Apache in foreground
 CMD ["apache2-foreground"]

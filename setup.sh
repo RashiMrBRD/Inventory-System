@@ -111,7 +111,8 @@ fi
 # Step 6: Create necessary directories
 print_info "[6/6] Creating necessary directories..."
 mkdir -p var/logs var/sessions var/cache
-chmod 755 var/logs var/sessions var/cache
+chmod 775 var/logs var/sessions
+chmod 755 var/cache
 print_success "Directories created with proper permissions"
 
 # Display summary
