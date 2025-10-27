@@ -3,11 +3,14 @@
 
 set -e
 
+# Navigate to project root
+cd "$(dirname "$0")/../../.."
+
 echo "=========================================="
-echo "Stopping Inventory Management System"
+echo "Stopping Inventory Management System..."
 echo "=========================================="
 
-docker-compose down
+docker-compose -f container/docker-compose.yml down
 
 echo ""
 echo "All containers stopped successfully!"
