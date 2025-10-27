@@ -43,19 +43,25 @@ A modern, secure inventory management system built with PHP 8.2, Apache 2.4, Mon
 ## 🚀 Quick Start (Docker)
 
 ```bash
-# Create environment file
-cp container/.env.docker .env
+# 1. Create environment file
+cp .env.sample .env
 
-# Start containers
+# 2. Install PHP dependencies (required for autoloader)
+composer install
+
+# 3. Start containers
 docker-compose -f container/docker-compose.yml up -d --build
 
-# Access
+# 4. Access
 # Web:            http://localhost:8082
 # Mongo Express:  http://localhost:8081
 # Login:          admin / admin123
 
 # Stop
 docker-compose -f container/docker-compose.yml down
+
+# Alternative: Use PowerShell setup script
+# .\container\docker\scripts\docker-setup.ps1
 ```
 
 ## 🏗️ Architecture Overview

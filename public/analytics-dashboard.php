@@ -24,23 +24,91 @@ $user = $authController->getCurrentUser();
 $userId = $user['id'] ?? 'admin';
 
 // ============================================
-// INVENTORY ANALYTICS
+// TIME RANGE FILTER
+// ============================================
+$timeRange = $_GET['range'] ?? '30d';
+$validRanges = ['7d', '30d', '90d', '1y'];
+if (!in_array($timeRange, $validRanges)) {
+    $timeRange = '30d';
+}
+
+// Calculate date ranges
+$rangeMap = [
+    '7d' => 7,
+    '30d' => 30,
+    '90d' => 90,
+    '1y' => 365
+];
+$daysBack = $rangeMap[$timeRange];
+$startDate = new \DateTimeImmutable("-$daysBack days");
+$endDate = new \DateTimeImmutable();
+
+// Previous period for comparison
+$prevStartDate = new \DateTimeImmutable("-" . ($daysBack * 2) . " days");
+$prevEndDate = $startDate;
+
+// Helper function to filter data by date range
+function isInDateRange($dateValue, $start, $end) {
+    if (!$dateValue) return false;
+    $ts = is_string($dateValue) ? strtotime($dateValue) : 
+          (is_object($dateValue) && method_exists($dateValue, 'toDateTime') ? 
+           $dateValue->toDateTime()->getTimestamp() : null);
+    if (!$ts) return false;
+    return $ts >= $start->getTimestamp() && $ts <= $end->getTimestamp();
+}
+
+// ============================================
+// INVENTORY ANALYTICS (Time-Range Filtered)
 // ============================================
 $inventoryModel = new Inventory();
 try {
-    $totalItems = $inventoryModel->count();
-    $lowStockItems = $inventoryModel->getLowStockCount();
-    $outOfStockItems = $inventoryModel->getOutOfStockCount();
     $allItems = $inventoryModel->getAll();
     
-    // Inventory trend (last 30 days)
-    $dailyCounts = $inventoryModel->getDailyAddedCounts(30);
+    // Current period inventory stats
+    $totalItems = 0;
+    $lowStockItems = 0;
+    $outOfStockItems = 0;
+    $inventoryValue = 0;
+    
+    // Previous period for comparison
+    $prevTotalItems = 0;
+    
+    foreach ($allItems as $item) {
+        $createdDate = $item['created_at'] ?? $item['date'] ?? null;
+        
+        // Current period
+        if (isInDateRange($createdDate, $startDate, $endDate)) {
+            $totalItems++;
+            $quantity = $item['quantity'] ?? 0;
+            $price = (float)($item['price'] ?? 0);
+            $inventoryValue += $quantity * $price;
+            
+            if ($quantity == 0) $outOfStockItems++;
+            elseif ($quantity <= 5) $lowStockItems++;
+        }
+        
+        // Previous period for comparison
+        if (isInDateRange($createdDate, $prevStartDate, $prevEndDate)) {
+            $prevTotalItems++;
+        }
+    }
+    
+    // Calculate trend
+    $inventoryTrend = $prevTotalItems > 0 ? 
+        round((($totalItems - $prevTotalItems) / $prevTotalItems) * 100, 1) : 0;
+    
+    // Inventory trend data points
+    $dailyCounts = $inventoryModel->getDailyAddedCounts($daysBack);
     $inventoryTrendLabels = [];
     $inventoryTrendData = [];
-    for ($i = 29; $i >= 0; $i--) {
+    
+    $dataPoints = min($daysBack, 30); // Max 30 points for readability
+    $interval = max(1, floor($daysBack / $dataPoints));
+    
+    for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
         $d = new \DateTimeImmutable("-$i days");
         $key = $d->format('Y-m-d');
-        $inventoryTrendLabels[] = $d->format('M j');
+        $inventoryTrendLabels[] = $d->format($timeRange === '1y' ? 'M' : 'M j');
         $inventoryTrendData[] = (int)($dailyCounts[$key] ?? 0);
     }
     
@@ -72,33 +140,103 @@ $orderModel = new Order();
 
 try {
     $invoices = $invoiceModel->getAll();
-    $invoiceTotals = $invoiceModel->totals();
-    $totalRevenue = $invoiceTotals['total'];
-    $paidRevenue = $invoiceTotals['paid'];
-    $outstandingRevenue = $invoiceTotals['outstanding'];
     
-    // Revenue by month (last 6 months)
-    $revenueByMonth = [];
-    $monthLabels = [];
-    for ($i = 5; $i >= 0; $i--) {
-        $month = new \DateTimeImmutable("-$i months");
-        $monthKey = $month->format('Y-m');
-        $monthLabels[] = $month->format('M Y');
-        $revenueByMonth[$monthKey] = 0;
-    }
+    // Current period revenue
+    $totalRevenue = 0;
+    $paidRevenue = 0;
+    $outstandingRevenue = 0;
+    $invoiceCount = 0;
+    
+    // Previous period for comparison
+    $prevTotalRevenue = 0;
+    $prevPaidRevenue = 0;
+    
+    // Revenue trend data
+    $revenueByPeriod = [];
+    $dataPoints = $timeRange === '1y' ? 12 : ($timeRange === '90d' ? 12 : min($daysBack, 30));
+    $periodType = $timeRange === '1y' ? 'month' : 'day';
+    
     foreach ($invoices as $inv) {
         $date = $inv['date'] ?? null;
-        if ($date) {
-            $ts = is_string($date) ? strtotime($date) : (is_object($date) && method_exists($date, 'toDateTime') ? $date->toDateTime()->getTimestamp() : null);
-            if ($ts) {
-                $monthKey = date('Y-m', $ts);
-                if (isset($revenueByMonth[$monthKey])) {
-                    $revenueByMonth[$monthKey] += (float)($inv['total'] ?? 0);
-                }
+        $total = (float)($inv['total'] ?? 0);
+        $status = $inv['status'] ?? '';
+        
+        // Current period
+        if (isInDateRange($date, $startDate, $endDate)) {
+            $totalRevenue += $total;
+            $invoiceCount++;
+            if ($status === 'paid') {
+                $paidRevenue += $total;
+            } else {
+                $outstandingRevenue += $total;
+            }
+        }
+        
+        // Previous period for comparison
+        if (isInDateRange($date, $prevStartDate, $prevEndDate)) {
+            $prevTotalRevenue += $total;
+            if ($status === 'paid') {
+                $prevPaidRevenue += $total;
             }
         }
     }
-    $revenueData = array_values($revenueByMonth);
+    
+    // Calculate trends
+    $revenueTrend = $prevTotalRevenue > 0 ? 
+        round((($totalRevenue - $prevTotalRevenue) / $prevTotalRevenue) * 100, 1) : 0;
+    $collectionRateTrend = $prevPaidRevenue > 0 && $prevTotalRevenue > 0 ? 
+        round(((($paidRevenue/$totalRevenue) - ($prevPaidRevenue/$prevTotalRevenue)) / ($prevPaidRevenue/$prevTotalRevenue)) * 100, 1) : 0;
+    
+    // Build revenue chart data
+    $monthLabels = [];
+    $revenueData = [];
+    
+    if ($timeRange === '1y') {
+        // Monthly grouping for 1 year
+        for ($i = 11; $i >= 0; $i--) {
+            $month = new \DateTimeImmutable("-$i months");
+            $monthKey = $month->format('Y-m');
+            $monthLabels[] = $month->format('M y');
+            $revenueByPeriod[$monthKey] = 0;
+        }
+        foreach ($invoices as $inv) {
+            $date = $inv['date'] ?? null;
+            if (isInDateRange($date, $startDate, $endDate)) {
+                $ts = is_string($date) ? strtotime($date) : 
+                      (is_object($date) && method_exists($date, 'toDateTime') ? $date->toDateTime()->getTimestamp() : null);
+                if ($ts) {
+                    $monthKey = date('Y-m', $ts);
+                    if (isset($revenueByPeriod[$monthKey])) {
+                        $revenueByPeriod[$monthKey] += (float)($inv['total'] ?? 0);
+                    }
+                }
+            }
+        }
+        $revenueData = array_values($revenueByPeriod);
+    } else {
+        // Daily/weekly grouping for shorter periods
+        $interval = $timeRange === '90d' ? 7 : 1; // Weekly for 90d, daily for others
+        for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
+            $d = new \DateTimeImmutable("-$i days");
+            $key = $d->format('Y-m-d');
+            $monthLabels[] = $d->format('M j');
+            $revenueByPeriod[$key] = 0;
+        }
+        foreach ($invoices as $inv) {
+            $date = $inv['date'] ?? null;
+            if (isInDateRange($date, $startDate, $endDate)) {
+                $ts = is_string($date) ? strtotime($date) : 
+                      (is_object($date) && method_exists($date, 'toDateTime') ? $date->toDateTime()->getTimestamp() : null);
+                if ($ts) {
+                    $dayKey = date('Y-m-d', $ts);
+                    if (isset($revenueByPeriod[$dayKey])) {
+                        $revenueByPeriod[$dayKey] += (float)($inv['total'] ?? 0);
+                    }
+                }
+            }
+        }
+        $revenueData = array_values($revenueByPeriod);
+    }
     
     // Orders by type
     $orders = $orderModel->getAll();
@@ -109,15 +247,37 @@ try {
         $ordersByType[$type]++;
     }
     
-    // Quotation conversion rate
+    // Quotation conversion rate (time-filtered)
     $quotations = $quotationModel->getAll();
-    $approvedQuotations = count(array_filter($quotations, fn($q) => ($q['status'] ?? '') === 'approved'));
-    $conversionRate = count($quotations) > 0 ? round(($approvedQuotations / count($quotations)) * 100, 1) : 0;
+    $quotationCount = 0;
+    $approvedCount = 0;
+    $prevQuotationCount = 0;
+    $prevApprovedCount = 0;
+    
+    foreach ($quotations as $q) {
+        $date = $q['created_at'] ?? $q['date'] ?? null;
+        $status = $q['status'] ?? '';
+        
+        if (isInDateRange($date, $startDate, $endDate)) {
+            $quotationCount++;
+            if ($status === 'approved') $approvedCount++;
+        }
+        
+        if (isInDateRange($date, $prevStartDate, $prevEndDate)) {
+            $prevQuotationCount++;
+            if ($status === 'approved') $prevApprovedCount++;
+        }
+    }
+    
+    $conversionRate = $quotationCount > 0 ? round(($approvedCount / $quotationCount) * 100, 1) : 0;
+    $prevConversionRate = $prevQuotationCount > 0 ? round(($prevApprovedCount / $prevQuotationCount) * 100, 1) : 0;
+    $conversionTrend = $prevConversionRate > 0 ? round((($conversionRate - $prevConversionRate) / $prevConversionRate) * 100, 1) : 0;
     
 } catch (Exception $e) {
     $totalRevenue = $paidRevenue = $outstandingRevenue = 0;
     $monthLabels = $revenueData = $ordersByType = [];
-    $conversionRate = 0;
+    $conversionRate = $revenueTrend = $collectionRateTrend = $conversionTrend = 0;
+    $invoiceCount = 0;
 }
 
 // ============================================
@@ -189,43 +349,293 @@ $pageTitle = 'Analytics Dashboard';
 ob_start();
 ?>
 
-<!-- Page Banner Header -->
-<div class="page-banner">
-  <div class="page-banner-content">
-    <div class="page-banner-left">
-      <h1 class="page-banner-title">Analytics Dashboard</h1>
-      <div class="page-banner-meta">
-        <div class="page-banner-meta-item">
-          <strong>Status:</strong>
-          <span class="status-indicator">
-            <span class="status-dot"></span>
-            Real-Time
-          </span>
-        </div>
-        <div class="page-banner-meta-item">
-          <strong>User:</strong>
-          <?php echo htmlspecialchars($user['username'] ?? 'Unknown'); ?>
-        </div>
-        <div class="page-banner-meta-item">
-          <strong>Currency:</strong>
-          <span class="font-medium"><?php echo CurrencyHelper::symbol() . ' ' . CurrencyHelper::getCurrentCurrency(); ?></span>
-        </div>
+<style>
+/* Ultra-Compact Analytics Dashboard - Shadcn Inspired */
+.analytics-section {
+  margin-bottom: 1rem;
+}
+
+.analytics-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+
+.analytics-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Compact KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+
+.kpi-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.kpi-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.kpi-label {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-meta {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Compact Chart Container */
+.chart-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.625rem;
+}
+
+.chart-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.chart-card-description {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.chart-canvas-compact {
+  height: 180px !important;
+  max-height: 180px !important;
+}
+
+.chart-canvas-full {
+  height: 220px !important;
+  max-height: 220px !important;
+}
+
+/* Compact Grid System */
+.grid-analytics-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.grid-analytics-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.625rem;
+}
+
+/* Time Range Filters */
+.time-filters {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.time-filter-btn {
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-filter-btn.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.time-filter-btn:hover:not(.active) {
+  background: var(--bg-secondary);
+}
+
+/* Trend Indicators */
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.trend-indicator.up {
+  background: hsl(143 85% 96%);
+  color: hsl(140 61% 13%);
+}
+
+.trend-indicator.down {
+  background: hsl(0 86% 97%);
+  color: hsl(0 74% 24%);
+}
+
+.trend-arrow {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+/* KPI Card Hover Effect */
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Chart Loading State */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Data Point Labels */
+.data-label {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Color Variables for Charts */
+:root {
+  --color-purple: #a855f7;
+  --color-pink: #ec4899;
+  --color-teal: #14b8a6;
+  --color-orange: #f97316;
+}
+
+/* Shadcn-style Range Indicator Badge */
+.range-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: hsl(214 95% 93%);
+  color: hsl(222 47% 17%);
+  border: 1px solid hsl(214 95% 80%);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.range-indicator-badge:hover {
+  background: hsl(214 95% 88%);
+  border-color: hsl(214 95% 70%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.range-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.range-label {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .grid-analytics-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-analytics-2, .grid-analytics-3 { grid-template-columns: 1fr; }
+  .chart-canvas-compact { height: 160px !important; }
+  .chart-canvas-full { height: 200px !important; }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<!-- Compact Header -->
+<div class="content-header" style="margin-bottom: 1rem;">
+  <div>
+    <nav class="breadcrumb">
+      <a href="dashboard.php" class="breadcrumb-link">Dashboard</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">Analytics</span>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <h1 class="content-title" style="font-size: 1.5rem;">Analytics & Insights</h1>
+      <?php
+        $rangeDisplayMap = [
+          '7d' => 'Last 7 Days',
+          '30d' => 'Last 30 Days',
+          '90d' => 'Last 90 Days',
+          '1y' => 'Last Year'
+        ];
+        $rangeDisplay = $rangeDisplayMap[$timeRange] ?? 'Last 30 Days';
+      ?>
+      <div class="range-indicator-badge" title="Current analytics period">
+        <span class="range-icon">📊</span>
+        <span class="range-label"><?php echo $rangeDisplay; ?></span>
       </div>
     </div>
-    <div class="page-banner-actions">
-      <button class="btn btn-secondary" onclick="refreshCharts()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M1 4V10H7M23 20V14H17M20.49 9C19.9828 7.56678 19.1209 6.28536 17.9845 5.27539C16.8482 4.26541 15.4745 3.55976 13.9917 3.22426C12.5089 2.88875 10.9652 2.93434 9.50481 3.35677C8.04437 3.77921 6.71475 4.56471 5.64 5.64L1 10M23 14L18.36 18.36C17.2853 19.4353 15.9556 20.2208 14.4952 20.6432C13.0348 21.0657 11.4911 21.1112 10.0083 20.7757C8.52547 20.4402 7.1518 19.7346 6.01547 18.7246C4.87913 17.7146 4.01717 16.4332 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Refresh
-      </button>
-      <a href="logout.php" class="btn btn-danger">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Logout
-      </a>
+  </div>
+  <div class="content-actions">
+    <div class="time-filters">
+      <button onclick="setAnalyticsRange('7d')" class="time-filter-btn <?php echo $timeRange === '7d' ? 'active' : ''; ?>" title="Last 7 days">7D</button>
+      <button onclick="setAnalyticsRange('30d')" class="time-filter-btn <?php echo $timeRange === '30d' ? 'active' : ''; ?>" title="Last 30 days">30D</button>
+      <button onclick="setAnalyticsRange('90d')" class="time-filter-btn <?php echo $timeRange === '90d' ? 'active' : ''; ?>" title="Last 90 days">90D</button>
+      <button onclick="setAnalyticsRange('1y')" class="time-filter-btn <?php echo $timeRange === '1y' ? 'active' : ''; ?>" title="Last 12 months">1Y</button>
     </div>
+    <button class="btn btn-secondary btn-sm" onclick="refreshAnalytics()" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C13.8214 3 15.5291 3.57138 16.9497 4.55313M21 3V8M21 8H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Refresh
+    </button>
+    <a href="dashboard.php" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      Home
+    </a>
   </div>
 </div>
 
@@ -233,107 +643,152 @@ ob_start();
      KEY PERFORMANCE INDICATORS (KPIs)
      ======================================== -->
 
-<!-- Financial KPIs -->
-<div class="section">
-  <h2 class="section-title">Financial Performance Metrics</h2>
-  <div class="grid grid-cols-4 mb-4">
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Total Revenue</p>
-        <p class="stat-value"><?php echo CurrencyHelper::format($totalRevenue); ?></p>
-        <span class="badge badge-default">All-time</span>
+<!-- Financial KPIs (Ultra Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">💰 Financial Performance</h2>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value" style="color: var(--color-success);"><?php echo CurrencyHelper::format($totalRevenue); ?></div>
+      <div class="kpi-meta">
+        <?php if ($revenueTrend != 0): ?>
+          <span class="trend-indicator <?php echo $revenueTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+            <span class="trend-arrow"><?php echo $revenueTrend > 0 ? '↑' : '↓'; ?></span>
+            <span><?php echo abs($revenueTrend); ?>%</span>
+          </span>
+        <?php endif; ?>
+        <span style="margin-left: 0.25rem;"><?php echo $invoiceCount; ?> invoices</span>
       </div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Collection Rate</p>
-        <p class="stat-value text-success"><?php echo $totalRevenue > 0 ? round(($paidRevenue/$totalRevenue)*100, 1) : 0; ?>%</p>
-        <span class="text-sm text-secondary"><?php echo CurrencyHelper::format($paidRevenue); ?> collected</span>
+    <div class="kpi-card">
+      <div class="kpi-label">Collection Rate</div>
+      <div class="kpi-value" style="color: var(--color-success);"><?php echo $totalRevenue > 0 ? round(($paidRevenue/$totalRevenue)*100, 1) : 0; ?>%</div>
+      <div class="kpi-meta">
+        <?php if ($collectionRateTrend != 0): ?>
+          <span class="trend-indicator <?php echo $collectionRateTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+            <span class="trend-arrow"><?php echo $collectionRateTrend > 0 ? '↑' : '↓'; ?></span>
+            <span><?php echo abs($collectionRateTrend); ?>%</span>
+          </span>
+        <?php endif; ?>
+        <span style="margin-left: 0.25rem;"><?php echo CurrencyHelper::format($paidRevenue); ?></span>
       </div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Outstanding</p>
-        <p class="stat-value text-warning"><?php echo CurrencyHelper::format($outstandingRevenue); ?></p>
-        <span class="badge badge-warning">Pending payment</span>
+    <div class="kpi-card">
+      <div class="kpi-label">Outstanding</div>
+      <div class="kpi-value" style="color: var(--color-warning);"><?php echo CurrencyHelper::format($outstandingRevenue); ?></div>
+      <div class="kpi-meta">
+        <span class="badge badge-warning" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">Pending</span>
+        <span style="margin-left: 0.25rem;"><?php echo $totalRevenue > 0 ? round(($outstandingRevenue/$totalRevenue)*100, 1) : 0; ?>%</span>
       </div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Conversion Rate</p>
-        <p class="stat-value text-primary"><?php echo $conversionRate; ?>%</p>
-        <span class="text-sm text-secondary">Quotation → Invoice</span>
+    <div class="kpi-card">
+      <div class="kpi-label">Conversion</div>
+      <div class="kpi-value" style="color: var(--color-primary);"><?php echo $conversionRate; ?>%</div>
+      <div class="kpi-meta">
+        <?php if ($conversionTrend != 0): ?>
+          <span class="trend-indicator <?php echo $conversionTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+            <span class="trend-arrow"><?php echo $conversionTrend > 0 ? '↑' : '↓'; ?></span>
+            <span><?php echo abs($conversionTrend); ?>%</span>
+          </span>
+        <?php endif; ?>
+        <span style="margin-left: 0.25rem;"><?php echo $quotationCount; ?> quotes</span>
       </div>
+    </div>
+    
+    <!-- NEW: Average Invoice Value (Xero Feature) -->
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Invoice</div>
+      <div class="kpi-value" style="color: var(--color-info);"><?php echo $invoiceCount > 0 ? CurrencyHelper::format($totalRevenue / $invoiceCount) : CurrencyHelper::format(0); ?></div>
+      <div class="kpi-meta">Per transaction</div>
+    </div>
+    
+    <!-- NEW: Inventory Value (QuickBooks Feature) -->
+    <div class="kpi-card">
+      <div class="kpi-label">Inventory Value</div>
+      <div class="kpi-value" style="color: var(--color-purple);"><?php echo CurrencyHelper::format($inventoryValue); ?></div>
+      <div class="kpi-meta"><?php echo $totalItems; ?> items</div>
     </div>
   </div>
 </div>
 
-<!-- Operations KPIs -->
-<div class="section">
-  <h2 class="section-title">Operations Performance Metrics</h2>
-  <div class="grid grid-cols-4 mb-4">
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Inventory Items</p>
-        <p class="stat-value"><?php echo number_format($totalItems); ?></p>
-        <span class="badge badge-success"><?php echo number_format($totalItems - $lowStockItems - $outOfStockItems); ?> in stock</span>
+<!-- Operations KPIs (Ultra Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">📊 Operations Performance</h2>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Inventory Items</div>
+      <div class="kpi-value"><?php echo number_format($totalItems); ?></div>
+      <div class="kpi-meta">
+        <?php if ($inventoryTrend != 0): ?>
+          <span class="trend-indicator <?php echo $inventoryTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+            <span class="trend-arrow"><?php echo $inventoryTrend > 0 ? '↑' : '↓'; ?></span>
+            <span><?php echo abs($inventoryTrend); ?>%</span>
+          </span>
+        <?php endif; ?>
+        <span style="margin-left: 0.25rem;">added</span>
       </div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Stock Health</p>
-        <p class="stat-value <?php echo $lowStockItems > 0 ? 'text-warning' : 'text-success'; ?>"><?php echo $totalItems > 0 ? round((($totalItems - $lowStockItems - $outOfStockItems) / $totalItems) * 100, 1) : 0; ?>%</p>
-        <span class="text-sm text-secondary"><?php echo number_format($lowStockItems); ?> low, <?php echo number_format($outOfStockItems); ?> out</span>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Stock Health</div>
+      <div class="kpi-value" style="color: <?php echo $lowStockItems > 0 ? 'var(--color-warning)' : 'var(--color-success)'; ?>;"><?php echo $totalItems > 0 ? round((($totalItems - $lowStockItems - $outOfStockItems) / $totalItems) * 100, 1) : 0; ?>%</div>
+      <div class="kpi-meta"><?php echo number_format($lowStockItems); ?> low, <?php echo number_format($outOfStockItems); ?> out</div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Budget Utilization</p>
-        <p class="stat-value text-primary"><?php echo $budgetUtilization; ?>%</p>
-        <span class="text-sm text-secondary">Project spending</span>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Budget Use</div>
+      <div class="kpi-value" style="color: var(--color-primary);"><?php echo $budgetUtilization; ?>%</div>
+      <div class="kpi-meta">Project spend</div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Compliance Rate</p>
-        <p class="stat-value <?php echo $complianceRate >= 90 ? 'text-success' : 'text-warning'; ?>"><?php echo $complianceRate; ?>%</p>
-        <span class="text-sm text-secondary">BIR forms filed</span>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Compliance</div>
+      <div class="kpi-value" style="color: <?php echo $complianceRate >= 90 ? 'var(--color-success)' : 'var(--color-warning)'; ?>;"><?php echo $complianceRate; ?>%</div>
+      <div class="kpi-meta">BIR forms</div>
+    </div>
+    
+    <!-- NEW: Stock Turnover Rate (Xero Feature) -->
+    <div class="kpi-card">
+      <div class="kpi-label">Turnover</div>
+      <div class="kpi-value" style="color: var(--color-info);"><?php echo $totalItems > 0 ? round(($invoiceCount / $totalItems) * 100, 1) : 0; ?>%</div>
+      <div class="kpi-meta">Stock movement</div>
+    </div>
+    
+    <!-- NEW: Active Orders (QuickBooks Feature) -->
+    <div class="kpi-card">
+      <div class="kpi-label">Orders</div>
+      <div class="kpi-value" style="color: var(--color-success);"><?php echo number_format(array_sum($ordersByType)); ?></div>
+      <div class="kpi-meta"><?php echo $ordersByType['Sales'] ?? 0; ?> sales / <?php echo $ordersByType['Purchase'] ?? 0; ?> purchase</div>
     </div>
   </div>
 </div>
 
-<!-- Alerts & Notifications KPIs -->
-<div class="section">
-  <h2 class="section-title">System Health & Alerts</h2>
-  <div class="grid grid-cols-4 mb-4">
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Active Alerts</p>
-        <p class="stat-value text-warning"><?php echo number_format($notificationSummary['unread']); ?></p>
-        <span class="badge badge-warning"><?php echo $notificationSummary['high_priority']; ?> high priority</span>
-      </div>
+<!-- System Health KPIs (Ultra Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">🔔 System & Alerts</h2>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Active Alerts</div>
+      <div class="kpi-value" style="color: var(--color-warning);"><?php echo number_format($notificationSummary['unread']); ?></div>
+      <div class="kpi-meta"><span class="badge badge-warning" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;"><?php echo $notificationSummary['high_priority']; ?> urgent</span></div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">FDA Expiring</p>
-        <p class="stat-value text-danger"><?php echo number_format($expiryDistribution['0-30 days'] ?? 0); ?></p>
-        <span class="text-sm text-secondary">Next 30 days</span>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">FDA Expiring</div>
+      <div class="kpi-value" style="color: var(--color-danger);"><?php echo number_format($expiryDistribution['0-30 days'] ?? 0); ?></div>
+      <div class="kpi-meta">Next 30 days</div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">Active Projects</p>
-        <p class="stat-value text-success"><?php echo number_format($projectsByStatus['active'] ?? 0); ?></p>
-        <span class="text-sm text-secondary"><?php echo number_format($projectsByStatus['completed'] ?? 0); ?> completed</span>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Active Projects</div>
+      <div class="kpi-value" style="color: var(--color-success);"><?php echo number_format($projectsByStatus['active'] ?? 0); ?></div>
+      <div class="kpi-meta"><?php echo number_format($projectsByStatus['completed'] ?? 0); ?> done</div>
     </div>
-    <div class="card stat-card">
-      <div class="card-content">
-        <p class="stat-label">In Transit</p>
-        <p class="stat-value text-primary"><?php echo number_format($shipmentsByStatus['in_transit'] ?? 0); ?></p>
-        <span class="text-sm text-secondary">Shipments</span>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">In Transit</div>
+      <div class="kpi-value" style="color: var(--color-primary);"><?php echo number_format($shipmentsByStatus['in_transit'] ?? 0); ?></div>
+      <div class="kpi-meta">Shipments</div>
     </div>
   </div>
 </div>
@@ -342,114 +797,124 @@ ob_start();
      DATA VISUALIZATIONS & CHARTS
      ======================================== -->
 
-<!-- Revenue Trend (Full Width) -->
-<div class="section">
-  <h2 class="section-title">Revenue Trends & Analysis</h2>
-  <div class="card mb-4">
-    <div class="card-header">
-      <h3 class="card-title">Revenue by Month (Last 6 Months)</h3>
-      <p class="card-description">Track revenue growth and patterns</p>
+<!-- Revenue Trend (Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">📈 Revenue Trends</h2>
+  </div>
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div>
+        <h3 class="chart-card-title">Revenue by Month (6 Months)</h3>
+        <p class="chart-card-description">Growth & patterns</p>
+      </div>
     </div>
-    <div class="card-content">
-      <canvas id="revenueChart" style="height: 300px; max-height: 300px;"></canvas>
-    </div>
+    <canvas id="revenueChart" class="chart-canvas-full"></canvas>
   </div>
 </div>
 
-<!-- Distribution Charts -->
-<div class="section">
-  <h2 class="section-title">Distribution & Composition Analysis</h2>
-  <div class="grid grid-cols-2 mb-4" style="gap: 1.5rem;">
+<!-- Distribution Charts (Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">🎯 Distribution Analysis</h2>
+  </div>
+  <div class="grid-analytics-2">
     <!-- Orders by Type -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Orders by Type</h3>
-        <p class="card-description">Sales vs Purchase orders</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <h3 class="chart-card-title">Orders by Type</h3>
+          <p class="chart-card-description">Sales vs Purchase</p>
+        </div>
       </div>
-      <div class="card-content">
-        <canvas id="ordersChart" style="height: 300px; max-height: 300px;"></canvas>
-      </div>
+      <canvas id="ordersChart" class="chart-canvas-compact"></canvas>
     </div>
     
     <!-- Stock Level Distribution -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Stock Level Distribution</h3>
-        <p class="card-description">Inventory health status</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <h3 class="chart-card-title">Stock Levels</h3>
+          <p class="chart-card-description">Health status</p>
+        </div>
       </div>
-      <div class="card-content">
-        <canvas id="stockLevelChart" style="height: 300px; max-height: 300px;"></canvas>
-      </div>
+      <canvas id="stockLevelChart" class="chart-canvas-compact"></canvas>
     </div>
   </div>
 </div>
 
-<!-- Compliance & Operations Charts -->
-<div class="section">
-  <h2 class="section-title">Compliance & Operations Overview</h2>
-  <div class="grid grid-cols-2 mb-4" style="gap: 1.5rem;">
+<!-- Compliance Charts (Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">🔒 Compliance & Regulatory</h2>
+  </div>
+  <div class="grid-analytics-2">
     <!-- BIR Compliance Status -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">BIR Compliance Status</h3>
-        <p class="card-description">Filed vs Pending forms</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <h3 class="chart-card-title">BIR Compliance</h3>
+          <p class="chart-card-description">Filed vs Pending</p>
+        </div>
       </div>
-      <div class="card-content">
-        <canvas id="birChart" style="height: 300px; max-height: 300px;"></canvas>
-      </div>
+      <canvas id="birChart" class="chart-canvas-compact"></canvas>
     </div>
     
     <!-- FDA Product Expiry Timeline -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">FDA Product Expiry Timeline</h3>
-        <p class="card-description">Products expiring in next 90 days</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <h3 class="chart-card-title">FDA Expiry</h3>
+          <p class="chart-card-description">Next 90 days</p>
+        </div>
       </div>
-      <div class="card-content">
-        <canvas id="expiryChart" style="height: 300px; max-height: 300px;"></canvas>
-      </div>
+      <canvas id="expiryChart" class="chart-canvas-compact"></canvas>
     </div>
   </div>
 </div>
 
-<!-- Inventory Trend -->
-<div class="section">
-  <h2 class="section-title">Inventory Growth Trend</h2>
-  <div class="card mb-4">
-    <div class="card-header">
-      <h3 class="card-title">Items Added (Last 30 Days)</h3>
-      <p class="card-description">Daily inventory additions</p>
+<!-- Inventory Trend (Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">📦 Inventory Growth</h2>
+  </div>
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div>
+        <h3 class="chart-card-title">Items Added (30 Days)</h3>
+        <p class="chart-card-description">Daily additions</p>
+      </div>
     </div>
-    <div class="card-content">
-      <canvas id="inventoryTrendChart" style="height: 250px; max-height: 250px;"></canvas>
-    </div>
+    <canvas id="inventoryTrendChart" class="chart-canvas-full"></canvas>
   </div>
 </div>
 
-<!-- Project & Shipment Status -->
-<div class="section">
-  <h2 class="section-title">Project & Logistics Status</h2>
-  <div class="grid grid-cols-2 mb-4" style="gap: 1.5rem;">
+<!-- Projects & Logistics (Compact) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">🚀 Projects & Logistics</h2>
+  </div>
+  <div class="grid-analytics-2">
     <!-- Projects by Status -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Projects by Status</h3>
-        <p class="card-description">Active, Completed, On Hold</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <h3 class="chart-card-title">Projects Status</h3>
+          <p class="chart-card-description">Active, Done, Hold</p>
+        </div>
       </div>
-      <div class="card-content">
-        <canvas id="projectsChart" style="height: 300px; max-height: 300px;"></canvas>
-      </div>
+      <canvas id="projectsChart" class="chart-canvas-compact"></canvas>
     </div>
     
     <!-- Shipments by Status -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Shipments by Status</h3>
-        <p class="card-description">Logistics tracking overview</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <h3 class="chart-card-title">Shipments</h3>
+          <p class="chart-card-description">Logistics tracking</p>
+        </div>
       </div>
-      <div class="card-content">
-        <canvas id="shipmentsChart" style="height: 300px; max-height: 300px;"></canvas>
-      </div>
+      <canvas id="shipmentsChart" class="chart-canvas-compact"></canvas>
     </div>
   </div>
 </div>
@@ -688,18 +1153,57 @@ new Chart(document.getElementById('shipmentsChart'), {
   }
 });
 
-// Refresh charts function
-function refreshCharts() {
-  showToast('Refreshing analytics...', 'info');
-  setTimeout(() => {
-    location.reload();
-  }, 500);
+// ============================================
+// ANALYTICS AJAX (NO PAGE REFRESH)
+// ============================================
+function setAnalyticsRange(range) {
+  const currentRange = new URLSearchParams(window.location.search).get('range') || '30d';
+  if (range === currentRange) return; // Already selected
+  
+  loadAnalyticsData(range);
 }
 
-// Auto-refresh every 5 minutes
+function refreshAnalytics() {
+  const currentRange = new URLSearchParams(window.location.search).get('range') || '30d';
+  loadAnalyticsData(currentRange);
+}
+
+function loadAnalyticsData(range) {
+  // Show loading state
+  const kpiCards = document.querySelector('.analytics-kpi-grid');
+  if (kpiCards) {
+    kpiCards.style.opacity = '0.6';
+    kpiCards.style.pointerEvents = 'none';
+  }
+  
+  // Fetch new data
+  fetch(`/api/analytics.php?action=get_analytics&range=${range}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update URL without reload
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('range', range);
+        window.history.pushState({}, '', newUrl);
+        
+        // Reload page to update charts (simpler for now)
+        // In future, can update charts individually
+        location.reload();
+      }
+    })
+    .catch(error => console.error('Error loading analytics:', error))
+    .finally(() => {
+      if (kpiCards) {
+        kpiCards.style.opacity = '1';
+        kpiCards.style.pointerEvents = '';
+      }
+    });
+}
+
+// Auto-refresh every 5 minutes (no toast notification)
 setInterval(() => {
   console.log('Auto-refreshing analytics data...');
-  // In production, use AJAX to update data without full reload
+  refreshAnalytics();
 }, 300000);
 </script>
 

@@ -215,7 +215,7 @@ ob_start();
       </svg>
       Export PDF
     </button>
-    <button class="btn btn-ghost btn-sm" onclick="exportReport('csv')">
+    <button class="btn btn-ghost btn-sm" onclick="exportReport('xlsx')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14 2 14 8 20 8"/>
@@ -223,7 +223,7 @@ ob_start();
         <line x1="16" y1="17" x2="8" y2="17"/>
         <polyline points="10 9 9 9 8 9"/>
       </svg>
-      Export CSV
+      Export Excel
     </button>
     <button class="btn btn-secondary btn-sm" onclick="window.print()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -784,7 +784,7 @@ function resetForm() {
   window.location.href = url.toString();
 }
 
-// Export report functions
+// Export report functions (XLSX - Modern format with proper UTF-8 support)
 function exportReport(format) {
   if (format === 'pdf') {
     // Generate PDF by redirecting to export endpoint
@@ -794,65 +794,29 @@ function exportReport(format) {
     // Open in new window to trigger download
     window.open(exportUrl, '_blank');
     
-  } else if (format === 'csv') {
-    // Export data as CSV
-    exportToCSV();
+  } else if (format === 'xlsx' || format === 'excel') {
+    // Export to XLSX format (modern, proper encoding)
+    exportToXLSX();
   }
 }
 
-// CSV Export Function
-function exportToCSV() {
-  const reportType = '<?php echo $reportType; ?>';
-  const reportTitle = '<?php echo addslashes($reportTitle); ?>';
-  const timestamp = new Date().toISOString().slice(0, 10);
-  
-  let csvContent = '';
-  let filename = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.csv`;
-  
-  // Get all tables in the report
-  const tables = document.querySelectorAll('.report-content table');
-  
-  if (tables.length === 0) {
-    alert('No data available to export');
-    return;
+// XLSX Export Function (replaces CSV)
+function exportToXLSX() {
+  // Show loading toast
+  if (typeof Toast !== 'undefined') {
+    Toast.info('Preparing export...');
   }
   
-  // Add report header
-  csvContent += `"${reportTitle}"\n`;
-  csvContent += `"<?php echo addslashes($reportSubtitle); ?>"\n\n`;
+  // Build URL with current parameters
+  const params = new URLSearchParams(window.location.search);
+  window.location.href = 'api/export-financial-report.php?' + params.toString();
   
-  // Process each table
-  tables.forEach((table, tableIndex) => {
-    if (tableIndex > 0) csvContent += '\n';
-    
-    const rows = table.querySelectorAll('tr');
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('td, th');
-      const rowData = Array.from(cells).map(cell => {
-        let text = cell.textContent.trim();
-        // Escape quotes and wrap in quotes if contains comma
-        text = text.replace(/"/g, '""');
-        return `"${text}"`;
-      });
-      csvContent += rowData.join(',') + '\n';
-    });
-  });
-  
-  // Create download link
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.display = 'none';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  // Clean up
-  URL.revokeObjectURL(url);
+  // Show success after a delay (file download will start)
+  setTimeout(() => {
+    if (typeof Toast !== 'undefined') {
+      Toast.success('Financial report exported successfully to XLSX!');
+    }
+  }, 1000);
 }
 
 const __originalTitle = document.title;

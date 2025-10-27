@@ -18,6 +18,7 @@ services:
       - ../public:/var/www/html/public
       - ../scripts:/var/www/html/scripts
       - ../src:/var/www/html/src
+      - ../vendor:/var/www/html/vendor
       - ../var/logs:/var/www/html/var/logs
       - ../var/sessions:/var/www/html/var/sessions
       - ../composer.json:/var/www/html/composer.json:ro

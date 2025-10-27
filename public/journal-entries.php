@@ -291,14 +291,14 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
 <div class="je-toolbar">
   <form method="GET" id="filter-form">
     <div class="je-filters">
-      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Search</label><input type="text" name="search" class="form-input" placeholder="Entry #, Description..." value="<?php echo htmlspecialchars($searchQuery); ?>"></div>
-      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Status</label><select name="status" class="form-select" onchange="document.getElementById('filter-form').submit()"><option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Status</option><option value="<?php echo JournalEntry::STATUS_DRAFT; ?>" <?php echo $statusFilter === JournalEntry::STATUS_DRAFT ? 'selected' : ''; ?>>Draft</option><option value="<?php echo JournalEntry::STATUS_POSTED; ?>" <?php echo $statusFilter === JournalEntry::STATUS_POSTED ? 'selected' : ''; ?>>Posted</option><option value="<?php echo JournalEntry::STATUS_VOID; ?>" <?php echo $statusFilter === JournalEntry::STATUS_VOID ? 'selected' : ''; ?>>Voided</option></select></div>
-      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Type</label><select name="type" class="form-select" onchange="document.getElementById('filter-form').submit()"><option value="all" <?php echo $typeFilter === 'all' ? 'selected' : ''; ?>>All Types</option><option value="general" <?php echo $typeFilter === 'general' ? 'selected' : ''; ?>>General</option><option value="sales" <?php echo $typeFilter === 'sales' ? 'selected' : ''; ?>>Sales</option><option value="purchase" <?php echo $typeFilter === 'purchase' ? 'selected' : ''; ?>>Purchase</option><option value="payment" <?php echo $typeFilter === 'payment' ? 'selected' : ''; ?>>Payment</option><option value="receipt" <?php echo $typeFilter === 'receipt' ? 'selected' : ''; ?>>Receipt</option><option value="adjustment" <?php echo $typeFilter === 'adjustment' ? 'selected' : ''; ?>>Adjustment</option></select></div>
-      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Start Date</label><input type="date" name="start_date" class="form-input" value="<?php echo htmlspecialchars($startDate); ?>" onchange="document.getElementById('filter-form').submit()"></div>
-      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">End Date</label><input type="date" name="end_date" class="form-input" value="<?php echo htmlspecialchars($endDate); ?>" onchange="document.getElementById('filter-form').submit()"></div>
-      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Show</label><select name="per_page" class="form-select" onchange="document.getElementById('filter-form').submit()"><option value="10" <?php echo $perPage == 10 ? 'selected' : ''; ?>>10 per page</option><option value="25" <?php echo $perPage == 25 ? 'selected' : ''; ?>>25 per page</option><option value="50" <?php echo $perPage == 50 ? 'selected' : ''; ?>>50 per page</option><option value="100" <?php echo $perPage == 100 ? 'selected' : ''; ?>>100 per page</option></select></div>
+      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Search</label><input type="text" name="search" id="je-search" class="form-input" placeholder="Entry #, Description..." value="<?php echo htmlspecialchars($searchQuery); ?>"></div>
+      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Status</label><select name="status" id="je-status" class="form-select" onchange="applyFilters()"><option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Status</option><option value="<?php echo JournalEntry::STATUS_DRAFT; ?>" <?php echo $statusFilter === JournalEntry::STATUS_DRAFT ? 'selected' : ''; ?>>Draft</option><option value="<?php echo JournalEntry::STATUS_POSTED; ?>" <?php echo $statusFilter === JournalEntry::STATUS_POSTED ? 'selected' : ''; ?>>Posted</option><option value="<?php echo JournalEntry::STATUS_VOID; ?>" <?php echo $statusFilter === JournalEntry::STATUS_VOID ? 'selected' : ''; ?>>Voided</option></select></div>
+      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Type</label><select name="type" id="je-type" class="form-select" onchange="applyFilters()"><option value="all" <?php echo $typeFilter === 'all' ? 'selected' : ''; ?>>All Types</option><option value="general" <?php echo $typeFilter === 'general' ? 'selected' : ''; ?>>General</option><option value="sales" <?php echo $typeFilter === 'sales' ? 'selected' : ''; ?>>Sales</option><option value="purchase" <?php echo $typeFilter === 'purchase' ? 'selected' : ''; ?>>Purchase</option><option value="payment" <?php echo $typeFilter === 'payment' ? 'selected' : ''; ?>>Payment</option><option value="receipt" <?php echo $typeFilter === 'receipt' ? 'selected' : ''; ?>>Receipt</option><option value="adjustment" <?php echo $typeFilter === 'adjustment' ? 'selected' : ''; ?>>Adjustment</option></select></div>
+      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Start Date</label><input type="date" name="start_date" id="je-start-date" class="form-input" value="<?php echo htmlspecialchars($startDate); ?>" onchange="applyFilters()"></div>
+      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">End Date</label><input type="date" name="end_date" id="je-end-date" class="form-input" value="<?php echo htmlspecialchars($endDate); ?>" onchange="applyFilters()"></div>
+      <div><label class="form-label" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Show</label><select name="per_page" id="je-per-page" class="form-select" onchange="applyFilters()"><option value="10" <?php echo $perPage == 10 ? 'selected' : ''; ?>>10 per page</option><option value="25" <?php echo $perPage == 25 ? 'selected' : ''; ?>>25 per page</option><option value="50" <?php echo $perPage == 50 ? 'selected' : ''; ?>>50 per page</option><option value="100" <?php echo $perPage == 100 ? 'selected' : ''; ?>>100 per page</option></select></div>
     </div>
-    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;"><button type="submit" class="btn btn-primary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Apply Filters</button><a href="journal-entries.php" class="btn btn-secondary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Clear All</a></div>
+    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;"><button type="button" onclick="applyFilters()" class="btn btn-primary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Apply Filters</button><button type="button" onclick="clearFilters()" class="btn btn-secondary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Clear All</button></div>
   </form>
 </div>
 
@@ -372,11 +372,11 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
 <div class="pagination">
   <div><span class="text-sm text-secondary">Showing <?php echo $offset + 1; ?> to <?php echo min($offset + $perPage, $totalEntries); ?> of <?php echo number_format($totalEntries); ?> entries</span></div>
   <div class="pagination-buttons">
-    <?php if ($page > 1): ?><a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>" class="btn btn-secondary btn-sm">Previous</a><?php endif; ?>
+    <?php if ($page > 1): ?><button onclick="goToPage(<?php echo $page - 1; ?>)" class="btn btn-secondary btn-sm">Previous</button><?php endif; ?>
     <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
-      <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>" class="btn btn-<?php echo $i === $page ? 'primary' : 'secondary'; ?> btn-sm"><?php echo $i; ?></a>
+      <button onclick="goToPage(<?php echo $i; ?>)" class="btn btn-<?php echo $i === $page ? 'primary' : 'secondary'; ?> btn-sm"><?php echo $i; ?></button>
     <?php endfor; ?>
-    <?php if ($page < $totalPages): ?><a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>" class="btn btn-secondary btn-sm">Next</a><?php endif; ?>
+    <?php if ($page < $totalPages): ?><button onclick="goToPage(<?php echo $page + 1; ?>)" class="btn btn-secondary btn-sm">Next</button><?php endif; ?>
   </div>
 </div>
 <?php endif; ?>
@@ -762,6 +762,84 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
 </style>
 
 <script>
+// ============================================
+// JOURNAL ENTRIES AJAX (NO PAGE REFRESH)
+// ============================================
+
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+function applyFilters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  urlParams.set('search', document.getElementById('je-search').value);
+  urlParams.set('status', document.getElementById('je-status').value);
+  urlParams.set('type', document.getElementById('je-type').value);
+  urlParams.set('start_date', document.getElementById('je-start-date').value);
+  urlParams.set('end_date', document.getElementById('je-end-date').value);
+  urlParams.set('per_page', document.getElementById('je-per-page').value);
+  urlParams.set('page', '1');
+  
+  const newUrl = new URL(window.location.href);
+  newUrl.search = urlParams.toString();
+  window.history.pushState({}, '', newUrl);
+  
+  location.reload();
+}
+
+function clearFilters() {
+  window.location.href = 'journal-entries.php';
+}
+
+// Go to specific page
+function goToPage(pageNum) {
+  const urlParams = new URLSearchParams(window.location.search);
+  urlParams.set('page', pageNum);
+  
+  const newUrl = new URL(window.location.href);
+  newUrl.search = urlParams.toString();
+  window.history.pushState({}, '', newUrl);
+  
+  location.reload();
+}
+
+function sortTable(column) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentSort = urlParams.get('sort');
+  const currentOrder = urlParams.get('order');
+  
+  let newOrder = 'asc';
+  if (currentSort === column && currentOrder === 'asc') {
+    newOrder = 'desc';
+  }
+  
+  urlParams.set('sort', column);
+  urlParams.set('order', newOrder);
+  
+  const newUrl = new URL(window.location.href);
+  newUrl.search = urlParams.toString();
+  window.history.pushState({}, '', newUrl);
+  
+  location.reload();
+}
+
+// Search with debounce
+const jeSearchInput = document.getElementById('je-search');
+if (jeSearchInput) {
+  jeSearchInput.addEventListener('input', debounce(function(e) {
+    applyFilters();
+  }, 500));
+}
+
 // ========== BULK SELECTION ========== 
 function toggleSelectAll(checkbox) {
   document.querySelectorAll('.entry-checkbox').forEach(cb => cb.checked = checkbox.checked);
@@ -878,17 +956,17 @@ function reverseEntry(entryId) {
 
 // ========== EXPORT ==========
 function exportData() {
-  const format = prompt('Export format:\n1 = Excel (XLSX)\n2 = PDF\n3 = CSV\nEnter number:', '1');
+  // Show loading toast
+  Toast.info('Preparing export...');
   
-  const formats = {
-    '1': 'xlsx',
-    '2': 'pdf',
-    '3': 'csv'
-  };
+  // Build URL with current filters
+  const params = new URLSearchParams(<?php echo json_encode($_GET); ?>);
+  window.location.href = 'api/export-journal-entries.php?' + params.toString();
   
-  if (formats[format]) {
-    window.location.href = `journal-entries-export.php?format=${formats[format]}&` + new URLSearchParams(<?php echo json_encode($_GET); ?>).toString();
-  }
+  // Show success after a delay (file download will start)
+  setTimeout(() => {
+    Toast.success('Journal entries exported successfully to XLSX!');
+  }, 1000);
 }
 
 // ========== IMPORT MODAL ==========

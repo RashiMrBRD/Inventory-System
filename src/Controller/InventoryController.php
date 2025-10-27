@@ -78,10 +78,10 @@ class InventoryController
      */
     public function createItem(array $data): array
     {
-        // Validate required fields
-        $requiredFields = ['barcode', 'name', 'type', 'quantity'];
+        // Validate required fields (matching comprehensive form)
+        $requiredFields = ['barcode', 'sku', 'name', 'type', 'lifespan', 'unit_of_measure', 'cost_price', 'sell_price'];
         foreach ($requiredFields as $field) {
-            if (!isset($data[$field]) || empty($data[$field])) {
+            if (!isset($data[$field]) || (is_string($data[$field]) && trim($data[$field]) === '')) {
                 return [
                     'success' => false,
                     'message' => "Field '$field' is required"
@@ -98,13 +98,18 @@ class InventoryController
             ];
         }
 
+        // Set default quantity if not provided
+        if (!isset($data['quantity'])) {
+            $data['quantity'] = 0;
+        }
+
         try {
             $itemId = $this->inventoryModel->create($data);
             
             if ($itemId) {
                 return [
                     'success' => true,
-                    'message' => 'Item created successfully',
+                    'message' => 'Item created successfully with all enterprise features!',
                     'id' => $itemId
                 ];
             }
