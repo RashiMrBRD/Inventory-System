@@ -1,7 +1,7 @@
 # Inventory Management System
-![status](https://img.shields.io/badge/status-alpha-yellow) ![php](https://img.shields.io/badge/PHP-8.2-blue) ![db](https://img.shields.io/badge/MongoDB-7.x-green) ![server](https://img.shields.io/badge/Apache-2.4-lightgrey) ![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED) ![license](https://img.shields.io/badge/license-MIT-green)
+![status](https://img.shields.io/badge/status-alpha-yellow) ![php](https://img.shields.io/badge/PHP-8.3-blue) ![db](https://img.shields.io/badge/MongoDB-7.x-green) ![server](https://img.shields.io/badge/Apache-2.4-lightgrey) ![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED) ![license](https://img.shields.io/badge/license-MIT-green)
 
-A modern, secure inventory management system built with PHP 8.2, Apache 2.4, MongoDB 7, and Docker. It features a RESTful API architecture designed for production deployment. The application provides a comprehensive solution for tracking inventory items while maintaining security best practices and follows industry-standard code organization patterns.
+A modern, secure inventory management system built with PHP 8.3, Apache 2.4, MongoDB 7, and Docker. It features a RESTful API architecture designed for production deployment. The application provides a comprehensive solution for tracking inventory items while maintaining security best practices and follows industry-standard code organization patterns.
 
 ## 📋 Table of Contents
 - [Features](#features)
@@ -34,7 +34,7 @@ A modern, secure inventory management system built with PHP 8.2, Apache 2.4, Mon
 
 ## 💻 System Requirements
 
-- PHP 8.2+
+- PHP 8.3+
 - MongoDB 7.0+
 - Apache 2.4 or Nginx
 - Composer
@@ -201,7 +201,7 @@ inventory_demo/
 ## 📦 Installation
 
 ### Prerequisites
-- [XAMPP](https://www.apachefriends.org/) or Apache + PHP 8.2+
+- [XAMPP](https://www.apachefriends.org/) or Apache + PHP 8.3+
 - [MongoDB 7.0+](https://www.mongodb.com/try/download/community)
 - [Composer](https://getcomposer.org/download/)
 - MongoDB PHP extension: Add `extension=mongodb` to `php.ini`
