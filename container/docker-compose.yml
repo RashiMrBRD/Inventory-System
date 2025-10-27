@@ -13,11 +13,16 @@ services:
       - "8082:80"
     volumes:
       # Mount source code for development (comment out for production)
-      - ../public:/var/www/html/public
-      - ../src:/var/www/html/src
+      - ../api:/var/www/html/api
       - ../config:/var/www/html/config
+      - ../public:/var/www/html/public
+      - ../scripts:/var/www/html/scripts
+      - ../src:/var/www/html/src
       - ../var/logs:/var/www/html/var/logs
       - ../var/sessions:/var/www/html/var/sessions
+      - ../composer.json:/var/www/html/composer.json:ro
+      - ../composer.lock:/var/www/html/composer.lock:ro
+      - ../.htaccess:/var/www/html/.htaccess:ro
     environment:
       - MONGODB_HOST=mongodb
       - MONGODB_PORT=27017
@@ -38,8 +43,17 @@ services:
     develop:
       watch:
         - action: sync
+          path: ../api
+          target: /var/www/html/api
+        - action: sync
+          path: ../config
+          target: /var/www/html/config
+        - action: sync
           path: ../public
           target: /var/www/html/public
+        - action: sync
+          path: ../scripts
+          target: /var/www/html/scripts
         - action: sync
           path: ../src
           target: /var/www/html/src
