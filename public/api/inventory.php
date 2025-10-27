@@ -73,8 +73,8 @@ try {
                         $bVal = $b['type'] ?? '';
                         break;
                     case 'price':
-                        $aVal = (float)($a['price'] ?? 0);
-                        $bVal = (float)($b['price'] ?? 0);
+                        $aVal = (float)($a['sell_price'] ?? $a['price'] ?? 0);
+                        $bVal = (float)($b['sell_price'] ?? $b['price'] ?? 0);
                         break;
                     case 'quantity':
                     case 'stock':
@@ -90,8 +90,8 @@ try {
                         $bVal = $bStatus;
                         break;
                     case 'value':
-                        $aVal = ((int)($a['quantity'] ?? 0)) * ((float)($a['price'] ?? 0));
-                        $bVal = ((int)($b['quantity'] ?? 0)) * ((float)($b['price'] ?? 0));
+                        $aVal = ((int)($a['quantity'] ?? 0)) * ((float)($a['sell_price'] ?? $a['price'] ?? 0));
+                        $bVal = ((int)($b['quantity'] ?? 0)) * ((float)($b['sell_price'] ?? $b['price'] ?? 0));
                         break;
                     case 'date':
                     case 'updated':
@@ -114,7 +114,8 @@ try {
             $outOfStockCount = 0;
             foreach ($allItems as $item) {
                 $qty = $item['quantity'] ?? 0;
-                $price = (float)($item['price'] ?? 0);
+                // Use sell_price field (which is stored in database) instead of price
+                $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
                 $totalValue += $qty * $price;
                 $totalQuantity += $qty;
                 if ($qty == 0) $outOfStockCount++;
@@ -136,7 +137,8 @@ try {
             foreach ($items as $item) {
                 $itemId = (string)$item['_id'];
                 $quantity = $item['quantity'] ?? 0;
-                $price = (float)($item['price'] ?? 0);
+                // Use sell_price field (which is stored in database) instead of price
+                $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
                 $itemValue = $quantity * $price;
                 $dateAdded = isset($item['date_added']) ? $item['date_added']->toDateTime()->format('M d, Y') : 'N/A';
                 

@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($result['success']) {
         session_start();
-        $_SESSION['flash_message'] = 'Item updated successfully with all enterprise features!';
+        $_SESSION['flash_message'] = 'Item updated successfully';
         $_SESSION['flash_type'] = 'success';
         header("Location: inventory-list.php");
         exit();
@@ -569,10 +569,69 @@ function scanBarcode() {
   console.log('Barcode scanned:', mockBarcode);
 }
 
+// Show validation tooltip for invalid field
+function showValidationTooltip(field) {
+  // Remove any existing tooltip
+  const existingTooltip = document.getElementById('validation-tooltip');
+  if (existingTooltip) existingTooltip.remove();
+  
+  // Get field label text
+  const label = field.closest('.form-group')?.querySelector('label');
+  const fieldName = label ? label.textContent.replace('*', '').trim() : 'This field';
+  
+  // Create tooltip
+  const tooltip = document.createElement('div');
+  tooltip.id = 'validation-tooltip';
+  tooltip.style.cssText = `
+    position: absolute;
+    background: hsl(0 74% 50%);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 10000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s ease-out;
+  `;
+  tooltip.textContent = `⚠️ ${fieldName} is required`;
+  
+  // Position tooltip below field
+  const rect = field.getBoundingClientRect();
+  tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+  tooltip.style.left = (rect.left + window.scrollX) + 'px';
+  
+  document.body.appendChild(tooltip);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => tooltip.remove(), 3000);
+  
+  // Remove on field input
+  field.addEventListener('input', function removeTooltip() {
+    tooltip.remove();
+    field.removeEventListener('input', removeTooltip);
+  }, { once: true });
+}
+
+// Add slideDown animation
+if (!document.getElementById('slideDown-animation')) {
+  const style = document.createElement('style');
+  style.id = 'slideDown-animation';
+  style.textContent = `
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('itemForm');
   const submitBtn = document.getElementById('submitBtn');
+  const requiredFields = form.querySelectorAll('[required]');
   
   // Calculate markup on load
   calculateMarkup();
@@ -580,25 +639,92 @@ document.addEventListener('DOMContentLoaded', function() {
   // Tax rate change listener
   document.getElementById('tax_rate').addEventListener('change', calculateMarkup);
   
-  // Form submission
+  // Form submission with validation
   form.addEventListener('submit', function(e) {
-    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="2"/></svg> Updating...';
-    submitBtn.disabled = true;
-  });
-  
-  // Real-time validation feedback
-  const requiredFields = form.querySelectorAll('[required]');
-  requiredFields.forEach(field => {
-    field.addEventListener('blur', function() {
-      if (!this.value || this.value.trim() === '') {
-        this.style.borderColor = 'var(--color-danger)';
-      } else {
-        this.style.borderColor = 'var(--color-success)';
+    // Validate all required fields
+    let firstInvalidField = null;
+    let invalidTab = null;
+    
+    requiredFields.forEach(field => {
+      if (!field.value || field.value.trim() === '') {
+        if (!firstInvalidField) {
+          firstInvalidField = field;
+          
+          // Find which tab this field belongs to
+          const tabContent = field.closest('.tab-content');
+          if (tabContent) {
+            invalidTab = tabContent.id.replace('tab-', '');
+          }
+        }
+        
+        // Visual feedback for empty field
+        field.style.borderColor = 'hsl(0 74% 50%)';
+        field.style.borderWidth = '2px';
+        field.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.15)';
       }
     });
     
+    if (firstInvalidField) {
+      e.preventDefault();
+      
+      // Switch to tab with invalid field
+      if (invalidTab) {
+        switchTab(invalidTab);
+      }
+      
+      // Focus on first invalid field after tab switch
+      setTimeout(() => {
+        firstInvalidField.focus();
+        firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Show error tooltip
+        showValidationTooltip(firstInvalidField);
+      }, 300);
+      
+      // Show error toast notification
+      if (typeof Toast !== 'undefined') {
+        Toast.error('Please fill in all required fields before submitting', 4000);
+      }
+      
+      console.log('❌ Validation failed: Required fields missing');
+      return false;
+    }
+    
+    // All validation passed, proceed with submission
+    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="2"/></svg> Updating...';
+    submitBtn.disabled = true;
+    
+    console.log('✅ Form validation passed - Submitting...');
+  });
+  
+  // Real-time validation feedback
+  requiredFields.forEach(field => {
+    // On blur: check if field is empty
+    field.addEventListener('blur', function() {
+      if (!this.value || this.value.trim() === '') {
+        this.style.borderColor = 'var(--color-danger)';
+        this.style.borderWidth = '1px';
+      } else {
+        this.style.borderColor = 'var(--color-success)';
+        this.style.borderWidth = '1px';
+        this.style.boxShadow = '';
+      }
+    });
+    
+    // On focus: highlight with primary color
     field.addEventListener('focus', function() {
       this.style.borderColor = 'var(--color-primary)';
+      this.style.borderWidth = '1px';
+      this.style.boxShadow = '';
+    });
+    
+    // On input: clear error styling if field has value
+    field.addEventListener('input', function() {
+      if (this.value && this.value.trim() !== '') {
+        this.style.borderColor = '';
+        this.style.borderWidth = '';
+        this.style.boxShadow = '';
+      }
     });
   });
 });
@@ -606,6 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log('%c✏️ Edit Item Form Loaded - Enterprise Edition', 'color: #3b82f6; font-size: 14px; font-weight: bold;');
 console.log('%cItem ID: <?php echo (string)$item['_id']; ?>', 'color: #6b7280; font-size: 12px;');
 console.log('%cAll 30 fields pre-filled and ready for update!', 'color: #10b981; font-size: 12px;');
+console.log('%c✓ Smart validation enabled: 10 required fields monitored', 'color: #8b5cf6; font-size: 12px;');
 </script>
 
 <?php
