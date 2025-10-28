@@ -6,8 +6,8 @@
 
 namespace App\Database;
 
-use MongoDB\Client;
 use MongoDB\Collection;
+use App\Service\DatabaseService;
 
 class NotificationRepository
 {
@@ -17,18 +17,10 @@ class NotificationRepository
     public function __construct(string $userId)
     {
         $this->userId = $userId;
-        $config = require __DIR__ . '/../../config/database.php';
-        
-        $client = new Client(
-            sprintf(
-                'mongodb://%s:%d',
-                $config['mongodb']['host'],
-                $config['mongodb']['port']
-            )
-        );
-        
-        $db = $client->selectDatabase($config['mongodb']['database']);
-        $this->collection = $db->selectCollection('notifications');
+        // Use the shared DatabaseService to ensure authenticated connections (respects env and authSource)
+        $dbService = DatabaseService::getInstance();
+        $collectionName = $dbService->getCollectionName('notifications');
+        $this->collection = $dbService->getCollection($collectionName);
     }
 
     /**
