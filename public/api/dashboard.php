@@ -80,41 +80,56 @@ try {
             $projectModel = new Project();
             $shipmentModel = new Shipment();
             
-            // Quotations
+            // Quotations - Show ALL quotations (not time-filtered)
             $quotations = $quotationModel->getAll();
-            $totalQuotations = 0;
+            $totalQuotations = count($quotations);
             $pendingQuotations = 0;
+            $quotationsInPeriod = 0;
             foreach ($quotations as $q) {
+                if (($q['status'] ?? '') === 'pending') {
+                    $pendingQuotations++;
+                }
+                // Count in period for trends
                 $date = $q['created_at'] ?? $q['date'] ?? null;
                 if (isDashboardInRange($date, $startDate, $endDate)) {
-                    $totalQuotations++;
-                    if (($q['status'] ?? '') === 'pending') $pendingQuotations++;
+                    $quotationsInPeriod++;
                 }
             }
             
-            // Invoices
+            // Invoices - Show ALL invoices (not time-filtered)
             $invoices = $invoiceModel->getAll();
-            $totalInvoices = 0;
+            $totalInvoices = count($invoices);
             $pendingInvoices = 0;
             $totalRevenue = 0;
+            $revenueInPeriod = 0;
             foreach ($invoices as $inv) {
+                $total = (float)($inv['total'] ?? 0);
+                $totalRevenue += $total;
+                
+                if (($inv['status'] ?? '') === 'pending') {
+                    $pendingInvoices++;
+                }
+                
+                // Count in period for trends
                 $date = $inv['created_at'] ?? $inv['date'] ?? null;
                 if (isDashboardInRange($date, $startDate, $endDate)) {
-                    $totalInvoices++;
-                    if (($inv['status'] ?? '') === 'pending') $pendingInvoices++;
-                    $totalRevenue += (float)($inv['total'] ?? 0);
+                    $revenueInPeriod += $total;
                 }
             }
             
-            // Orders
+            // Orders - Show ALL orders (not time-filtered)
             $orders = $orderModel->getAll();
-            $totalOrders = 0;
+            $totalOrders = count($orders);
             $pendingOrders = 0;
+            $ordersInPeriod = 0;
             foreach ($orders as $ord) {
+                if (($ord['status'] ?? '') === 'pending') {
+                    $pendingOrders++;
+                }
+                // Count in period for trends
                 $date = $ord['created_at'] ?? $ord['date'] ?? null;
                 if (isDashboardInRange($date, $startDate, $endDate)) {
-                    $totalOrders++;
-                    if (($ord['status'] ?? '') === 'pending') $pendingOrders++;
+                    $ordersInPeriod++;
                 }
             }
             

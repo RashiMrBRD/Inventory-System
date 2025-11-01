@@ -149,7 +149,8 @@ try {
                 $formattedItems[] = [
                     'id' => $itemId,
                     'counter' => $counter++,
-                    'barcode' => $item['barcode'] ?? 'SKU-' . $counter,
+                    'sku' => $item['sku'] ?? '',
+                    'barcode' => $item['barcode'] ?? '',
                     'name' => $item['name'] ?? 'Unnamed Item',
                     'type' => $item['type'] ?? 'General',
                     'lifespan' => $item['lifespan'] ?? '',
@@ -188,6 +189,64 @@ try {
                     'out_of_stock_count' => $outOfStockCount,
                     'currency_symbol' => CurrencyHelper::symbol()
                 ]
+            ]);
+            break;
+            
+        case 'get_item':
+            // Get single item details
+            $itemId = $_GET['id'] ?? '';
+            
+            if (empty($itemId)) {
+                throw new Exception('Item ID is required');
+            }
+            
+            $item = $inventoryModel->findById($itemId);
+            
+            if (!$item) {
+                http_response_code(404);
+                throw new Exception('Item not found');
+            }
+            
+            // Format dates
+            $dateAdded = isset($item['date_added']) ? $item['date_added']->toDateTime()->format('M d, Y') : 'N/A';
+            
+            // Format item data
+            $formattedItem = [
+                'id' => (string)$item['_id'],
+                'barcode' => $item['barcode'] ?? '',
+                'sku' => $item['sku'] ?? '',
+                'name' => $item['name'] ?? '',
+                'type' => $item['type'] ?? '',
+                'category' => $item['category'] ?? '',
+                'description' => $item['description'] ?? '',
+                'lifespan' => $item['lifespan'] ?? '',
+                'unit_of_measure' => $item['unit_of_measure'] ?? 'pcs',
+                'cost_price' => (float)($item['cost_price'] ?? 0),
+                'sell_price' => (float)($item['sell_price'] ?? 0),
+                'tax_rate' => (float)($item['tax_rate'] ?? 0),
+                'quantity' => (int)($item['quantity'] ?? 0),
+                'min_stock' => (int)($item['min_stock'] ?? 0),
+                'max_stock' => (int)($item['max_stock'] ?? 0),
+                'reorder_point' => (int)($item['reorder_point'] ?? 0),
+                'location' => $item['location'] ?? '',
+                'supplier' => $item['supplier'] ?? '',
+                'manufacturer' => $item['manufacturer'] ?? '',
+                'brand' => $item['brand'] ?? '',
+                'model_number' => $item['model_number'] ?? '',
+                'tracking_type' => $item['tracking_type'] ?? 'none',
+                'condition' => $item['condition'] ?? 'new',
+                'warranty_period' => $item['warranty_period'] ?? '',
+                'country_origin' => $item['country_origin'] ?? '',
+                'sales_account' => $item['sales_account'] ?? '',
+                'purchase_account' => $item['purchase_account'] ?? '',
+                'tags' => $item['tags'] ?? '',
+                'internal_notes' => $item['internal_notes'] ?? '',
+                'date_added_formatted' => $dateAdded
+            ];
+            
+            echo json_encode([
+                'success' => true,
+                'item' => $formattedItem
             ]);
             break;
             

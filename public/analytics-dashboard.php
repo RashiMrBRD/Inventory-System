@@ -64,38 +64,41 @@ $inventoryModel = new Inventory();
 try {
     $allItems = $inventoryModel->getAll();
     
-    // Current period inventory stats
-    $totalItems = 0;
+    // Current period inventory stats (ALL items, not filtered by date)
+    $totalItems = count($allItems);
     $lowStockItems = 0;
     $outOfStockItems = 0;
     $inventoryValue = 0;
     
-    // Previous period for comparison
-    $prevTotalItems = 0;
+    // Items added in current period (for trend calculation)
+    $itemsAddedThisPeriod = 0;
+    $itemsAddedPrevPeriod = 0;
     
     foreach ($allItems as $item) {
-        $createdDate = $item['created_at'] ?? $item['date'] ?? null;
+        $createdDate = $item['created_at'] ?? $item['date_added'] ?? $item['date'] ?? null;
+        $quantity = $item['quantity'] ?? 0;
+        $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
         
-        // Current period
+        // Calculate current inventory value from ALL items
+        $inventoryValue += $quantity * $price;
+        
+        // Stock level classification
+        if ($quantity == 0) $outOfStockItems++;
+        elseif ($quantity <= 5) $lowStockItems++;
+        
+        // Count items added in time periods (for trend)
         if (isInDateRange($createdDate, $startDate, $endDate)) {
-            $totalItems++;
-            $quantity = $item['quantity'] ?? 0;
-            $price = (float)($item['price'] ?? 0);
-            $inventoryValue += $quantity * $price;
-            
-            if ($quantity == 0) $outOfStockItems++;
-            elseif ($quantity <= 5) $lowStockItems++;
+            $itemsAddedThisPeriod++;
         }
-        
-        // Previous period for comparison
         if (isInDateRange($createdDate, $prevStartDate, $prevEndDate)) {
-            $prevTotalItems++;
+            $itemsAddedPrevPeriod++;
         }
     }
     
-    // Calculate trend
-    $inventoryTrend = $prevTotalItems > 0 ? 
-        round((($totalItems - $prevTotalItems) / $prevTotalItems) * 100, 1) : 0;
+    // Calculate trend based on items ADDED (not total count)
+    $inventoryTrend = $itemsAddedPrevPeriod > 0 ? 
+        round((($itemsAddedThisPeriod - $itemsAddedPrevPeriod) / $itemsAddedPrevPeriod) * 100, 1) : 
+        ($itemsAddedThisPeriod > 0 ? 100 : 0);
     
     // Inventory trend data points
     $dailyCounts = $inventoryModel->getDailyAddedCounts($daysBack);
@@ -141,13 +144,14 @@ $orderModel = new Order();
 try {
     $invoices = $invoiceModel->getAll();
     
-    // Current period revenue
+    // ALL invoices (not time-filtered)
     $totalRevenue = 0;
     $paidRevenue = 0;
     $outstandingRevenue = 0;
-    $invoiceCount = 0;
+    $invoiceCount = count($invoices);
     
-    // Previous period for comparison
+    // Time-filtered for trend comparison
+    $revenueInPeriod = 0;
     $prevTotalRevenue = 0;
     $prevPaidRevenue = 0;
     
@@ -161,15 +165,17 @@ try {
         $total = (float)($inv['total'] ?? 0);
         $status = $inv['status'] ?? '';
         
-        // Current period
+        // Calculate all-time totals
+        $totalRevenue += $total;
+        if ($status === 'paid') {
+            $paidRevenue += $total;
+        } else {
+            $outstandingRevenue += $total;
+        }
+        
+        // Track revenue in current period for trends
         if (isInDateRange($date, $startDate, $endDate)) {
-            $totalRevenue += $total;
-            $invoiceCount++;
-            if ($status === 'paid') {
-                $paidRevenue += $total;
-            } else {
-                $outstandingRevenue += $total;
-            }
+            $revenueInPeriod += $total;
         }
         
         // Previous period for comparison
@@ -247,10 +253,16 @@ try {
         $ordersByType[$type]++;
     }
     
-    // Quotation conversion rate (time-filtered)
+    // Quotation analytics (show ALL quotations)
     $quotations = $quotationModel->getAll();
-    $quotationCount = 0;
+    $quotationCount = count($quotations);
     $approvedCount = 0;
+    $pendingCount = 0;
+    $convertedCount = 0;
+    
+    // Time-filtered counts for trends
+    $quotationsInPeriod = 0;
+    $approvedInPeriod = 0;
     $prevQuotationCount = 0;
     $prevApprovedCount = 0;
     
@@ -258,26 +270,35 @@ try {
         $date = $q['created_at'] ?? $q['date'] ?? null;
         $status = $q['status'] ?? '';
         
+        // All-time status counts
+        if ($status === 'approved') $approvedCount++;
+        if ($status === 'pending') $pendingCount++;
+        if ($status === 'converted') $convertedCount++;
+        
+        // Current period counts for trends
         if (isInDateRange($date, $startDate, $endDate)) {
-            $quotationCount++;
-            if ($status === 'approved') $approvedCount++;
+            $quotationsInPeriod++;
+            if ($status === 'approved') $approvedInPeriod++;
         }
         
+        // Previous period for comparison
         if (isInDateRange($date, $prevStartDate, $prevEndDate)) {
             $prevQuotationCount++;
             if ($status === 'approved') $prevApprovedCount++;
         }
     }
     
+    // Calculate conversion rate from all-time data
     $conversionRate = $quotationCount > 0 ? round(($approvedCount / $quotationCount) * 100, 1) : 0;
     $prevConversionRate = $prevQuotationCount > 0 ? round(($prevApprovedCount / $prevQuotationCount) * 100, 1) : 0;
     $conversionTrend = $prevConversionRate > 0 ? round((($conversionRate - $prevConversionRate) / $prevConversionRate) * 100, 1) : 0;
     
 } catch (Exception $e) {
-    $totalRevenue = $paidRevenue = $outstandingRevenue = 0;
+    $totalRevenue = $paidRevenue = $outstandingRevenue = $revenueInPeriod = 0;
     $monthLabels = $revenueData = $ordersByType = [];
     $conversionRate = $revenueTrend = $collectionRateTrend = $conversionTrend = 0;
-    $invoiceCount = 0;
+    $invoiceCount = $quotationCount = $approvedCount = $pendingCount = $convertedCount = 0;
+    $quotationsInPeriod = $approvedInPeriod = 0;
 }
 
 // ============================================
@@ -1205,6 +1226,21 @@ setInterval(() => {
   console.log('Auto-refreshing analytics data...');
   refreshAnalytics();
 }, 300000);
+
+// ============================================
+// APPLY NUMBER FORMAT API TO CURRENCY VALUES
+// ============================================
+window.addEventListener('load', function() {
+  const currencySymbol = '<?php echo CurrencyHelper::symbol(); ?>';
+  
+  // Auto-apply formatting to KPI values (will skip percentages and non-currency)
+  NumberFormat.autoApply(currencySymbol, {
+    customSelectors: [
+      { selector: '.kpi-value', maxWidth: 1 },  // All KPI values (API filters non-currency)
+      { selector: '.kpi-meta span:not(.badge):not(.trend-indicator)', maxWidth: 80 }
+    ]
+  });
+});
 </script>
 
 <style>

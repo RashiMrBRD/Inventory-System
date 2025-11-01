@@ -265,39 +265,63 @@ ob_start();
 </div>
 
 <!-- Quotations Table -->
-<div class="table-container">
+<div id="quotationsTableContainer" class="table-container" style="display: <?php echo empty($quotations) ? 'none' : 'block'; ?>;">
   <table class="data-table">
     <thead>
       <tr>
-        <th class="checkbox-column" style="width: 40px; display: none;">
+        <th class="checkbox-column" style="display: none;">
           <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="cursor: pointer;">
         </th>
-        <th>Quote #</th>
-        <th class="sortable-header" onclick="sortTable('customer')" style="cursor: pointer; user-select: none;">
+        <th class="<?php echo !empty($quotations) ? 'sortable-header' : ''; ?>" <?php echo !empty($quotations) ? 'onclick="sortTable(\"quote_number\")" style="cursor: pointer; user-select: none;"' : ''; ?>>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>Quote #</span>
+            <?php if (!empty($quotations)): ?>
+            <svg id="sort-quote_number-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;">
+              <path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <?php endif; ?>
+          </div>
+        </th>
+        <th class="<?php echo !empty($quotations) ? 'sortable-header' : ''; ?>" <?php echo !empty($quotations) ? 'onclick="sortTable(\"customer\")" style="cursor: pointer; user-select: none;"' : ''; ?>>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span>Customer</span>
+            <?php if (!empty($quotations)): ?>
             <svg id="sort-customer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;">
               <path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            <?php endif; ?>
           </div>
         </th>
-        <th class="sortable-header" onclick="sortTable('date')" style="cursor: pointer; user-select: none;">
+        <th class="<?php echo !empty($quotations) ? 'sortable-header' : ''; ?>" <?php echo !empty($quotations) ? 'onclick="sortTable(\"date\")" style="cursor: pointer; user-select: none;"' : ''; ?>>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span>Date</span>
+            <?php if (!empty($quotations)): ?>
             <svg id="sort-date-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;">
               <path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            <?php endif; ?>
           </div>
         </th>
-        <th class="sortable-header" onclick="sortTable('amount')" style="cursor: pointer; user-select: none;">
+        <th class="<?php echo !empty($quotations) ? 'sortable-header' : ''; ?>" <?php echo !empty($quotations) ? 'onclick="sortTable(\"amount\")" style="cursor: pointer; user-select: none;"' : ''; ?>>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span>Total Amount</span>
+            <?php if (!empty($quotations)): ?>
             <svg id="sort-amount-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;">
               <path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            <?php endif; ?>
           </div>
         </th>
-        <th>Status</th>
+        <th class="<?php echo !empty($quotations) ? 'sortable-header' : ''; ?>" <?php echo !empty($quotations) ? 'onclick="sortTable(\"status\")" style="cursor: pointer; user-select: none;"' : ''; ?>>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>Status</span>
+            <?php if (!empty($quotations)): ?>
+            <svg id="sort-status-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;">
+              <path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <?php endif; ?>
+          </div>
+        </th>
         <th style="width: 180px;">Actions</th>
       </tr>
     </thead>
@@ -360,9 +384,24 @@ ob_start();
   </table>
 </div>
 
+<!-- Empty State (Separate from table) -->
+<div id="emptyStateContainer" style="display: <?php echo empty($quotations) ? 'block' : 'none'; ?>; padding: 4rem 2rem; text-align: center; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+  <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#6b7280" style="opacity: 0.15; margin: 0 auto 1.5rem; stroke-width: 1.5;">
+    <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <h3 style="font-size: 1.25rem; font-weight: 600; color: #111827; margin: 0 0 0.75rem 0;">No quotations yet</h3>
+  <p style="font-size: 0.9375rem; color: #6b7280; margin: 0 auto 1.5rem; max-width: 28rem; line-height: 1.6;">
+    Get started by creating your first quote. Click the "New Quote" button above to begin.
+  </p>
+  <button onclick="showNewQuoteModal()" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5V19M5 12H19" stroke-linecap="round"/></svg>
+    Create Your First Quote
+  </button>
+</div>
+
 <!-- Pagination -->
-<div id="paginationControls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 8px; border: 1px solid hsl(214 20% 90%);">
-  <div style="color: hsl(215 16% 47%); font-size: 0.875rem;">
+<div id="paginationControls" style="display: <?php echo (count($quotations) === 0 || count($quotations) <= 6) ? 'none' : 'flex'; ?>; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+  <div class="text-sm text-secondary">
     Showing <span id="showingStart">1</span> to <span id="showingEnd">6</span> of <span id="totalCount">0</span> quotations
   </div>
   <div style="display: flex; gap: 0.5rem;">
@@ -381,8 +420,8 @@ ob_start();
     </button>
   </div>
   <div style="display: flex; align-items: center; gap: 0.5rem;">
-    <label style="font-size: 0.875rem; color: hsl(215 16% 47%);">Items per page:</label>
-    <select id="itemsPerPage" onchange="changeItemsPerPage()" style="padding: 0.375rem 0.75rem; border: 1px solid hsl(214 20% 88%); border-radius: 6px; font-size: 0.875rem; cursor: pointer;">
+    <label class="text-sm text-secondary">Items per page:</label>
+    <select id="itemsPerPage" onchange="changeItemsPerPage()" style="padding: 0.375rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; cursor: pointer;">
       <option value="6" selected>6</option>
       <option value="10">10</option>
       <option value="25">25</option>
@@ -1076,12 +1115,12 @@ ob_start();
 /* Sortable table header styles */
 .sortable-header {
   transition: all 0.2s ease;
-  background: hsl(214 20% 98%);
+  background: #f9fafb; /* neutral gray-50 */
 }
 
 .sortable-header:hover {
-  background: hsl(214 95% 93%) !important;
-  color: hsl(222 47% 17%);
+  background: #f3f4f6 !important; /* neutral gray-100 */
+  color: #111827; /* neutral gray-900 */
 }
 
 .sortable-header:active {
@@ -2012,7 +2051,7 @@ async function submitQuote(event) {
     }
     
     // Send AJAX request
-    const response = await fetch('/api/save_quotation.php', {
+    const response = await fetch('api/save_quotation.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -2302,6 +2341,79 @@ function closeViewModal() {
   document.getElementById('viewQuoteModal').style.display = 'none';
 }
 
+// Toggle sortable headers functionality
+function toggleSortableHeaders(enable) {
+  const sortableColumns = {
+    'quote_number': 'Quote #',
+    'customer': 'Customer',
+    'date': 'Date',
+    'amount': 'Total Amount',
+    'status': 'Status'
+  };
+  
+  Object.keys(sortableColumns).forEach(column => {
+    // Find header by the sort icon ID (more reliable)
+    const icon = document.getElementById(`sort-${column}-icon`);
+    let header = null;
+    
+    if (icon) {
+      // Icon exists, find parent th
+      header = icon.closest('th');
+    } else {
+      // Icon doesn't exist yet, find th containing the column name
+      const headers = document.querySelectorAll('.data-table thead th');
+      headers.forEach(th => {
+        const text = th.textContent.trim();
+        if (text === sortableColumns[column]) {
+          header = th;
+        }
+      });
+    }
+    
+    if (header) {
+      if (enable) {
+        // Enable sorting
+        header.classList.add('sortable-header');
+        header.style.cursor = 'pointer';
+        header.style.userSelect = 'none';
+        header.setAttribute('onclick', `sortTable('${column}')`);
+        
+        // Show icon if it exists, or create placeholder
+        if (icon) {
+          icon.style.display = '';
+        } else {
+          // Icon needs to be created dynamically
+          const div = header.querySelector('div');
+          if (div && !div.querySelector('svg')) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.id = `sort-${column}-icon`;
+            svg.setAttribute('width', '14');
+            svg.setAttribute('height', '14');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            svg.setAttribute('stroke-width', '2');
+            svg.style.opacity = '0.4';
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', 'M7 15L12 20L17 15M7 9L12 4L17 9');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('stroke-linejoin', 'round');
+            svg.appendChild(path);
+            div.appendChild(svg);
+          }
+        }
+      } else {
+        // Disable sorting
+        header.classList.remove('sortable-header');
+        header.style.cursor = 'default';
+        header.style.userSelect = 'auto';
+        header.removeAttribute('onclick');
+        if (icon) icon.style.display = 'none';
+      }
+    }
+  });
+}
+
 // Pagination functions
 function initializePagination() {
   updatePagination();
@@ -2312,6 +2424,33 @@ function updatePagination() {
   const totalPages = Math.ceil(allQuotations.length / itemsPerPage);
   const start = (currentPage - 1) * itemsPerPage + 1;
   const end = Math.min(currentPage * itemsPerPage, allQuotations.length);
+  
+  // Toggle sortable headers based on quotations availability
+  toggleSortableHeaders(allQuotations.length > 0);
+  
+  // Toggle table and empty state visibility
+  const tableContainer = document.getElementById('quotationsTableContainer');
+  const emptyState = document.getElementById('emptyStateContainer');
+  const paginationControls = document.getElementById('paginationControls');
+  
+  if (allQuotations.length === 0) {
+    // Show empty state, hide table and pagination
+    if (tableContainer) tableContainer.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    if (paginationControls) paginationControls.style.display = 'none';
+    return;
+  } else {
+    // Show table, hide empty state
+    if (tableContainer) tableContainer.style.display = 'block';
+    if (emptyState) emptyState.style.display = 'none';
+  }
+  
+  // Hide pagination if all items fit on one page
+  if (allQuotations.length <= itemsPerPage) {
+    if (paginationControls) paginationControls.style.display = 'none';
+  } else {
+    if (paginationControls) paginationControls.style.display = 'flex';
+  }
   
   document.getElementById('showingStart').textContent = allQuotations.length > 0 ? start : 0;
   document.getElementById('showingEnd').textContent = end;
@@ -2331,12 +2470,13 @@ function renderPageNumbers(totalPages) {
     if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
       const btn = document.createElement('button');
       btn.textContent = i;
-      btn.className = 'btn btn-ghost btn-sm';
       btn.style.minWidth = '2.5rem';
       btn.style.padding = '0.5rem';
       if (i === currentPage) {
-        btn.style.background = '#7194A5';
-        btn.style.color = 'white';
+        btn.className = 'btn btn-primary btn-sm';
+        btn.style.fontWeight = '600';
+      } else {
+        btn.className = 'btn btn-ghost btn-sm';
       }
       btn.onclick = () => goToPage(i);
       container.appendChild(btn);
@@ -2344,7 +2484,7 @@ function renderPageNumbers(totalPages) {
       const ellipsis = document.createElement('span');
       ellipsis.textContent = '...';
       ellipsis.style.padding = '0.5rem';
-      ellipsis.style.color = 'hsl(215 16% 47%)';
+      ellipsis.style.color = '#9ca3af'; // var(--text-muted) neutral gray
       container.appendChild(ellipsis);
     }
   }
@@ -2355,6 +2495,7 @@ function rebuildTable() {
   const tbody = document.querySelector('.data-table tbody');
   tbody.innerHTML = ''; // Clear existing rows
   
+  // Empty state is now handled separately, just build rows
   allQuotations.forEach(quote => {
     const row = document.createElement('tr');
     row.setAttribute('data-quote-id', quote.id);
@@ -2603,6 +2744,11 @@ function sortTable(column) {
     let valueA, valueB;
     
     switch(column) {
+      case 'quote_number':
+        valueA = (a.quote_number || '').toLowerCase();
+        valueB = (b.quote_number || '').toLowerCase();
+        break;
+        
       case 'customer':
         valueA = (a.customer || '').toLowerCase();
         valueB = (b.customer || '').toLowerCase();
@@ -2616,6 +2762,13 @@ function sortTable(column) {
       case 'amount':
         valueA = parseFloat(a.total || 0);
         valueB = parseFloat(b.total || 0);
+        break;
+        
+      case 'status':
+        // Define status priority: pending > approved > rejected > converted
+        const statusPriority = { 'pending': 1, 'approved': 2, 'rejected': 3, 'converted': 4 };
+        valueA = statusPriority[a.status || 'pending'] || 999;
+        valueB = statusPriority[b.status || 'pending'] || 999;
         break;
         
       default:
@@ -2642,9 +2795,11 @@ function sortTable(column) {
   
   // Console log notification
   const columnNames = {
+    'quote_number': 'Quote #',
     'customer': 'Customer',
     'date': 'Date',
-    'amount': 'Total Amount'
+    'amount': 'Total Amount',
+    'status': 'Status'
   };
   const directionText = currentSortDirection === 'asc' ? 'A→Z' : 'Z→A';
   console.log(`✓ Sorted by ${columnNames[column]} (${directionText})`);
@@ -2653,7 +2808,7 @@ function sortTable(column) {
 
 // Update sort indicator icons
 function updateSortIndicators(activeColumn, direction) {
-  const columns = ['customer', 'date', 'amount'];
+  const columns = ['quote_number', 'customer', 'date', 'amount', 'status'];
   
   columns.forEach(col => {
     const icon = document.getElementById(`sort-${col}-icon`);
@@ -2662,7 +2817,7 @@ function updateSortIndicators(activeColumn, direction) {
     if (col === activeColumn) {
       // Active column - show direction
       icon.style.opacity = '1';
-      icon.style.color = 'hsl(222 47% 17%)';
+      icon.style.color = '#111827'; // neutral gray-900
       
       if (direction === 'asc') {
         // Ascending - up arrow highlighted
@@ -2674,7 +2829,7 @@ function updateSortIndicators(activeColumn, direction) {
     } else {
       // Inactive columns - show both arrows faded
       icon.style.opacity = '0.4';
-      icon.style.color = 'currentColor';
+      icon.style.color = '#6b7280'; // neutral gray-500
       icon.innerHTML = '<path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke-linecap="round" stroke-linejoin="round"/>';
     }
   });
@@ -3507,6 +3662,21 @@ function filterQuotationsByStatus(status) {
 document.getElementById('status-filter')?.addEventListener('change', function(e) {
   const status = e.target.value;
   filterQuotationsByStatus(status);
+});
+
+// ============================================
+// APPLY NUMBER FORMAT API TO CURRENCY VALUES
+// ============================================
+window.addEventListener('load', function() {
+  const currencySymbol = '<?php echo CurrencyHelper::symbol(); ?>';
+  
+  // Auto-apply formatting to quotation values
+  NumberFormat.autoApply(currencySymbol, {
+    customSelectors: [
+      { selector: '#totalValue', maxWidth: 1 },  // Stat card - always abbreviate >= 1M
+      { selector: 'td.font-semibold', maxWidth: 80 }  // Table total column
+    ]
+  });
 });
 </script>
 

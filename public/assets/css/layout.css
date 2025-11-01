@@ -12,6 +12,8 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--bg-secondary);
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* ===================================
@@ -160,6 +162,8 @@
   flex-direction: column;
   margin-left: var(--sidebar-width);
   transition: margin-left var(--transition-base);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .sidebar[data-state="collapsed"] ~ .main-container {
@@ -269,7 +273,9 @@
   flex: 1;
   padding: var(--space-6);
   width: 100%;
-  max-width: none;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* ===================================

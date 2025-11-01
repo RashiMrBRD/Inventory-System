@@ -252,6 +252,19 @@ ob_start();
 
   <!-- Notifications List -->
   <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+    <?php if (empty($notifications)): ?>
+      <!-- Empty State -->
+      <div class="card" style="padding: 4rem 2rem; text-align: center; background: white;">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="hsl(215 16% 47%)" style="opacity: 0.15; margin: 0 auto 1.5rem; stroke-width: 1.5;">
+          <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3 style="font-size: 1.25rem; font-weight: 600; color: hsl(0 0% 12%); margin: 0 0 0.75rem 0;">No notifications yet</h3>
+        <p style="font-size: 0.9375rem; color: hsl(215 16% 47%); margin: 0 auto; max-width: 28rem; line-height: 1.6;">
+          When you receive notifications about inventory, compliance, or financial updates, they'll appear here.
+        </p>
+      </div>
+    <?php else: ?>
     <?php foreach ($notifications as $index => $notif): ?>
     <?php
     // Get styling per notification type
@@ -371,6 +384,7 @@ ob_start();
       </div>
     </div>
     <?php endforeach; ?>
+    <?php endif; ?>
   </div>
   
   <!-- Pagination Controls -->

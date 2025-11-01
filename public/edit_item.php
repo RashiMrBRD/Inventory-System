@@ -8,6 +8,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Controller\InventoryController;
+use App\Helper\SessionHelper;
 
 $authController = new AuthController();
 $authController->requireLogin();
@@ -75,10 +76,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = $inventoryController->updateItem($itemId, $itemData);
     
     if ($result['success']) {
-        session_start();
-        $_SESSION['flash_message'] = 'Item updated successfully';
-        $_SESSION['flash_type'] = 'success';
-        header("Location: inventory-list.php");
+        SessionHelper::setFlash('Item updated successfully', 'success');
+        
+        // Preserve pagination and filter parameters from referrer
+        $redirectUrl = 'inventory-list.php';
+        if (isset($_POST['return_url'])) {
+            $redirectUrl = $_POST['return_url'];
+        } elseif (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'inventory-list.php') !== false) {
+            // Extract query string from referrer
+            $refererParts = parse_url($_SERVER['HTTP_REFERER']);
+            if (isset($refererParts['query'])) {
+                $redirectUrl = 'inventory-list.php?' . $refererParts['query'];
+            }
+        }
+        
+        header("Location: " . $redirectUrl);
         exit();
     } else {
         $error = $result['message'];
@@ -133,6 +145,9 @@ ob_start();
         </div>
 
         <form method="POST" id="itemForm">
+          <!-- Hidden field to preserve return URL -->
+          <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($_SERVER['HTTP_REFERER'] ?? 'inventory-list.php'); ?>">
+          
           <!-- BASIC INFO TAB -->
           <div class="tab-content active" id="tab-basic" style="padding: 2rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
@@ -464,11 +479,22 @@ ob_start();
             </div>
           </div>
 
-          <!-- Form Actions -->
+          <!-- Tab Navigation Actions -->
           <div style="padding: 1.5rem 2rem; background: hsl(240 5% 96%); border-top: 1px solid hsl(240 6% 90%); display: flex; justify-content: space-between; align-items: center;">
-            <a href="inventory-list.php" style="color: var(--text-secondary); text-decoration: none; font-weight: 500;">Cancel</a>
-            <button type="submit" id="submitBtn" style="padding: 0.625rem 1.5rem; border: none; border-radius: 8px; background: var(--color-primary); color: white; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-              <span>✓</span> Update Item
+            <button type="button" id="prevTabBtn" onclick="navigateTab('prev')" style="padding: 0.625rem 1.25rem; border: 1px solid hsl(240 6% 85%); border-radius: 8px; background: white; color: hsl(240 5% 40%); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;" onmouseover="this.style.background='hsl(240 5% 96%)'; this.style.borderColor='hsl(240 6% 75%)'" onmouseout="this.style.background='white'; this.style.borderColor='hsl(240 6% 85%)'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Previous</span>
+            </button>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span id="tabIndicator" style="font-size: 0.8125rem; color: hsl(240 5% 50%); font-weight: 500;">Step 1 of 4</span>
+            </div>
+            <button type="button" id="nextTabBtn" onclick="navigateTab('next')" style="padding: 0.625rem 1.25rem; border: none; border-radius: 8px; background: var(--color-primary); color: white; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; box-shadow: 0 2px 4px rgba(113, 148, 165, 0.2);" onmouseover="this.style.background='hsl(199 35% 50%)'; this.style.boxShadow='0 4px 8px rgba(113, 148, 165, 0.3)'" onmouseout="this.style.background='var(--color-primary)'; this.style.boxShadow='0 2px 4px rgba(113, 148, 165, 0.2)'">
+              <span>Next</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
           </div>
         </form>
@@ -477,29 +503,94 @@ ob_start();
 
     <!-- RIGHT COLUMN: Status & Info -->
     <div style="position: sticky; top: 2rem;">
-      <div style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.5rem;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 1rem 0;">📝 Edit Mode</h3>
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <div style="padding: 0.75rem; background: hsl(214 95% 93%); border-left: 4px solid hsl(222 47% 17%); border-radius: 6px;">
-            <strong>Item ID:</strong><br>
-            <code style="font-size: 0.875rem;"><?php echo htmlspecialchars((string)$item['_id'] ?? ''); ?></code>
+      <!-- Edit Status Card -->
+      <div style="background: white; border: 1px solid hsl(240 6% 90%); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <!-- Header -->
+        <div style="padding: 1.25rem 1.5rem; background: linear-gradient(135deg, hsl(220 20% 97%) 0%, white 100%); border-bottom: 1px solid hsl(240 6% 90%);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(113, 148, 165, 0.2);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"/>
+                <path d="M18.5 2.5C18.8978 2.10217 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10217 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 style="font-size: 0.9375rem; font-weight: 700; margin: 0; color: hsl(240 10% 10%);">Edit Mode</h3>
+              <p style="font-size: 0.6875rem; margin: 0; color: hsl(240 5% 50%); font-weight: 500;">Update item details</p>
+            </div>
           </div>
-          <div style="padding: 0.75rem; background: hsl(240 5% 96%); border-radius: 8px;">
-            <strong>Date Added:</strong><br>
-            <span style="font-size: 0.875rem;"><?php echo isset($item['date_added']) ? date('Y-m-d H:i', $item['date_added']->toDateTime()->getTimestamp()) : 'N/A'; ?></span>
-          </div>
-          <?php if (isset($item['updated_at'])): ?>
-          <div style="padding: 0.75rem; background: hsl(240 5% 96%); border-radius: 8px;">
-            <strong>Last Updated:</strong><br>
-            <span style="font-size: 0.875rem;"><?php echo date('Y-m-d H:i', $item['updated_at']->toDateTime()->getTimestamp()); ?></span>
-          </div>
-          <?php endif; ?>
         </div>
-        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid hsl(240 6% 90%);">
-          <button type="submit" form="itemForm" style="width: 100%; padding: 0.75rem; border: none; border-radius: 8px; background: var(--color-primary); color: white; font-weight: 600; cursor: pointer;">
-            ✓ Update Item
+        
+        <!-- Body -->
+        <div style="padding: 1.5rem;">
+          <!-- Item ID Badge -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.6875rem; font-weight: 700; color: hsl(240 5% 50%); text-transform: uppercase; letter-spacing: 0.05em;">Item ID</span>
+              <span style="display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; background: hsl(143 85% 96%); color: hsl(140 61% 35%); border: 1px solid hsl(143 85% 80%); border-radius: 6px; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 0.25rem;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Active
+              </span>
+            </div>
+            <div style="position: relative; padding: 0.625rem 0.875rem; background: hsl(240 5% 98%); border: 1px solid hsl(240 6% 90%); border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.75rem; color: hsl(240 10% 20%); word-break: break-all; line-height: 1.4;">
+              <?php echo htmlspecialchars((string)$item['_id'] ?? ''); ?>
+              <button onclick="copyToClipboard('<?php echo (string)$item['_id']; ?>')" style="position: absolute; top: 0.5rem; right: 0.5rem; padding: 0.25rem; background: white; border: 1px solid hsl(240 6% 85%); border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='hsl(240 5% 96%)'" onmouseout="this.style.background='white'" title="Copy ID">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="hsl(240 5% 40%)" stroke-width="2.5">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Metadata Grid -->
+          <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+              <div style="font-size: 0.6875rem; font-weight: 700; color: hsl(240 5% 50%); margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: inline-block; vertical-align: middle; margin-right: 0.375rem;">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Date Added
+              </div>
+              <div style="font-size: 0.8125rem; font-weight: 600; color: hsl(240 10% 10%);">
+                <?php echo isset($item['date_added']) ? date('M d, Y', $item['date_added']->toDateTime()->getTimestamp()) : 'N/A'; ?>
+              </div>
+              <div style="font-size: 0.6875rem; color: hsl(240 5% 50%); margin-top: 0.125rem;">
+                <?php echo isset($item['date_added']) ? date('H:i', $item['date_added']->toDateTime()->getTimestamp()) : ''; ?>
+              </div>
+            </div>
+            
+            <?php if (isset($item['updated_at'])): ?>
+            <div style="padding-top: 1rem; border-top: 1px solid hsl(240 6% 90%);">
+              <div style="font-size: 0.6875rem; font-weight: 700; color: hsl(240 5% 50%); margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: inline-block; vertical-align: middle; margin-right: 0.375rem;">
+                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Last Updated
+              </div>
+              <div style="font-size: 0.8125rem; font-weight: 600; color: hsl(240 10% 10%);">
+                <?php echo date('M d, Y', $item['updated_at']->toDateTime()->getTimestamp()); ?>
+              </div>
+              <div style="font-size: 0.6875rem; color: hsl(240 5% 50%); margin-top: 0.125rem;">
+                <?php echo date('H:i', $item['updated_at']->toDateTime()->getTimestamp()); ?>
+              </div>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+        
+        <!-- Footer Actions -->
+        <div style="padding: 1.25rem 1.5rem; background: hsl(240 5% 98%); border-top: 1px solid hsl(240 6% 90%);">
+          <button type="submit" form="itemForm" id="sidebarSubmitBtn" style="width: 100%; padding: 0.75rem; border: none; border-radius: 8px; background: var(--color-primary); color: white; font-weight: 600; cursor: pointer; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; box-shadow: 0 2px 4px rgba(113, 148, 165, 0.2);" onmouseover="this.style.background='hsl(199 35% 50%)'; this.style.boxShadow='0 4px 8px rgba(113, 148, 165, 0.3)'" onmouseout="this.style.background='var(--color-primary)'; this.style.boxShadow='0 2px 4px rgba(113, 148, 165, 0.2)'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>Update Item</span>
           </button>
-          <a href="inventory-list.php" style="display: block; text-align: center; margin-top: 0.75rem; color: var(--text-secondary); text-decoration: none;">Cancel</a>
+          <a href="inventory-list.php" style="display: flex; align-items: center; justify-content: center; margin-top: 0.625rem; color: hsl(240 5% 40%); text-decoration: none; font-size: 0.8125rem; font-weight: 500; padding: 0.5rem; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.background='hsl(240 5% 96%)'" onmouseout="this.style.background='transparent'">
+            Cancel
+          </a>
         </div>
       </div>
     </div>
@@ -522,6 +613,9 @@ ob_start();
 // ============================================
 
 // Tab Switching
+const tabs = ['basic', 'pricing', 'inventory', 'advanced'];
+let currentTabIndex = 0;
+
 function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => {
     tab.style.display = 'none';
@@ -540,6 +634,53 @@ function switchTab(tabName) {
   activeBtn.style.borderBottom = '3px solid var(--color-primary)';
   activeBtn.style.color = 'var(--color-primary)';
   activeBtn.classList.add('active');
+  
+  // Update current tab index
+  currentTabIndex = tabs.indexOf(tabName);
+  updateNavigationButtons();
+}
+
+// Navigate between tabs (Previous/Next)
+function navigateTab(direction) {
+  if (direction === 'next' && currentTabIndex < tabs.length - 1) {
+    currentTabIndex++;
+  } else if (direction === 'prev' && currentTabIndex > 0) {
+    currentTabIndex--;
+  }
+  
+  switchTab(tabs[currentTabIndex]);
+}
+
+// Update navigation button states
+function updateNavigationButtons() {
+  const prevBtn = document.getElementById('prevTabBtn');
+  const nextBtn = document.getElementById('nextTabBtn');
+  const indicator = document.getElementById('tabIndicator');
+  
+  // Update indicator
+  indicator.textContent = `Step ${currentTabIndex + 1} of ${tabs.length}`;
+  
+  // Update Previous button
+  if (currentTabIndex === 0) {
+    prevBtn.disabled = true;
+    prevBtn.style.opacity = '0.5';
+    prevBtn.style.cursor = 'not-allowed';
+  } else {
+    prevBtn.disabled = false;
+    prevBtn.style.opacity = '1';
+    prevBtn.style.cursor = 'pointer';
+  }
+  
+  // Update Next button
+  if (currentTabIndex === tabs.length - 1) {
+    nextBtn.disabled = true;
+    nextBtn.style.opacity = '0.5';
+    nextBtn.style.cursor = 'not-allowed';
+  } else {
+    nextBtn.disabled = false;
+    nextBtn.style.opacity = '1';
+    nextBtn.style.cursor = 'pointer';
+  }
 }
 
 // Calculate Markup Percentage
@@ -630,14 +771,29 @@ if (!document.getElementById('slideDown-animation')) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('itemForm');
-  const submitBtn = document.getElementById('submitBtn');
   const requiredFields = form.querySelectorAll('[required]');
+  
+  // Initialize navigation buttons
+  updateNavigationButtons();
   
   // Calculate markup on load
   calculateMarkup();
   
   // Tax rate change listener
   document.getElementById('tax_rate').addEventListener('change', calculateMarkup);
+  
+  // Keyboard navigation for tabs (Ctrl + Arrow Keys)
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateTab('next');
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigateTab('prev');
+      }
+    }
+  });
   
   // Form submission with validation
   form.addEventListener('submit', function(e) {
@@ -691,9 +847,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // All validation passed, proceed with submission
-    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="2"/></svg> Updating...';
-    submitBtn.disabled = true;
-    
     console.log('✅ Form validation passed - Submitting...');
   });
   
@@ -728,6 +881,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+// Copy to clipboard function
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    // Show success toast
+    if (typeof Toast !== 'undefined') {
+      Toast.success('Item ID copied to clipboard!', 2000);
+    }
+    console.log('✓ Copied to clipboard:', text);
+  }).catch(function(err) {
+    console.error('Failed to copy:', err);
+    if (typeof Toast !== 'undefined') {
+      Toast.error('Failed to copy to clipboard', 2000);
+    }
+  });
+}
 
 console.log('%c✏️ Edit Item Form Loaded - Enterprise Edition', 'color: #3b82f6; font-size: 14px; font-weight: bold;');
 console.log('%cItem ID: <?php echo (string)$item['_id']; ?>', 'color: #6b7280; font-size: 12px;');

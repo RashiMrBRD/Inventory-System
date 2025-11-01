@@ -8,6 +8,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Controller\InventoryController;
+use App\Helper\SessionHelper;
 
 $authController = new AuthController();
 $authController->requireLogin();
@@ -20,13 +21,10 @@ $itemId = $_GET['id'] ?? '';
 if (!empty($itemId)) {
     $result = $inventoryController->deleteItem($itemId);
     
-    session_start();
     if ($result['success']) {
-        $_SESSION['flash_message'] = 'Item deleted successfully';
-        $_SESSION['flash_type'] = 'success';
+        SessionHelper::setFlash('Item deleted successfully', 'success');
     } else {
-        $_SESSION['flash_message'] = 'Failed to delete item';
-        $_SESSION['flash_type'] = 'danger';
+        SessionHelper::setFlash('Failed to delete item', 'danger');
     }
 }
 

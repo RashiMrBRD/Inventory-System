@@ -8,6 +8,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Controller\InventoryController;
+use App\Helper\SessionHelper;
 
 $authController = new AuthController();
 $authController->requireLogin();
@@ -58,9 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = $inventoryController->createItem($itemData);
     
     if ($result['success']) {
-        session_start();
-        $_SESSION['flash_message'] = 'Item added successfully with all enterprise features!';
-        $_SESSION['flash_type'] = 'success';
+        SessionHelper::setFlash('Item added successfully!', 'success');
         header("Location: inventory-list.php");
         exit();
     } else {
@@ -711,38 +710,59 @@ ob_start();
     <!-- RIGHT COLUMN: Status & Quick Actions -->
     <div style="position: sticky; top: 2rem;">
       <!-- Form Status Card -->
-      <div style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-          📊 Form Status
-        </h3>
+      <div style="background: white; border: 1px solid hsl(240 6% 90%); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 1.5rem;">
+        <!-- Card Header -->
+        <div style="padding: 1.25rem 1.5rem; background: linear-gradient(135deg, hsl(220 20% 97%) 0%, white 100%); border-bottom: 1px solid hsl(240 6% 90%);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(113, 148, 165, 0.2);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <div>
+              <h3 style="font-size: 0.9375rem; font-weight: 700; margin: 0; color: hsl(240 10% 10%);">Form Status</h3>
+              <p style="font-size: 0.6875rem; margin: 0; color: hsl(240 5% 50%); font-weight: 500;">Track your progress</p>
+            </div>
+          </div>
+        </div>
         
-        <!-- Progress Bar -->
-        <div style="margin-bottom: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <span style="font-size: 0.875rem; font-weight: 600;">Completion</span>
-            <span id="progressPercent" style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">0%</span>
+        <!-- Card Body -->
+        <div style="padding: 1.5rem;">
+          <!-- Progress Bar -->
+          <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.625rem;">
+              <span style="font-size: 0.75rem; font-weight: 700; color: hsl(240 5% 50%); text-transform: uppercase; letter-spacing: 0.05em;">Completion</span>
+              <span id="progressPercent" style="font-size: 1.5rem; font-weight: 800; color: var(--color-primary); line-height: 1;">0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: hsl(240 5% 96%); border-radius: 999px; overflow: hidden; border: 1px solid hsl(240 6% 90%);">
+              <div id="progressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-primary), var(--color-success)); transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+            </div>
           </div>
-          <div style="width: 100%; height: 10px; background: hsl(240 5% 96%); border-radius: 999px; overflow: hidden;">
-            <div id="progressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-primary), var(--color-success)); transition: width 0.3s ease;"></div>
-          </div>
-        </div>
 
-        <!-- Field Status -->
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: hsl(240 5% 96%); border-radius: 8px;">
-            <span style="font-size: 0.875rem; font-weight: 500;">Required Fields</span>
-            <span id="requiredCount" style="font-size: 0.875rem; font-weight: 700; color: var(--color-warning);">0/8</span>
+          <!-- Field Status Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="padding: 0.875rem; background: hsl(240 5% 98%); border: 1px solid hsl(240 6% 90%); border-radius: 8px; text-align: center;">
+              <div style="font-size: 0.6875rem; font-weight: 700; color: hsl(240 5% 50%); margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em;">Required</div>
+              <div id="requiredCount" style="font-size: 1.125rem; font-weight: 800; color: hsl(25 95% 35%);">0/9</div>
+            </div>
+            <div style="padding: 0.875rem; background: hsl(240 5% 98%); border: 1px solid hsl(240 6% 90%); border-radius: 8px; text-align: center;">
+              <div style="font-size: 0.6875rem; font-weight: 700; color: hsl(240 5% 50%); margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em;">Optional</div>
+              <div id="optionalCount" style="font-size: 1.125rem; font-weight: 800; color: hsl(240 5% 40%);">0/21</div>
+            </div>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: hsl(240 5% 96%); border-radius: 8px;">
-            <span style="font-size: 0.875rem; font-weight: 500;">Optional Fields</span>
-            <span id="optionalCount" style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary);">0/6</span>
-          </div>
-        </div>
 
-        <!-- Status Badge -->
-        <div id="formStatusBadge" style="margin-top: 1rem; padding: 0.75rem; background: hsl(48 96% 89%); border-left: 4px solid hsl(25 95% 16%); border-radius: 6px; display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="hsl(25 95% 16%)"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke-width="2" stroke-linecap="round"/></svg>
-          <span style="font-size: 0.875rem; color: hsl(25 95% 16%); font-weight: 500;">Fill required fields to proceed</span>
+          <!-- Status Alert -->
+          <div id="formStatusBadge" style="padding: 0.875rem 1rem; background: hsl(48 96% 89%); border: 1px solid hsl(48 96% 75%); border-radius: 8px; display: flex; align-items: start; gap: 0.75rem;">
+            <div style="flex-shrink: 0; margin-top: 0.125rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(25 95% 35%)" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.8125rem; font-weight: 700; color: hsl(25 95% 20%); margin-bottom: 0.125rem;" id="statusTitle">Incomplete Form</div>
+              <div style="font-size: 0.75rem; color: hsl(25 95% 25%); font-weight: 500; line-height: 1.4;" id="statusMessage">Fill required fields to proceed</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -928,6 +948,64 @@ function loadDraft() {
   }
 }
 
+// Show validation tooltip for invalid field
+function showValidationTooltip(field) {
+  // Remove any existing tooltip
+  const existingTooltip = document.getElementById('validation-tooltip');
+  if (existingTooltip) existingTooltip.remove();
+  
+  // Get field label text
+  const label = field.closest('.form-group')?.querySelector('label');
+  const fieldName = label ? label.textContent.replace('*', '').trim() : 'This field';
+  
+  // Create tooltip
+  const tooltip = document.createElement('div');
+  tooltip.id = 'validation-tooltip';
+  tooltip.style.cssText = `
+    position: absolute;
+    background: hsl(0 74% 50%);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 10000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s ease-out;
+  `;
+  tooltip.textContent = `⚠️ ${fieldName} is required`;
+  
+  // Position tooltip below field
+  const rect = field.getBoundingClientRect();
+  tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+  tooltip.style.left = (rect.left + window.scrollX) + 'px';
+  
+  document.body.appendChild(tooltip);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => tooltip.remove(), 3000);
+  
+  // Remove on field input
+  field.addEventListener('input', function removeTooltip() {
+    tooltip.remove();
+    field.removeEventListener('input', removeTooltip);
+  }, { once: true });
+}
+
+// Add slideDown animation if not exists
+if (!document.getElementById('slideDown-animation')) {
+  const style = document.createElement('style');
+  style.id = 'slideDown-animation';
+  style.textContent = `
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 // Progress Tracking
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('itemForm');
@@ -967,20 +1045,33 @@ document.addEventListener('DOMContentLoaded', function() {
     progressPercent.textContent = progress + '%';
     
     // Update status badge
+    // Update status alert
+    const statusTitle = document.getElementById('statusTitle');
+    const statusMessage = document.getElementById('statusMessage');
+    const statusIcon = formStatusBadge.querySelector('svg');
+    
     if (progress === 100) {
+      // Success state
       formStatusBadge.style.background = 'hsl(143 85% 96%)';
-      formStatusBadge.style.borderColor = 'hsl(140 61% 13%)';
-      formStatusBadge.querySelector('svg').style.stroke = 'hsl(140 61% 13%)';
-      formStatusBadge.querySelector('span').style.color = 'hsl(140 61% 13%)';
-      formStatusBadge.querySelector('span').textContent = '✓ Ready to submit!';
+      formStatusBadge.style.borderColor = 'hsl(143 85% 80%)';
+      statusIcon.style.stroke = 'hsl(140 61% 35%)';
+      statusIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>';
+      statusTitle.style.color = 'hsl(140 61% 20%)';
+      statusTitle.textContent = 'Form Complete';
+      statusMessage.style.color = 'hsl(140 61% 25%)';
+      statusMessage.textContent = 'All required fields filled. Ready to submit!';
       submitBtn.disabled = false;
       submitBtn.style.opacity = '1';
     } else {
+      // Warning state
       formStatusBadge.style.background = 'hsl(48 96% 89%)';
-      formStatusBadge.style.borderColor = 'hsl(25 95% 16%)';
-      formStatusBadge.querySelector('svg').style.stroke = 'hsl(25 95% 16%)';
-      formStatusBadge.querySelector('span').style.color = 'hsl(25 95% 16%)';
-      formStatusBadge.querySelector('span').textContent = 'Fill required fields to proceed';
+      formStatusBadge.style.borderColor = 'hsl(48 96% 75%)';
+      statusIcon.style.stroke = 'hsl(25 95% 35%)';
+      statusIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>';
+      statusTitle.style.color = 'hsl(25 95% 20%)';
+      statusTitle.textContent = 'Incomplete Form';
+      statusMessage.style.color = 'hsl(25 95% 25%)';
+      statusMessage.textContent = 'Fill required fields to proceed';
       submitBtn.disabled = true;
       submitBtn.style.opacity = '0.5';
     }
@@ -994,26 +1085,93 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Real-time validation
   requiredFields.forEach(field => {
+    // On blur: check if field is empty
     field.addEventListener('blur', function() {
       if (!this.value || this.value.trim() === '') {
         this.style.borderColor = 'var(--color-danger)';
+        this.style.borderWidth = '1px';
       } else {
         this.style.borderColor = 'var(--color-success)';
+        this.style.borderWidth = '1px';
+        this.style.boxShadow = '';
       }
     });
     
+    // On focus: highlight with primary color
     field.addEventListener('focus', function() {
       this.style.borderColor = 'var(--color-primary)';
+      this.style.borderWidth = '1px';
+      this.style.boxShadow = '';
+    });
+    
+    // On input: clear error styling if field has value
+    field.addEventListener('input', function() {
+      if (this.value && this.value.trim() !== '') {
+        this.style.borderColor = '';
+        this.style.borderWidth = '';
+        this.style.boxShadow = '';
+      }
     });
   });
   
   // Tax rate change listener
   document.getElementById('tax_rate').addEventListener('change', calculateMarkup);
   
-  // Form submission
+  // Form submission with validation
   form.addEventListener('submit', function(e) {
+    // Validate all required fields
+    let firstInvalidField = null;
+    let invalidTab = null;
+    
+    requiredFields.forEach(field => {
+      if (!field.value || field.value.trim() === '') {
+        if (!firstInvalidField) {
+          firstInvalidField = field;
+          
+          // Find which tab this field belongs to
+          const tabContent = field.closest('.tab-content');
+          if (tabContent) {
+            invalidTab = tabContent.id.replace('tab-', '');
+          }
+        }
+        
+        // Visual feedback for empty field
+        field.style.borderColor = 'hsl(0 74% 50%)';
+        field.style.borderWidth = '2px';
+        field.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.15)';
+      }
+    });
+    
+    if (firstInvalidField) {
+      e.preventDefault();
+      
+      // Switch to tab with invalid field
+      if (invalidTab) {
+        switchTab(invalidTab);
+      }
+      
+      // Focus on first invalid field after tab switch
+      setTimeout(() => {
+        firstInvalidField.focus();
+        firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Show error tooltip
+        showValidationTooltip(firstInvalidField);
+      }, 300);
+      
+      // Show error toast notification
+      if (typeof Toast !== 'undefined') {
+        Toast.error('Please fill in all required fields before submitting', 4000);
+      }
+      
+      console.log('❌ Validation failed: Required fields missing');
+      return false;
+    }
+    
+    // All validation passed, proceed with submission
     submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="2"/></svg> Adding...';
     submitBtn.disabled = true;
+    console.log('✅ Form validation passed - Submitting...');
   });
   
   // Initial update

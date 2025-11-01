@@ -100,7 +100,7 @@ db.notifications.createIndex({ 'read': 1, 'created_at': -1 });
 db.users.insertOne({
   username: 'admin',
   email: 'admin@inventory.local',
-  password: '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // admin123
+  password: '$2y$12$z9UjPbZM/vGAESjnIIfRpuw7/F/3D0dtiEppSTVdUA1TXINDtCs.G', // admin123
   role: 'admin',
   created_at: new Date(),
   updated_at: new Date()

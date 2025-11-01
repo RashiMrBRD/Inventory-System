@@ -9,10 +9,12 @@
  * include 'components/layout.php';
  */
 
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+use App\Helper\SessionHelper;
+
 // Ensure session is started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+SessionHelper::start();
 
 // Default values
 $pageTitle = $pageTitle ?? 'Inventory Management';
@@ -74,6 +76,12 @@ $additionalJS = $additionalJS ?? [];
   
   <!-- Toast Notification System -->
   <script src="assets/js/toast.js"></script>
+  
+  <!-- Number Format API -->
+  <script src="assets/js/number-format.js"></script>
+  
+  <!-- Keyboard Shortcuts System -->
+  <script src="assets/js/keyboard-shortcuts.js"></script>
   
   <!-- Additional JavaScript -->
   <?php foreach ($additionalJS as $js): ?>

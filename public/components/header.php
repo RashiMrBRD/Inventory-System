@@ -219,7 +219,9 @@ $userInitial = strtoupper(substr($username, 0, 1));
       })
       .catch(error => {
         console.error('Error loading notifications:', error);
-        displayFallbackNotifications();
+        // Show empty state instead of fallback demo data
+        displayNotifications([]);
+        updateBadge(0);
       });
   }
   
@@ -282,13 +284,13 @@ $userInitial = strtoupper(substr($username, 0, 1));
   function displayNotifications(notifications) {
     if (notifications.length === 0) {
       notificationItems.innerHTML = `
-        <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style="opacity: 0.3; margin: 0 auto 1rem; stroke: currentColor;">
-            <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.7088 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke-width="2" stroke-linecap="round"/>
-            <path d="M22 4L12 14.01L9 11.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <div style="padding: 2.5rem 2rem; text-align: center; color: hsl(215 16% 47%);">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" style="opacity: 0.2; margin: 0 auto 1rem; stroke: currentColor; stroke-width: 1.5;">
+            <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <p style="font-size: 0.875rem; font-weight: 500;">All caught up!</p>
-          <p style="font-size: 0.75rem; margin-top: 0.25rem;">No new notifications</p>
+          <h3 style="font-size: 0.9375rem; font-weight: 600; color: hsl(0 0% 12%); margin: 0 0 0.5rem 0;">No notifications</h3>
+          <p style="font-size: 0.8125rem; color: hsl(215 16% 47%); margin: 0; line-height: 1.5;">New notifications will appear here when you receive them</p>
         </div>
       `;
       return;
@@ -328,16 +330,7 @@ $userInitial = strtoupper(substr($username, 0, 1));
     
   }
   
-  // Fallback notifications
-  function displayFallbackNotifications() {
-    const fallback = [
-      { type: 'inventory', title: 'Low Stock Alert', message: 'Olive Oil Premium - only 45 units remaining', time: '5 mins ago', read: false },
-      { type: 'expiry', title: 'Products Expiring Soon', message: 'Mushrooms (Canned) expires in 22 days', time: '1 hour ago', read: false },
-      { type: 'announcement', title: 'System Maintenance', message: 'Scheduled maintenance on Sunday 2AM-4AM', time: '2 hours ago', read: true }
-    ];
-    displayNotifications(fallback);
-    updateBadge(2);
-  }
+  // Removed fallback demo notifications - now properly shows empty state
   
   // Update badge count
   function updateBadge(count) {

@@ -90,87 +90,104 @@ $projectModel = new Project();
 $shipmentModel = new Shipment();
 
 try {
-    // Quotations (time-filtered)
+    // Quotations - Show ALL current quotations (not time-filtered)
     $quotations = $quotationModel->getAll();
-    $totalQuotations = 0;
+    $totalQuotations = count($quotations);
     $pendingQuotations = 0;
+    $quotationsInPeriod = 0; // For trend calculation
+    
     foreach ($quotations as $q) {
+        if (($q['status'] ?? '') === 'pending') {
+            $pendingQuotations++;
+        }
+        // Count quotations created in period for trends
         $date = $q['created_at'] ?? $q['date'] ?? null;
         if (isDashboardInRange($date, $startDate, $endDate)) {
-            $totalQuotations++;
-            if (($q['status'] ?? '') === 'pending') {
-                $pendingQuotations++;
-            }
+            $quotationsInPeriod++;
         }
     }
     
-    // Invoices (time-filtered)
+    // Invoices - Show ALL invoices and total revenue (not time-filtered)
     $invoices = $invoiceModel->getAll();
     $totalRevenue = 0;
     $paidRevenue = 0;
     $outstandingRevenue = 0;
-    $totalInvoices = 0;
+    $totalInvoices = count($invoices);
+    $revenueInPeriod = 0; // For trend calculation
+    
     foreach ($invoices as $inv) {
+        $total = (float)($inv['total'] ?? 0);
+        $totalRevenue += $total;
+        
+        if (($inv['status'] ?? '') === 'paid') {
+            $paidRevenue += $total;
+        } else {
+            $outstandingRevenue += $total;
+        }
+        
+        // Count revenue in period for trends
         $date = $inv['date'] ?? null;
         if (isDashboardInRange($date, $startDate, $endDate)) {
-            $totalInvoices++;
-            $total = (float)($inv['total'] ?? 0);
-            $totalRevenue += $total;
-            if (($inv['status'] ?? '') === 'paid') {
-                $paidRevenue += $total;
-            } else {
-                $outstandingRevenue += $total;
-            }
+            $revenueInPeriod += $total;
         }
     }
     
-    // Orders (time-filtered)
+    // Orders - Show ALL current orders (not time-filtered)
     $orders = $orderModel->getAll();
-    $totalOrders = 0;
+    $totalOrders = count($orders);
     $processingOrders = 0;
+    $ordersInPeriod = 0; // For trend calculation
+    
     foreach ($orders as $o) {
+        if (($o['status'] ?? '') === 'processing') {
+            $processingOrders++;
+        }
+        // Count orders in period for trends
         $date = $o['created_at'] ?? $o['date'] ?? null;
         if (isDashboardInRange($date, $startDate, $endDate)) {
-            $totalOrders++;
-            if (($o['status'] ?? '') === 'processing') {
-                $processingOrders++;
-            }
+            $ordersInPeriod++;
         }
     }
     
-    // Projects (time-filtered)
+    // Projects - Show ALL current projects (not time-filtered)
     $projects = $projectModel->getAll();
-    $totalProjects = 0;
+    $totalProjects = count($projects);
     $activeProjects = 0;
+    $projectsInPeriod = 0; // For trend calculation
+    
     foreach ($projects as $p) {
+        if (($p['status'] ?? '') === 'active') {
+            $activeProjects++;
+        }
+        // Count projects in period for trends
         $date = $p['created_at'] ?? $p['date'] ?? null;
         if (isDashboardInRange($date, $startDate, $endDate)) {
-            $totalProjects++;
-            if (($p['status'] ?? '') === 'active') {
-                $activeProjects++;
-            }
+            $projectsInPeriod++;
         }
     }
     
-    // Shipments (time-filtered)
+    // Shipments - Show ALL current shipments (not time-filtered)
     $shipments = $shipmentModel->getAll();
-    $totalShipments = 0;
+    $totalShipments = count($shipments);
     $inTransitShipments = 0;
+    $shipmentsInPeriod = 0; // For trend calculation
+    
     foreach ($shipments as $s) {
+        if (($s['status'] ?? '') === 'in_transit') {
+            $inTransitShipments++;
+        }
+        // Count shipments in period for trends
         $date = $s['created_at'] ?? $s['date'] ?? null;
         if (isDashboardInRange($date, $startDate, $endDate)) {
-            $totalShipments++;
-            if (($s['status'] ?? '') === 'in_transit') {
-                $inTransitShipments++;
-            }
+            $shipmentsInPeriod++;
         }
     }
 } catch (Exception $e) {
-    $totalQuotations = $pendingQuotations = 0;
-    $totalRevenue = $paidRevenue = $outstandingRevenue = $totalInvoices = 0;
-    $totalOrders = $processingOrders = 0;
-    $totalProjects = $activeProjects = 0;
-    $totalShipments = $inTransitShipments = 0;
+    $totalQuotations = $pendingQuotations = $quotationsInPeriod = 0;
+    $totalRevenue = $paidRevenue = $outstandingRevenue = $totalInvoices = $revenueInPeriod = 0;
+    $totalOrders = $processingOrders = $ordersInPeriod = 0;
+    $totalProjects = $activeProjects = $projectsInPeriod = 0;
+    $totalShipments = $inTransitShipments = $shipmentsInPeriod = 0;
 }
 
 // ============================================
@@ -1848,6 +1865,25 @@ function loadDashboardData(range) {
       }
     });
 }
+
+// ============================================
+// APPLY NUMBER FORMAT API TO CURRENCY VALUES
+// ============================================
+window.addEventListener('load', function() {
+  const currencySymbol = '<?php echo CurrencyHelper::symbol(); ?>';
+  
+  // Auto-apply formatting to all financial values
+  NumberFormat.autoApply(currencySymbol, {
+    customSelectors: [
+      { selector: '.financial-card-value', maxWidth: 1 },  // Always abbreviate large values
+      { selector: '.metric-value', maxWidth: 1 },
+      { selector: '.stat-item-value', maxWidth: 80 },
+      { selector: '.aging-amount', maxWidth: 90 },
+      { selector: '.account-balance', maxWidth: 90 },
+      { selector: '.expense-amount', maxWidth: 80 }
+    ]
+  });
+});
 </script>
 
 <?php

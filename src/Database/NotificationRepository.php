@@ -6,6 +6,7 @@
 
 namespace App\Database;
 
+use MongoDB\Client;
 use MongoDB\Collection;
 use App\Service\DatabaseService;
 
@@ -17,7 +18,7 @@ class NotificationRepository
     public function __construct(string $userId)
     {
         $this->userId = $userId;
-        // Use the shared DatabaseService to ensure authenticated connections (respects env and authSource)
+        // Use centralized DatabaseService to ensure authenticated connection
         $dbService = DatabaseService::getInstance();
         $collectionName = $dbService->getCollectionName('notifications');
         $this->collection = $dbService->getCollection($collectionName);
