@@ -726,7 +726,7 @@ ob_start();
     <div class="grid grid-cols-4 gap-6">
       <div>
         <p class="text-sm text-secondary mb-1">Application Version</p>
-        <p class="font-semibold">v0.2.1</p>
+        <p class="font-semibold">v0.2.7</p>
       </div>
       <div>
         <p class="text-sm text-secondary mb-1">Database Status</p>
