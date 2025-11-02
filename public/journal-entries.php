@@ -1000,10 +1000,44 @@ function showEntryMenu(entryId, event) {
   `;
   
   const rect = event.target.getBoundingClientRect();
-  menu.style.left = (rect.left - 150) + 'px';
-  menu.style.top = (rect.bottom + 5) + 'px';
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
+  // Append to body first to measure dimensions
   document.body.appendChild(menu);
+  
+  // Get menu dimensions
+  menu.style.visibility = 'hidden';
+  const menuRect = menu.getBoundingClientRect();
+  menu.style.visibility = 'visible';
+  
+  // Calculate viewport dimensions
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Calculate positions
+  let top = rect.bottom + scrollTop + 5;
+  let left = rect.left + scrollLeft - 150;
+  
+  // Check if menu goes below viewport (bottom of screen)
+  if (rect.bottom + menuRect.height + 10 > viewportHeight) {
+    // Position above the button instead
+    top = rect.top + scrollTop - menuRect.height - 5;
+  }
+  
+  // Check if menu goes beyond right edge
+  if (left + menuRect.width > viewportWidth + scrollLeft) {
+    left = viewportWidth + scrollLeft - menuRect.width - 20;
+  }
+  
+  // Check if menu goes beyond left edge
+  if (left < scrollLeft) {
+    left = scrollLeft + 10;
+  }
+  
+  // Position menu
+  menu.style.top = top + 'px';
+  menu.style.left = left + 'px';
   
   setTimeout(() => {
     document.addEventListener('click', function closeMenu() {

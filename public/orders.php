@@ -14,6 +14,10 @@ $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
 
+// Check SMTP configuration
+$appConfig = require __DIR__ . '/../config/app.php';
+$smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
+
 // Load orders from database
 $orderModel = new Order();
 try {
@@ -421,7 +425,7 @@ label[data-required="true"]::after {
                 <path d="M6 9V2H18V9M6 18H4C3.46957 18 2.96086 17.7893 2.58579 17.4142C2.21071 17.0391 2 16.5304 2 16V11C2 10.4696 2.21071 9.96086 2.58579 9.58579C2.96086 9.21071 3.46957 9 4 9H20C20.5304 9 21.0391 9.21071 21.4142 9.58579C21.7893 9.96086 22 10.4696 22 11V16C22 16.5304 21.7893 17.0391 21.4142 17.4142C21.0391 17.7893 20.5304 18 20 18H18M6 14H18V22H6V14Z" stroke="currentColor" stroke-width="2"/>
               </svg>
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="emailOrder('<?php echo $order['id']; ?>')" title="Email">
+            <button class="btn btn-ghost btn-sm" onclick="emailOrder('<?php echo $order['id']; ?>')" title="<?php echo $smtpConfigured ? 'Email' : 'SMTP not configured'; ?>" <?php if (!$smtpConfigured): ?>disabled style="opacity: 0.5; cursor: not-allowed;"<?php endif; ?>>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <path d="M22 6l-10 7L2 6"/>
@@ -587,9 +591,9 @@ label[data-required="true"]::after {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2H18V9M6 18H4C3.46957 18 2.96086 17.7893 2.58579 17.4142C2.21071 17.0391 2 16.5304 2 16V11C2 10.4696 2.21071 9.96086 2.58579 9.58579C2.96086 9.21071 3.46957 9 4 9H20C20.5304 9 21.0391 9.21071 21.4142 9.58579C21.7893 9.96086 22 10.4696 22 11V16C22 16.5304 21.7893 17.0391 21.4142 17.4142C21.0391 17.7893 20.5304 18 20 18H18M6 14H18V22H6V14Z"/></svg>
         Print/PDF
       </button>
-      <button type="button" onclick="emailOrderFromView()" class="btn btn-ghost">
+      <button type="button" onclick="emailOrderFromView()" class="btn btn-ghost" <?php if (!$smtpConfigured): ?>disabled style="opacity: 0.5; cursor: not-allowed;"<?php endif; ?>>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
-        Email
+        Email<?php if (!$smtpConfigured): ?> <span style="font-size: 0.75rem;">(SMTP not configured)</span><?php endif; ?>
       </button>
       <button type="button" onclick="recordPaymentFromView()" class="btn btn-ghost" style="background: hsl(143 85% 96%); color: hsl(140 61% 13%); border: 1px solid hsl(143 60% 80%);">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
@@ -928,11 +932,11 @@ label[data-required="true"]::after {
             <div id="lineItemsContainer" style="border: 1.5px solid hsl(214 20% 90%); border-top: none; border-radius: 0 0 8px 8px; background: white; display: none;"></div>
             <div id="lineItemsPagination" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: hsl(240 5% 96%); border: 1.5px solid hsl(214 20% 90%); border-radius: 8px; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <button type="button" id="prevPageBtn" onclick="changePage(-1)" style="padding: 0.5rem 0.75rem; background: white; border: 1.5px solid hsl(214 20% 88%); border-radius: 6px; cursor: pointer; font-size: 0.8125rem; font-weight: 600; color: hsl(222 47% 17%); transition: all 0.2s;" onmouseover="this.style.background='hsl(214 95% 98%)'" onmouseout="this.style.background='white'">
+                <button type="button" id="prevLineItemsPageBtn" onclick="changeLineItemsPage(-1)" style="padding: 0.5rem 0.75rem; background: white; border: 1.5px solid hsl(214 20% 88%); border-radius: 6px; cursor: pointer; font-size: 0.8125rem; font-weight: 600; color: hsl(222 47% 17%); transition: all 0.2s;" onmouseover="this.style.background='hsl(214 95% 98%)'" onmouseout="this.style.background='white'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
                 </button>
                 <span id="pageInfo" style="font-size: 0.8125rem; color: hsl(215 16% 47%); font-weight: 500;">Page 1 of 1</span>
-                <button type="button" id="nextPageBtn" onclick="changePage(1)" style="padding: 0.5rem 0.75rem; background: white; border: 1.5px solid hsl(214 20% 88%); border-radius: 6px; cursor: pointer; font-size: 0.8125rem; font-weight: 600; color: hsl(222 47% 17%); transition: all 0.2s;" onmouseover="this.style.background='hsl(214 95% 98%)'" onmouseout="this.style.background='white'">
+                <button type="button" id="nextLineItemsPageBtn" onclick="changeLineItemsPage(1)" style="padding: 0.5rem 0.75rem; background: white; border: 1.5px solid hsl(214 20% 88%); border-radius: 6px; cursor: pointer; font-size: 0.8125rem; font-weight: 600; color: hsl(222 47% 17%); transition: all 0.2s;" onmouseover="this.style.background='hsl(214 95% 98%)'" onmouseout="this.style.background='white'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
               </div>
@@ -1654,8 +1658,8 @@ function updatePagination() {
   const totalItems = lineItems.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const pagination = document.getElementById('lineItemsPagination');
-  const prevBtn = document.getElementById('prevPageBtn');
-  const nextBtn = document.getElementById('nextPageBtn');
+  const prevBtn = document.getElementById('prevLineItemsPageBtn');
+  const nextBtn = document.getElementById('nextLineItemsPageBtn');
   const pageInfo = document.getElementById('pageInfo');
   const itemCount = document.getElementById('itemCount');
   
@@ -1693,7 +1697,7 @@ function updatePagination() {
   });
 }
 
-function changePage(direction) {
+function changeLineItemsPage(direction) {
   const totalPages = Math.ceil(lineItems.length / itemsPerPage);
   const newPage = currentPage + direction;
   
@@ -1920,6 +1924,13 @@ document.getElementById('viewOrderModal')?.addEventListener('click', function(e)
 });
 
 document.addEventListener('keydown', function(e) {
+  // Check if user is typing in an input/textarea
+  const activeElement = document.activeElement;
+  const isTyping = activeElement.tagName === 'INPUT' || 
+                   activeElement.tagName === 'TEXTAREA' || 
+                   activeElement.isContentEditable;
+  
+  // Escape key - Close modals
   if (e.key === 'Escape') {
     const newOrderModal = document.getElementById('newOrderModal');
     const viewModal = document.getElementById('viewOrderModal');
@@ -1928,6 +1939,33 @@ document.addEventListener('keydown', function(e) {
       closeViewOrderModal();
     } else if (newOrderModal && newOrderModal.style.display === 'flex') {
       closeNewOrderModal();
+    }
+  }
+  
+  // Pagination keyboard shortcuts
+  // Only work when not typing and pagination is visible
+  if (!isTyping) {
+    const paginationVisible = document.getElementById('paginationContainer') && 
+                               document.getElementById('paginationContainer').style.display !== 'none';
+    
+    if (paginationVisible) {
+      // Arrow Left = Previous Page
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prevBtn = document.getElementById('prevPageBtn');
+        if (prevBtn && !prevBtn.disabled) {
+          changePage(-1);
+        }
+      }
+      
+      // Arrow Right = Next Page
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const nextBtn = document.getElementById('nextPageBtn');
+        if (nextBtn && !nextBtn.disabled) {
+          changePage(1);
+        }
+      }
     }
   }
 });
@@ -2408,6 +2446,17 @@ function printOrder(orderId) {
       Toast.warning('No order selected');
       return;
     }
+    
+    // Find the order row to get details for the title
+    const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+    let orderNumber = orderId;
+    let customerName = '';
+    
+    if (row) {
+      orderNumber = row.querySelector('td:nth-child(2)')?.textContent || orderId;
+      customerName = row.querySelector('td:nth-child(3)')?.textContent || '';
+    }
+    
     const url = 'api/order_pdf.php?id=' + encodeURIComponent(orderId);
     console.log('📄 Opening PDF viewer for order ' + orderId);
     
@@ -2417,7 +2466,7 @@ function printOrder(orderId) {
     const title = document.getElementById('pdfViewerTitle');
     
     iframe.src = url;
-    title.textContent = 'Order PDF - ' + orderId;
+    title.textContent = 'Order PDF - ' + orderNumber + (customerName ? ' (' + customerName + ')' : '');
     modal.style.display = 'flex';
     
     Toast.info('Loading order PDF...');
@@ -2441,6 +2490,14 @@ let currentEmailOrderId = null;
 
 async function emailOrder(orderId) {
   console.log('📧 Opening email form for order:', orderId);
+  
+  // Check if SMTP is configured
+  const smtpConfigured = <?php echo $smtpConfigured ? 'true' : 'false'; ?>;
+  if (!smtpConfigured) {
+    alert('SMTP server not configured. Please configure email settings in Settings > System Configuration.');
+    return;
+  }
+  
   currentEmailOrderId = orderId;
   
   // Fetch order data to get details
@@ -2614,10 +2671,39 @@ function showMoreActions(orderId, status = 'Pending') {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
-  // Position dropdown relative to viewport + scroll position
-  dropdown.style.top = (rect.bottom + scrollTop + 5) + 'px';
-  dropdown.style.left = (rect.left + scrollLeft - 150) + 'px';
+  // Get dropdown dimensions
   dropdown.style.display = 'block';
+  dropdown.style.visibility = 'hidden';
+  const dropdownRect = dropdown.getBoundingClientRect();
+  dropdown.style.visibility = 'visible';
+  
+  // Calculate viewport dimensions
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Calculate positions
+  let top = rect.bottom + scrollTop + 5;
+  let left = rect.left + scrollLeft - 150;
+  
+  // Check if dropdown goes below viewport (bottom of screen)
+  if (rect.bottom + dropdownRect.height + 10 > viewportHeight) {
+    // Position above the button instead
+    top = rect.top + scrollTop - dropdownRect.height - 5;
+  }
+  
+  // Check if dropdown goes beyond right edge
+  if (left + dropdownRect.width > viewportWidth + scrollLeft) {
+    left = viewportWidth + scrollLeft - dropdownRect.width - 20;
+  }
+  
+  // Check if dropdown goes beyond left edge
+  if (left < scrollLeft) {
+    left = scrollLeft + 10;
+  }
+  
+  // Position dropdown
+  dropdown.style.top = top + 'px';
+  dropdown.style.left = left + 'px';
   
   console.log('📋 Actions dropdown opened for order:', orderId);
   

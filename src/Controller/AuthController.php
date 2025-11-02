@@ -93,17 +93,322 @@ class AuthController
     }
 
     /**
-     * Get current logged-in user
+     * Get the currently logged-in user
      * 
-     * @return array|null
+     * @return array|null User data or null if not logged in
      */
     public function getCurrentUser(): ?array
     {
-        if (!$this->isLoggedIn()) {
+        if (!isset($_SESSION['user_id'])) {
             return null;
         }
 
         return $this->userModel->findById($_SESSION['user_id']);
+    }
+
+    /**
+     * Update user profile information
+     * 
+     * @param string $userId
+     * @param array $data Profile data to update
+     * @return array Response with status and message
+     */
+    public function updateUserProfile(string $userId, array $data): array
+    {
+        try {
+            // Validate email
+            if (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                return [
+                    'success' => false,
+                    'message' => 'Valid email address is required'
+                ];
+            }
+
+            // Check if username is taken by another user
+            if (!empty($data['username'])) {
+                $existingUser = $this->userModel->findByUsername($data['username']);
+                if ($existingUser && $existingUser['_id'] !== $userId) {
+                    return [
+                        'success' => false,
+                        'message' => 'Username is already taken'
+                    ];
+                }
+            }
+
+            // Update user data
+            $updateData = [
+                'username' => $data['username'] ?? '',
+                'email' => $data['email'] ?? '',
+                'firstname' => $data['firstname'] ?? '',
+                'lastname' => $data['lastname'] ?? '',
+                'nickname' => $data['nickname'] ?? '',
+                'display_name' => $data['display_name'] ?? '',
+                'role' => $data['role'] ?? 'user',
+                'whatsapp' => $data['whatsapp'] ?? '',
+                'website' => $data['website'] ?? '',
+                'telegram' => $data['telegram'] ?? '',
+                'bio' => $data['bio'] ?? '',
+                'full_name' => trim(($data['firstname'] ?? '') . ' ' . ($data['lastname'] ?? ''))
+            ];
+
+            $result = $this->userModel->updateUser($userId, $updateData);
+
+            if ($result) {
+                // Update session data
+                $_SESSION['username'] = $updateData['username'];
+                $_SESSION['full_name'] = $updateData['full_name'];
+
+                return [
+                    'success' => true,
+                    'message' => 'Profile updated successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to update profile'
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Change user password
+     * 
+     * @param string $userId
+     * @param string $oldPassword
+     * @param string $newPassword
+     * @return array Response with status and message
+     */
+    public function changePassword(string $userId, string $oldPassword, string $newPassword): array
+    {
+        try {
+            // Get current user
+            $user = $this->userModel->findById($userId);
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
+
+            // Verify old password
+            if (!password_verify($oldPassword, $user['password'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Current password is incorrect'
+                ];
+            }
+
+            // Validate new password
+            if (strlen($newPassword) < 6) {
+                return [
+                    'success' => false,
+                    'message' => 'New password must be at least 6 characters'
+                ];
+            }
+
+            // Update password
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $result = $this->userModel->updateUser($userId, ['password' => $hashedPassword]);
+
+            if ($result) {
+                return [
+                    'success' => true,
+                    'message' => 'Password changed successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to change password'
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Upload profile photo
+     * 
+     * @param string $userId
+     * @param array $file Uploaded file from $_FILES
+     * @return array Response with status and message
+     */
+    public function uploadProfilePhoto(string $userId, array $file): array
+    {
+        try {
+            // Validate file exists and no upload errors
+            if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+                error_log('Upload error: No valid file uploaded');
+                return [
+                    'success' => false,
+                    'message' => 'No valid file uploaded'
+                ];
+            }
+
+            // Validate file
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $filename = $file['name'];
+            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+            if (!in_array($ext, $allowed)) {
+                return [
+                    'success' => false,
+                    'message' => 'Invalid file type. Allowed: JPG, PNG, GIF, WebP'
+                ];
+            }
+
+            // Check file size (max 5MB)
+            if ($file['size'] > 5 * 1024 * 1024) {
+                return [
+                    'success' => false,
+                    'message' => 'File size must be less than 5MB'
+                ];
+            }
+
+            // Validate MIME type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                return [
+                    'success' => false,
+                    'message' => 'Invalid file type detected'
+                ];
+            }
+
+            // Create upload directory if it doesn't exist
+            $uploadDir = __DIR__ . '/../../public/uploads/profiles/';
+            if (!is_dir($uploadDir)) {
+                if (!mkdir($uploadDir, 0755, true)) {
+                    error_log('Failed to create upload directory: ' . $uploadDir);
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to create upload directory'
+                    ];
+                }
+            }
+
+            // Check if directory is writable
+            if (!is_writable($uploadDir)) {
+                error_log('Upload directory not writable: ' . $uploadDir);
+                return [
+                    'success' => false,
+                    'message' => 'Upload directory is not writable'
+                ];
+            }
+
+            // Generate unique filename
+            $newFilename = 'profile_' . preg_replace('/[^a-zA-Z0-9]/', '', $userId) . '_' . time() . '.' . $ext;
+            $uploadPath = $uploadDir . $newFilename;
+
+            // Move uploaded file
+            if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
+                // Get current user to check for old photo
+                $user = $this->userModel->findById($userId);
+                if ($user && !empty($user['profile_photo'])) {
+                    // Delete old photo
+                    $oldPhoto = __DIR__ . '/../../public/' . $user['profile_photo'];
+                    if (file_exists($oldPhoto)) {
+                        @unlink($oldPhoto); // @ to suppress warnings if file doesn't exist
+                    }
+                }
+
+                // Update database
+                $photoPath = 'uploads/profiles/' . $newFilename;
+                $result = $this->userModel->updateUser($userId, ['profile_photo' => $photoPath]);
+
+                if ($result) {
+                    return [
+                        'success' => true,
+                        'message' => 'Profile photo uploaded successfully',
+                        'photo_path' => $photoPath
+                    ];
+                } else {
+                    error_log('Failed to update user photo in database for user: ' . $userId);
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to update database'
+                    ];
+                }
+            } else {
+                $error = error_get_last();
+                error_log('Failed to move uploaded file: ' . ($error['message'] ?? 'Unknown error'));
+                return [
+                    'success' => false,
+                    'message' => 'Failed to upload file'
+                ];
+            }
+        } catch (\Exception $e) {
+            error_log('Profile photo upload exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Remove profile photo
+     * 
+     * @param string $userId
+     * @return array Response with status and message
+     */
+    public function removeProfilePhoto(string $userId): array
+    {
+        try {
+            // Get current user
+            $user = $this->userModel->findById($userId);
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
+
+            if (!empty($user['profile_photo'])) {
+                // Delete photo file
+                $photoPath = __DIR__ . '/../../public/' . $user['profile_photo'];
+                if (file_exists($photoPath)) {
+                    unlink($photoPath);
+                }
+
+                // Update database
+                $result = $this->userModel->updateUser($userId, ['profile_photo' => '']);
+
+                if ($result) {
+                    return [
+                        'success' => true,
+                        'message' => 'Profile photo removed successfully'
+                    ];
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to update database'
+                    ];
+                }
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'No profile photo to remove'
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
     }
 
     /**

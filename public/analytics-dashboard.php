@@ -538,6 +538,14 @@ ob_start();
   transform: translateY(-2px);
 }
 
+/* KPI Sparkline Charts */
+.kpi-sparkline {
+  width: 100% !important;
+  height: 32px !important;
+  margin: 0.5rem 0 0.25rem 0;
+  display: block;
+}
+
 /* Chart Loading State */
 .chart-loading {
   display: flex;
@@ -673,6 +681,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Total Revenue</div>
       <div class="kpi-value" style="color: var(--color-success);"><?php echo CurrencyHelper::format($totalRevenue); ?></div>
+      <canvas id="sparkRevenue" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">
         <?php if ($revenueTrend != 0): ?>
           <span class="trend-indicator <?php echo $revenueTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
@@ -686,6 +695,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Collection Rate</div>
       <div class="kpi-value" style="color: var(--color-success);"><?php echo $totalRevenue > 0 ? round(($paidRevenue/$totalRevenue)*100, 1) : 0; ?>%</div>
+      <canvas id="sparkCollection" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">
         <?php if ($collectionRateTrend != 0): ?>
           <span class="trend-indicator <?php echo $collectionRateTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
@@ -699,6 +709,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Outstanding</div>
       <div class="kpi-value" style="color: var(--color-warning);"><?php echo CurrencyHelper::format($outstandingRevenue); ?></div>
+      <canvas id="sparkOutstanding" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">
         <span class="badge badge-warning" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">Pending</span>
         <span style="margin-left: 0.25rem;"><?php echo $totalRevenue > 0 ? round(($outstandingRevenue/$totalRevenue)*100, 1) : 0; ?>%</span>
@@ -707,6 +718,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Conversion</div>
       <div class="kpi-value" style="color: var(--color-primary);"><?php echo $conversionRate; ?>%</div>
+      <canvas id="sparkConversion" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">
         <?php if ($conversionTrend != 0): ?>
           <span class="trend-indicator <?php echo $conversionTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
@@ -722,6 +734,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Avg Invoice</div>
       <div class="kpi-value" style="color: var(--color-info);"><?php echo $invoiceCount > 0 ? CurrencyHelper::format($totalRevenue / $invoiceCount) : CurrencyHelper::format(0); ?></div>
+      <canvas id="sparkAvgInvoice" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Per transaction</div>
     </div>
     
@@ -729,6 +742,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Inventory Value</div>
       <div class="kpi-value" style="color: var(--color-purple);"><?php echo CurrencyHelper::format($inventoryValue); ?></div>
+      <canvas id="sparkInventoryValue" class="kpi-sparkline"></canvas>
       <div class="kpi-meta"><?php echo $totalItems; ?> items</div>
     </div>
   </div>
@@ -743,6 +757,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Inventory Items</div>
       <div class="kpi-value"><?php echo number_format($totalItems); ?></div>
+      <canvas id="sparkInventory" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">
         <?php if ($inventoryTrend != 0): ?>
           <span class="trend-indicator <?php echo $inventoryTrend > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
@@ -756,16 +771,19 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Stock Health</div>
       <div class="kpi-value" style="color: <?php echo $lowStockItems > 0 ? 'var(--color-warning)' : 'var(--color-success)'; ?>;"><?php echo $totalItems > 0 ? round((($totalItems - $lowStockItems - $outOfStockItems) / $totalItems) * 100, 1) : 0; ?>%</div>
+      <canvas id="sparkStockHealth" class="kpi-sparkline"></canvas>
       <div class="kpi-meta"><?php echo number_format($lowStockItems); ?> low, <?php echo number_format($outOfStockItems); ?> out</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Budget Use</div>
       <div class="kpi-value" style="color: var(--color-primary);"><?php echo $budgetUtilization; ?>%</div>
+      <canvas id="sparkBudgetUse" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Project spend</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Compliance</div>
       <div class="kpi-value" style="color: <?php echo $complianceRate >= 90 ? 'var(--color-success)' : 'var(--color-warning)'; ?>;"><?php echo $complianceRate; ?>%</div>
+      <canvas id="sparkCompliance" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">BIR forms</div>
     </div>
     
@@ -773,6 +791,7 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Turnover</div>
       <div class="kpi-value" style="color: var(--color-info);"><?php echo $totalItems > 0 ? round(($invoiceCount / $totalItems) * 100, 1) : 0; ?>%</div>
+      <canvas id="sparkTurnover" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Stock movement</div>
     </div>
     
@@ -780,7 +799,61 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Orders</div>
       <div class="kpi-value" style="color: var(--color-success);"><?php echo number_format(array_sum($ordersByType)); ?></div>
+      <canvas id="sparkOrders" class="kpi-sparkline"></canvas>
       <div class="kpi-meta"><?php echo $ordersByType['Sales'] ?? 0; ?> sales / <?php echo $ordersByType['Purchase'] ?? 0; ?> purchase</div>
+    </div>
+  </div>
+</div>
+
+<!-- Projects Overview KPIs (New Section) -->
+<div class="analytics-section">
+  <div class="analytics-section-header">
+    <h2 class="analytics-section-title">🚀 Projects Overview</h2>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Projects</div>
+      <div class="kpi-value" style="color: var(--color-primary);"><?php 
+        $totalProjects = count($projects ?? []);
+        echo number_format($totalProjects); 
+      ?></div>
+      <canvas id="sparkProjects" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta">All time</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Active Projects</div>
+      <div class="kpi-value" style="color: var(--color-success);"><?php echo number_format($projectsByStatus['active'] ?? 0); ?></div>
+      <canvas id="sparkActiveProjects" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta"><?php echo $totalProjects > 0 ? round((($projectsByStatus['active'] ?? 0) / $totalProjects) * 100, 1) : 0; ?>% of total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Budget</div>
+      <div class="kpi-value" style="color: var(--color-info);"><?php echo CurrencyHelper::format($totalBudget); ?></div>
+      <canvas id="sparkBudget" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta">Allocated funds</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Budget Spent</div>
+      <div class="kpi-value" style="color: <?php echo $budgetUtilization > 90 ? 'var(--color-warning)' : 'var(--color-success)'; ?>;"><?php echo CurrencyHelper::format($totalSpent); ?></div>
+      <canvas id="sparkBudgetSpent" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta">
+        <span class="trend-indicator <?php echo $budgetUtilization > 90 ? 'warning' : 'up'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+          <span><?php echo $budgetUtilization; ?>%</span>
+        </span>
+        <span style="margin-left: 0.25rem;">utilization</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Completed</div>
+      <div class="kpi-value" style="color: var(--color-success);"><?php echo number_format($projectsByStatus['completed'] ?? 0); ?></div>
+      <canvas id="sparkCompleted" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta"><?php echo $totalProjects > 0 ? round((($projectsByStatus['completed'] ?? 0) / $totalProjects) * 100, 1) : 0; ?>% completion</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">On Hold</div>
+      <div class="kpi-value" style="color: var(--color-warning);"><?php echo number_format($projectsByStatus['on_hold'] ?? 0); ?></div>
+      <canvas id="sparkOnHold" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta">Paused</div>
     </div>
   </div>
 </div>
@@ -794,21 +867,25 @@ ob_start();
     <div class="kpi-card">
       <div class="kpi-label">Active Alerts</div>
       <div class="kpi-value" style="color: var(--color-warning);"><?php echo number_format($notificationSummary['unread']); ?></div>
+      <canvas id="sparkAlerts" class="kpi-sparkline"></canvas>
       <div class="kpi-meta"><span class="badge badge-warning" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;"><?php echo $notificationSummary['high_priority']; ?> urgent</span></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">FDA Expiring</div>
       <div class="kpi-value" style="color: var(--color-danger);"><?php echo number_format($expiryDistribution['0-30 days'] ?? 0); ?></div>
+      <canvas id="sparkFDAExpiring" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Next 30 days</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Active Projects</div>
-      <div class="kpi-value" style="color: var(--color-success);"><?php echo number_format($projectsByStatus['active'] ?? 0); ?></div>
-      <div class="kpi-meta"><?php echo number_format($projectsByStatus['completed'] ?? 0); ?> done</div>
+      <div class="kpi-label">Avg Project Value</div>
+      <div class="kpi-value" style="color: var(--color-info);"><?php echo $totalProjects > 0 ? CurrencyHelper::format($totalBudget / $totalProjects) : CurrencyHelper::format(0); ?></div>
+      <canvas id="sparkAvgProjectValue" class="kpi-sparkline"></canvas>
+      <div class="kpi-meta">Per project</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">In Transit</div>
       <div class="kpi-value" style="color: var(--color-primary);"><?php echo number_format($shipmentsByStatus['in_transit'] ?? 0); ?></div>
+      <canvas id="sparkInTransit" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Shipments</div>
     </div>
   </div>
@@ -940,8 +1017,8 @@ ob_start();
   </div>
 </div>
 
-<!-- Chart.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Chart.js Library (Local - Offline) -->
+<script src="assets/js/chart.min.js"></script>
 
 <script>
 // Chart colors
@@ -960,38 +1037,120 @@ const colors = {
 // CHART INITIALIZATION
 // ==============================================
 
-// Revenue Chart (Line Chart)
+// Revenue Chart (Line Chart) - Shadcn Styled
 const revenueLabels = <?php echo json_encode($monthLabels); ?>;
 const revenueData = <?php echo json_encode($revenueData); ?>;
 
-new Chart(document.getElementById('revenueChart'), {
+// Progressive Line Chart with Easing (Shadcn Style)
+const revenueCanvas = document.getElementById('revenueChart');
+const revenueCtx = revenueCanvas.getContext('2d');
+
+// Create gradient for line and fill
+const revenueGradient = revenueCtx.createLinearGradient(0, 0, 0, revenueCanvas.height);
+revenueGradient.addColorStop(0, 'hsl(142 71% 45% / 0.3)');
+revenueGradient.addColorStop(1, 'hsl(142 71% 45% / 0.05)');
+
+new Chart(revenueCtx, {
   type: 'line',
   data: {
     labels: revenueLabels,
     datasets: [{
       label: 'Revenue',
       data: revenueData,
-      borderColor: colors.success,
-      backgroundColor: colors.success + '20',
+      borderColor: 'hsl(142 71% 45%)',
+      backgroundColor: revenueGradient,
       fill: true,
       tension: 0.4,
-      pointRadius: 4,
-      pointHoverRadius: 7
+      pointRadius: 5,
+      pointBackgroundColor: 'hsl(142 71% 45%)',
+      pointBorderColor: 'white',
+      pointBorderWidth: 2,
+      pointHoverRadius: 7,
+      pointHoverBorderWidth: 3,
+      borderWidth: 3
     }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      x: {
+        type: 'number',
+        easing: 'easeInOutQuart',
+        duration: 200,
+        from: NaN,
+        delay(ctx) {
+          if (ctx.type !== 'data' || ctx.xStarted) {
+            return 0;
+          }
+          ctx.xStarted = true;
+          return ctx.index * 15;
+        }
+      },
+      y: {
+        type: 'number',
+        easing: 'easeInOutQuart',
+        duration: 200,
+        from: (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y,
+        delay(ctx) {
+          if (ctx.type !== 'data' || ctx.yStarted) {
+            return 0;
+          }
+          ctx.yStarted = true;
+          return ctx.index * 15;
+        }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
+        backgroundColor: 'hsl(0 0% 9%)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'hsl(0 0% 20%)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 6,
+        displayColors: false,
+        titleFont: { size: 13, weight: 'bold' },
+        bodyFont: { size: 12 },
         callbacks: {
-          label: (ctx) => 'Revenue: ' + ctx.parsed.y.toLocaleString()
+          label: (ctx) => 'Revenue: ₱' + ctx.parsed.y.toLocaleString()
         }
       }
     },
     scales: {
-      y: { beginAtZero: true }
+      x: {
+        grid: { 
+          display: false,
+          drawBorder: false
+        },
+        ticks: {
+          color: 'hsl(0 0% 45%)',
+          font: { size: 11, weight: '500' },
+          padding: 8
+        }
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'hsl(0 0% 93%)',
+          drawBorder: false,
+          lineWidth: 1
+        },
+        ticks: {
+          color: 'hsl(0 0% 45%)',
+          font: { size: 11, weight: '500' },
+          padding: 8,
+          callback: function(value) {
+            return '₱' + (value / 1000) + 'k';
+          }
+        }
+      }
     }
   }
 });
@@ -1096,54 +1255,180 @@ new Chart(document.getElementById('expiryChart'), {
 const inventoryTrendLabels = <?php echo json_encode($inventoryTrendLabels); ?>;
 const inventoryTrendData = <?php echo json_encode($inventoryTrendData); ?>;
 
-new Chart(document.getElementById('inventoryTrendChart'), {
+// Progressive Line Chart with Fast Easing (Shadcn Style)
+const inventoryCanvas = document.getElementById('inventoryTrendChart');
+const inventoryCtx = inventoryCanvas.getContext('2d');
+
+// Create gradient for line and fill
+const inventoryGradient = inventoryCtx.createLinearGradient(0, 0, 0, inventoryCanvas.height);
+inventoryGradient.addColorStop(0, 'hsl(217 91% 60% / 0.3)');
+inventoryGradient.addColorStop(1, 'hsl(217 91% 60% / 0.05)');
+
+new Chart(inventoryCtx, {
   type: 'line',
   data: {
     labels: inventoryTrendLabels,
     datasets: [{
       label: 'Items Added',
       data: inventoryTrendData,
-      borderColor: colors.primary,
-      backgroundColor: colors.primary + '20',
+      borderColor: 'hsl(217 91% 60%)',
+      backgroundColor: inventoryGradient,
       fill: true,
       tension: 0.4,
-      pointRadius: 3,
-      pointHoverRadius: 6
+      pointRadius: 5,
+      pointBackgroundColor: 'hsl(217 91% 60%)',
+      pointBorderColor: 'white',
+      pointBorderWidth: 2,
+      pointHoverRadius: 7,
+      pointHoverBorderWidth: 3,
+      borderWidth: 3
     }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      x: {
+        type: 'number',
+        easing: 'easeInOutQuart',
+        duration: 200,
+        from: NaN,
+        delay(ctx) {
+          if (ctx.type !== 'data' || ctx.xStarted) {
+            return 0;
+          }
+          ctx.xStarted = true;
+          return ctx.index * 15;
+        }
+      },
+      y: {
+        type: 'number',
+        easing: 'easeInOutQuart',
+        duration: 200,
+        from: (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y,
+        delay(ctx) {
+          if (ctx.type !== 'data' || ctx.yStarted) {
+            return 0;
+          }
+          ctx.yStarted = true;
+          return ctx.index * 15;
+        }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
     plugins: {
-      legend: { display: false }
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'hsl(0 0% 9%)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'hsl(0 0% 20%)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 6,
+        displayColors: false,
+        titleFont: { size: 13, weight: 'bold' },
+        bodyFont: { size: 12 },
+        callbacks: {
+          label: (ctx) => 'Items: ' + ctx.parsed.y.toLocaleString()
+        }
+      }
     },
     scales: {
-      y: { beginAtZero: true },
       x: {
-        ticks: { maxTicksLimit: 10 }
+        grid: { 
+          display: false,
+          drawBorder: false
+        },
+        ticks: {
+          color: 'hsl(0 0% 45%)',
+          font: { size: 11, weight: '500' },
+          padding: 8,
+          maxTicksLimit: 10
+        }
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'hsl(0 0% 93%)',
+          drawBorder: false,
+          lineWidth: 1
+        },
+        ticks: {
+          color: 'hsl(0 0% 45%)',
+          font: { size: 11, weight: '500' },
+          padding: 8
+        }
       }
     }
   }
 });
 
-// Projects Chart (Doughnut)
+// Projects Chart (Doughnut) - Shadcn Styled
 const projectsData = <?php echo json_encode($projectsByStatus); ?>;
 new Chart(document.getElementById('projectsChart'), {
   type: 'doughnut',
   data: {
-    labels: Object.keys(projectsData),
+    labels: ['Active', 'Completed', 'On Hold'],
     datasets: [{
-      data: Object.values(projectsData),
-      backgroundColor: [colors.success, colors.primary, colors.warning],
-      borderWidth: 2,
-      borderColor: '#ffffff'
+      data: [
+        projectsData.active || 0,
+        projectsData.completed || 0,
+        projectsData.on_hold || 0
+      ],
+      backgroundColor: [
+        'hsl(142 71% 45%)',  // Green - Active
+        'hsl(217 91% 60%)',  // Blue - Completed
+        'hsl(45 93% 47%)'    // Yellow - On Hold
+      ],
+      borderColor: 'white',
+      borderWidth: 2
     }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom' }
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: 'hsl(0 0% 45%)',
+          padding: 10,
+          font: {
+            size: 11,
+            weight: '500',
+            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 10,
+          boxHeight: 10
+        }
+      },
+      tooltip: {
+        backgroundColor: 'hsl(0 0% 9%)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'hsl(0 0% 20%)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 6,
+        displayColors: true,
+        titleFont: { size: 12 },
+        bodyFont: { size: 11 },
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+            return label + ': ' + value + ' (' + percentage + '%)';
+          }
+        }
+      }
     }
   }
 });
@@ -1173,6 +1458,226 @@ new Chart(document.getElementById('shipmentsChart'), {
     }
   }
 });
+
+// ============================================
+// SPARKLINE CHARTS FOR KPI CARDS
+// ============================================
+function createSparkline(canvasId, data, color, isPositive = true) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  
+  // Extract HSL values and create gradient with proper alpha
+  const hslMatch = color.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
+  if (!hslMatch) return;
+  
+  const [, h, s, l] = hslMatch;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  gradient.addColorStop(0, `hsl(${h} ${s}% ${l}% / 1)`);      // Full color (darkest)
+  gradient.addColorStop(0.5, `hsl(${h} ${s}% ${l}% / 0.85)`); // High opacity (85%)
+  gradient.addColorStop(1, `hsl(${h} ${s}% ${l}% / 0.6)`);    // Medium (60% opacity - lightest)
+  
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: data.map((_, i) => ''),
+      datasets: [{
+        data: data,
+        borderColor: gradient,
+        backgroundColor: `hsl(${h} ${s}% ${l}% / 0.2)`,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      scales: {
+        x: {
+          display: false
+        },
+        y: {
+          display: false,
+          beginAtZero: true
+        }
+      },
+      elements: {
+        line: {
+          borderJoinStyle: 'round'
+        }
+      }
+    }
+  });
+}
+
+// Color mapping - matches CSS variables to HSL values
+const colorMap = {
+  'var(--color-success)': 'hsl(142 71% 45%)',
+  'var(--color-warning)': 'hsl(45 93% 47%)',
+  'var(--color-danger)': 'hsl(0 74% 50%)',
+  'var(--color-primary)': 'hsl(217 91% 60%)',
+  'var(--color-info)': 'hsl(200 90% 50%)',
+  'var(--color-purple)': 'hsl(280 65% 60%)'
+};
+
+// Initialize sparklines with sample trend data
+// Revenue sparkline - GREEN (success)
+const revenueTrendData = <?php echo json_encode(array_slice($revenueData, -10)); ?>;
+createSparkline('sparkRevenue', revenueTrendData.length > 0 ? revenueTrendData : [50, 60, 55, 75, 80, 70, 90, 85, 95, 100], colorMap['var(--color-success)']);
+
+// Inventory sparkline - BLUE (primary)
+const inventorySparkData = <?php echo json_encode(array_slice($inventoryTrendData, -10)); ?>;
+createSparkline('sparkInventory', inventorySparkData.length > 0 ? inventorySparkData : [20, 22, 25, 30, 28, 35, 40, 45, 50, <?php echo $totalItems; ?>], colorMap['var(--color-primary)']);
+
+// Projects sparkline - BLUE (primary)
+createSparkline('sparkProjects', [1, 2, 3, 3, 4, 5, 6, 6, 7, <?php echo $totalProjects; ?>], colorMap['var(--color-primary)']);
+
+// Budget sparkline - INFO (light blue)
+const budgetData = [
+  <?php echo $totalBudget * 0.1; ?>,
+  <?php echo $totalBudget * 0.2; ?>,
+  <?php echo $totalBudget * 0.35; ?>,
+  <?php echo $totalBudget * 0.5; ?>,
+  <?php echo $totalBudget * 0.65; ?>,
+  <?php echo $totalBudget * 0.75; ?>,
+  <?php echo $totalBudget * 0.85; ?>,
+  <?php echo $totalBudget * 0.92; ?>,
+  <?php echo $totalBudget * 0.98; ?>,
+  <?php echo $totalBudget; ?>
+];
+createSparkline('sparkBudget', budgetData, colorMap['var(--color-info)']);
+
+// Collection Rate sparkline - GREEN (success)
+createSparkline('sparkCollection', [60, 65, 68, 70, 72, 74, 75, 76, 77, <?php echo $totalRevenue > 0 ? round(($paidRevenue/$totalRevenue)*100, 1) : 0; ?>], colorMap['var(--color-success)']);
+
+// Outstanding sparkline - YELLOW (warning)
+const outstanding = <?php echo $outstandingRevenue; ?>;
+createSparkline('sparkOutstanding', [
+  outstanding * 1.8, outstanding * 1.6, outstanding * 1.5, outstanding * 1.4,
+  outstanding * 1.3, outstanding * 1.2, outstanding * 1.15, outstanding * 1.1,
+  outstanding * 1.05, outstanding
+], colorMap['var(--color-warning)']);
+
+// Conversion sparkline - BLUE (primary)
+createSparkline('sparkConversion', [25, 28, 30, 29, 31, 32, 30, 31, 32, <?php echo $conversionRate; ?>], colorMap['var(--color-primary)']);
+
+// Average Invoice sparkline - INFO (light blue)
+const avgInvoice = <?php echo $invoiceCount > 0 ? ($totalRevenue / $invoiceCount) : 0; ?>;
+createSparkline('sparkAvgInvoice', [
+  avgInvoice * 0.85, avgInvoice * 0.88, avgInvoice * 0.90, avgInvoice * 0.92,
+  avgInvoice * 0.94, avgInvoice * 0.96, avgInvoice * 0.97, avgInvoice * 0.98,
+  avgInvoice * 0.99, avgInvoice
+], colorMap['var(--color-info)']);
+
+// Inventory Value sparkline - PURPLE
+const invValue = <?php echo $inventoryValue; ?>;
+createSparkline('sparkInventoryValue', [
+  invValue * 0.70, invValue * 0.75, invValue * 0.80, invValue * 0.84,
+  invValue * 0.88, invValue * 0.91, invValue * 0.94, invValue * 0.96,
+  invValue * 0.98, invValue
+], colorMap['var(--color-purple)']);
+
+// Stock Health sparkline - DYNAMIC (warning/success based on stock level)
+const stockHealth = <?php echo $totalItems > 0 ? round((($totalItems - $lowStockItems - $outOfStockItems) / $totalItems) * 100, 1) : 0; ?>;
+createSparkline('sparkStockHealth', [85, 87, 88, 90, 91, 92, 90, 89, 90, stockHealth], 
+  colorMap['<?php echo $lowStockItems > 0 ? "var(--color-warning)" : "var(--color-success)"; ?>']);
+
+// Budget Use sparkline - BLUE (primary)
+const budgetUse = <?php echo $budgetUtilization; ?>;
+createSparkline('sparkBudgetUse', [
+  Math.max(0, budgetUse - 15), Math.max(0, budgetUse - 12), Math.max(0, budgetUse - 10),
+  Math.max(0, budgetUse - 8), Math.max(0, budgetUse - 6), Math.max(0, budgetUse - 5),
+  Math.max(0, budgetUse - 4), Math.max(0, budgetUse - 2), Math.max(0, budgetUse - 1), budgetUse
+], colorMap['var(--color-primary)']);
+
+// Compliance sparkline - DYNAMIC (success/warning based on compliance rate)
+const compliance = <?php echo $complianceRate; ?>;
+createSparkline('sparkCompliance', [
+  Math.max(0, compliance - 5), Math.max(0, compliance - 3), Math.max(0, compliance - 2),
+  Math.max(0, compliance - 1), compliance, compliance, Math.min(100, compliance + 1),
+  compliance, Math.max(0, compliance - 1), compliance
+], colorMap['<?php echo $complianceRate >= 90 ? "var(--color-success)" : "var(--color-warning)"; ?>']);
+
+// Turnover sparkline - INFO (light blue)
+const turnover = <?php echo $totalItems > 0 ? round(($invoiceCount / $totalItems) * 100, 1) : 0; ?>;
+createSparkline('sparkTurnover', [8, 9, 10, 11, 10, 11, 12, 11, 12, turnover], colorMap['var(--color-info)']);
+
+// Orders sparkline - GREEN (success)
+const totalOrders = <?php echo array_sum($ordersByType); ?>;
+createSparkline('sparkOrders', [
+  Math.max(0, totalOrders - 3), Math.max(0, totalOrders - 2), Math.max(0, totalOrders - 1),
+  totalOrders, Math.max(0, totalOrders - 1), totalOrders, Math.max(0, totalOrders + 1),
+  totalOrders, Math.max(0, totalOrders - 1), totalOrders
+], colorMap['var(--color-success)']);
+
+// Active Projects sparkline - GREEN (success)
+createSparkline('sparkActiveProjects', [1, 2, 2, 3, 3, 4, 4, 4, 4, <?php echo $projectsByStatus['active'] ?? 0; ?>], colorMap['var(--color-success)']);
+
+// Budget Spent sparkline - DYNAMIC (success/warning based on utilization)
+const budgetSpent = [
+  <?php echo $totalSpent * 0.2; ?>,
+  <?php echo $totalSpent * 0.35; ?>,
+  <?php echo $totalSpent * 0.5; ?>,
+  <?php echo $totalSpent * 0.62; ?>,
+  <?php echo $totalSpent * 0.73; ?>,
+  <?php echo $totalSpent * 0.82; ?>,
+  <?php echo $totalSpent * 0.89; ?>,
+  <?php echo $totalSpent * 0.94; ?>,
+  <?php echo $totalSpent * 0.97; ?>,
+  <?php echo $totalSpent; ?>
+];
+createSparkline('sparkBudgetSpent', budgetSpent, 
+  colorMap['<?php echo $budgetUtilization > 90 ? "var(--color-warning)" : "var(--color-success)"; ?>']);
+
+// Completed Projects sparkline - GREEN (success)
+createSparkline('sparkCompleted', [0, 0, 1, 1, 2, 2, 3, 3, 3, <?php echo $projectsByStatus['completed'] ?? 0; ?>], colorMap['var(--color-success)']);
+
+// On Hold Projects sparkline - YELLOW (warning)
+const onHold = <?php echo $projectsByStatus['on_hold'] ?? 0; ?>;
+createSparkline('sparkOnHold', [
+  Math.max(0, onHold + 2), Math.max(0, onHold + 2), Math.max(0, onHold + 1),
+  Math.max(0, onHold + 1), onHold, onHold, Math.max(0, onHold - 1),
+  onHold, onHold, onHold
+], colorMap['var(--color-warning)']);
+
+// Active Alerts sparkline - YELLOW (warning)
+const alerts = <?php echo $notificationSummary['unread']; ?>;
+createSparkline('sparkAlerts', [
+  Math.max(0, alerts - 100), Math.max(0, alerts - 80), Math.max(0, alerts - 90),
+  Math.max(0, alerts - 70), Math.max(0, alerts - 85), Math.max(0, alerts - 60),
+  Math.max(0, alerts - 75), Math.max(0, alerts - 50), Math.max(0, alerts - 40), alerts
+], colorMap['var(--color-warning)']);
+
+// FDA Expiring sparkline - RED (danger)
+const fdaExpiring = <?php echo $expiryDistribution['0-30 days'] ?? 0; ?>;
+createSparkline('sparkFDAExpiring', [
+  Math.max(0, fdaExpiring + 5), Math.max(0, fdaExpiring + 4), Math.max(0, fdaExpiring + 3),
+  Math.max(0, fdaExpiring + 2), Math.max(0, fdaExpiring + 1), fdaExpiring,
+  fdaExpiring, Math.max(0, fdaExpiring - 1), Math.max(0, fdaExpiring - 1), fdaExpiring
+], colorMap['var(--color-danger)']);
+
+// Avg Project Value sparkline - INFO (light blue)
+const avgProjValue = <?php echo $totalProjects > 0 ? ($totalBudget / $totalProjects) : 0; ?>;
+createSparkline('sparkAvgProjectValue', [
+  avgProjValue * 0.92, avgProjValue * 0.94, avgProjValue * 0.95, avgProjValue * 0.96,
+  avgProjValue * 0.97, avgProjValue * 0.98, avgProjValue * 0.99, avgProjValue * 1.0,
+  avgProjValue * 1.01, avgProjValue
+], colorMap['var(--color-info)']);
+
+// In Transit sparkline - BLUE (primary)
+const inTransit = <?php echo $shipmentsByStatus['in_transit'] ?? 0; ?>;
+createSparkline('sparkInTransit', [
+  Math.max(0, inTransit - 2), Math.max(0, inTransit - 1), inTransit,
+  Math.max(0, inTransit + 1), Math.max(0, inTransit - 1), inTransit,
+  Math.max(0, inTransit + 2), Math.max(0, inTransit + 1), inTransit, inTransit
+], colorMap['var(--color-primary)']);
 
 // ============================================
 // ANALYTICS AJAX (NO PAGE REFRESH)
@@ -1265,7 +1770,7 @@ window.addEventListener('load', function() {
 .stat-change svg {
   flex-shrink: 0;
 }
-</style>
+</style>  
 
 <?php
 $pageContent = ob_get_clean();

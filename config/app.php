@@ -48,5 +48,18 @@ return [
             'localhost',
             '192.168.123.10'
         ]
+    ],
+    
+    'mail' => [
+        'driver' => getenv('MAIL_DRIVER') ?: null, // smtp, sendmail, mailgun, etc
+        'host' => getenv('MAIL_HOST') ?: null,
+        'port' => getenv('MAIL_PORT') ?: 587,
+        'username' => getenv('MAIL_USERNAME') ?: null,
+        'password' => getenv('MAIL_PASSWORD') ?: null,
+        'encryption' => getenv('MAIL_ENCRYPTION') ?: 'tls',
+        'from' => [
+            'address' => getenv('MAIL_FROM_ADDRESS') ?: 'noreply@inventory.local',
+            'name' => getenv('MAIL_FROM_NAME') ?: 'Inventory Management System'
+        ]
     ]
 ];

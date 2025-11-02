@@ -16,6 +16,10 @@ $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
 
+// Check SMTP configuration
+$appConfig = require __DIR__ . '/../config/app.php';
+$smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
+
 // Get notification summary for financial alerts
 $userId = $user['id'] ?? 'admin';
 $notificationSummary = NotificationHelper::getSummary($userId);
@@ -311,9 +315,9 @@ ob_start();
     
     <!-- Footer Actions -->
     <div style="background: hsl(210 20% 98%); padding: 1rem 2rem; border-top: 1px solid hsl(214 20% 88%); display: flex; gap: 0.75rem; justify-content: flex-end;">
-      <button type="button" onclick="emailInvoice(currentViewInvoiceId)" class="btn btn-ghost" style="padding: 0.625rem 1.25rem; background: white; border: 1px solid hsl(214 20% 88%); border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: hsl(222 47% 17%); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='hsl(214 20% 96%)'" onmouseout="this.style.background='white'">
+      <button type="button" onclick="emailInvoice(currentViewInvoiceId)" class="btn btn-ghost" <?php if (!$smtpConfigured): ?>disabled<?php endif; ?> style="padding: 0.625rem 1.25rem; background: white; border: 1px solid hsl(214 20% 88%); border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: <?php echo $smtpConfigured ? 'hsl(222 47% 17%)' : 'hsl(215 16% 60%)'; ?>; cursor: <?php echo $smtpConfigured ? 'pointer' : 'not-allowed'; ?>; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; opacity: <?php echo $smtpConfigured ? '1' : '0.5'; ?>;" <?php if ($smtpConfigured): ?>onmouseover="this.style.background='hsl(214 20% 96%)'" onmouseout="this.style.background='white'"<?php endif; ?>>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-        Send Email
+        Send Email<?php if (!$smtpConfigured): ?> <span style="font-size: 0.75rem;">(SMTP not configured)</span><?php endif; ?>
       </button>
       <button type="button" onclick="downloadPDF(currentViewInvoiceId)" class="btn btn-ghost" style="padding: 0.625rem 1.25rem; background: white; border: 1px solid hsl(214 20% 88%); border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: hsl(222 47% 17%); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='hsl(214 20% 96%)'" onmouseout="this.style.background='white'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -746,7 +750,7 @@ ob_start();
               </svg>
             </button>
             <?php endif; ?>
-            <button class="btn btn-ghost btn-sm text-primary" onclick="emailInvoice('<?php echo htmlspecialchars($invId); ?>')" title="Send Email">
+            <button class="btn btn-ghost btn-sm text-primary" onclick="emailInvoice('<?php echo htmlspecialchars($invId); ?>')" title="<?php echo $smtpConfigured ? 'Send Email' : 'SMTP not configured'; ?>" <?php if (!$smtpConfigured): ?>disabled style="opacity: 0.5; cursor: not-allowed;"<?php endif; ?>>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="currentColor" stroke-width="2"/>
               </svg>
@@ -2338,6 +2342,14 @@ let currentEmailInvoiceId = null;
 
 async function emailInvoice(id) {
   console.log('ℹ Opening email form for invoice:', id);
+  
+  // Check if SMTP is configured
+  const smtpConfigured = <?php echo $smtpConfigured ? 'true' : 'false'; ?>;
+  if (!smtpConfigured) {
+    alert('SMTP server not configured. Please configure email settings in Settings > System Configuration.');
+    return;
+  }
+  
   currentEmailInvoiceId = id;
   
   // Find the invoice row in the table

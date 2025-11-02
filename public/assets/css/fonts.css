@@ -1,0 +1,75 @@
+/**
+ * Font System
+ * Provides offline-first font loading with system font fallbacks
+ */
+
+/* System Font Stacks */
+:root {
+  /* Default: Inter (with fallback to system fonts) */
+  --font-family-default: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  /* System UI fonts (native) */
+  --font-family-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  /* Geometric Sans-Serif */
+  --font-family-geometric: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+  
+  /* Humanist Sans-Serif */
+  --font-family-humanist: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  
+  /* Transitional Sans-Serif */
+  --font-family-transitional: 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', sans-serif;
+  
+  /* Monospace for code/numbers */
+  --font-family-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+  
+  /* Classical Serif */
+  --font-family-serif: Georgia, 'Times New Roman', Times, serif;
+  
+  /* Modern Serif */
+  --font-family-modern-serif: 'Cambria', 'Hoefler Text', 'Liberation Serif', serif;
+}
+
+/* Apply font based on data attribute */
+body {
+  font-family: var(--font-family-default);
+}
+
+body[data-font="system"] {
+  font-family: var(--font-family-system);
+}
+
+body[data-font="geometric"] {
+  font-family: var(--font-family-geometric);
+}
+
+body[data-font="humanist"] {
+  font-family: var(--font-family-humanist);
+}
+
+body[data-font="transitional"] {
+  font-family: var(--font-family-transitional);
+}
+
+body[data-font="monospace"] {
+  font-family: var(--font-family-mono);
+}
+
+body[data-font="serif"] {
+  font-family: var(--font-family-serif);
+}
+
+body[data-font="modern-serif"] {
+  font-family: var(--font-family-modern-serif);
+}
+
+/* Inter Font (Self-hosted fallback) */
+/* If you want to host Inter locally, download from https://fonts.google.com/download?family=Inter */
+/* For now, we'll use system fonts as fallback */
+
+/* Font smoothing for better rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

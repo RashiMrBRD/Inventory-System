@@ -27,4 +27,111 @@ class Shipment
         foreach ($cursor as $doc) { $out[] = (array)$doc; }
         return $out;
     }
+
+    public function create(array $data): array
+    {
+        $data['createdAt'] = new \MongoDB\BSON\UTCDateTime();
+        $data['updatedAt'] = new \MongoDB\BSON\UTCDateTime();
+        
+        $result = $this->collection->insertOne($data);
+        
+        if ($result->getInsertedCount() > 0) {
+            $data['_id'] = $result->getInsertedId();
+            return $data;
+        }
+        
+        throw new \Exception('Failed to create shipment');
+    }
+
+    public function findById(string $id): ?array
+    {
+        try {
+            $objectId = new \MongoDB\BSON\ObjectId($id);
+            $doc = $this->collection->findOne(['_id' => $objectId]);
+            return $doc ? (array)$doc : null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    public function generateShipmentNumber(): string
+    {
+        $year = date('Y');
+        $prefix = "SHP-{$year}-";
+        
+        // Find the last shipment number for this year
+        $lastShipment = $this->collection->findOne(
+            ['shipment_number' => ['$regex' => "^{$prefix}"]],
+            ['sort' => ['shipment_number' => -1]]
+        );
+        
+        if ($lastShipment && isset($lastShipment['shipment_number'])) {
+            $lastNumber = intval(substr($lastShipment['shipment_number'], -5));
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+        
+        return $prefix . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    public function updateStatus(string $id, string $status, string $note = '', string $user = 'system'): bool
+    {
+        try {
+            $objectId = new \MongoDB\BSON\ObjectId($id);
+            
+            $statusEntry = [
+                'status' => $status,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'note' => $note,
+                'user' => $user
+            ];
+            
+            $result = $this->collection->updateOne(
+                ['_id' => $objectId],
+                [
+                    '$set' => [
+                        'status' => $status,
+                        'updatedAt' => new \MongoDB\BSON\UTCDateTime()
+                    ],
+                    '$push' => ['status_history' => $statusEntry]
+                ]
+            );
+            
+            return $result->getModifiedCount() > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public function update(string $id, array $data): bool
+    {
+        try {
+            $objectId = new \MongoDB\BSON\ObjectId($id);
+            $data['updatedAt'] = new \MongoDB\BSON\UTCDateTime();
+            
+            $result = $this->collection->updateOne(
+                ['_id' => $objectId],
+                ['$set' => $data]
+            );
+            
+            return $result->getModifiedCount() > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public function delete(string $id): bool
+    {
+        try {
+            $objectId = new \MongoDB\BSON\ObjectId($id);
+            
+            $result = $this->collection->deleteOne(['_id' => $objectId]);
+            
+            return $result->getDeletedCount() > 0;
+        } catch (\Exception $e) {
+            error_log("Delete shipment error: " . $e->getMessage());
+            return false;
+        }
+    }
 }

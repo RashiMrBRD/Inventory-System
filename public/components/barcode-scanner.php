@@ -93,9 +93,9 @@
   </div>
 </div>
 
-<!-- External Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- External Libraries - Local copies for offline use -->
+<script src="../assets/js/vendor/jsbarcode.min.js"></script>
+<script src="../assets/js/vendor/html5-qrcode.min.js"></script>
 
 <script>
 (function() {

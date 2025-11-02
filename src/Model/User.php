@@ -117,8 +117,10 @@ class User
                 ['$set' => $userData]
             );
             
-            return $result->getModifiedCount() > 0;
+            // Return true if document was matched (even if not modified)
+            return $result->getMatchedCount() > 0;
         } catch (\Exception $e) {
+            error_log('User update error: ' . $e->getMessage());
             return false;
         }
     }
@@ -150,5 +152,17 @@ class User
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Update user - alias for update() method
+     * 
+     * @param string $id
+     * @param array $userData
+     * @return bool
+     */
+    public function updateUser(string $id, array $userData): bool
+    {
+        return $this->update($id, $userData);
     }
 }

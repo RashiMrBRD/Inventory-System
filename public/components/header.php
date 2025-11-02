@@ -7,6 +7,13 @@
 // Get user info from session
 $username = isset($_SESSION['username']) ? $_SESSION['username'] : 'Guest';
 $userInitial = strtoupper(substr($username, 0, 1));
+
+// Get profile photo from session or database
+require_once __DIR__ . '/../../vendor/autoload.php';
+use App\Controller\AuthController;
+$authController = new AuthController();
+$currentUser = $authController->getCurrentUser();
+$profilePhoto = $currentUser['profile_photo'] ?? '';
 ?>
 
 <header class="app-header">
@@ -75,8 +82,12 @@ $userInitial = strtoupper(substr($username, 0, 1));
     <!-- User Menu -->
     <div class="user-menu dropdown">
       <button class="user-button" id="user-menu-button" aria-label="User menu">
-        <div class="user-avatar">
-          <?php echo $userInitial; ?>
+        <div class="user-avatar" id="header-user-avatar">
+          <?php if (!empty($profilePhoto)): ?>
+            <img src="<?php echo htmlspecialchars($profilePhoto); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+          <?php else: ?>
+            <span id="user-initial"><?php echo $userInitial; ?></span>
+          <?php endif; ?>
         </div>
         <span class="hidden-mobile"><?php echo htmlspecialchars($username); ?></span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

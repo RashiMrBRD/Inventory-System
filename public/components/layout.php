@@ -42,17 +42,20 @@ $additionalJS = $additionalJS ?? [];
   <!-- Toast Notification System -->
   <link rel="stylesheet" href="assets/css/toast.css">
   
+  <!-- Font System (Offline-first) -->
+  <link rel="stylesheet" href="assets/css/fonts.css">
+  
+  <!-- Custom Fonts (User uploaded) -->
+  <?php if (file_exists(__DIR__ . '/../../public/assets/css/custom-fonts.css')): ?>
+  <link rel="stylesheet" href="assets/css/custom-fonts.css">
+  <?php endif; ?>
+  
   <!-- Additional CSS -->
   <?php foreach ($additionalCSS as $css): ?>
   <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>">
   <?php endforeach; ?>
-  
-  <!-- Google Fonts - Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body data-font="<?php echo htmlspecialchars($_SESSION['font_family'] ?? 'system'); ?>">
   <div class="app-wrapper">
     <?php include __DIR__ . '/sidebar.php'; ?>
     

@@ -15,6 +15,10 @@ $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
 
+// Check SMTP configuration
+$appConfig = require __DIR__ . '/../config/app.php';
+$smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
+
 // Real quotations from database
 $quotationModel = new Quotation();
 try {
@@ -487,9 +491,9 @@ ob_start();
 <!-- Actions Dropdown Menu -->
 <div id="actionsDropdown" style="display: none; position: absolute; background: white; border: 1px solid hsl(214 20% 88%); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); z-index: 10000; min-width: 200px;">
   <div style="padding: 0.5rem;">
-    <button onclick="handleQuoteAction('email')" style="width: 100%; display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.875rem; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 0.875rem; color: hsl(222 47% 17%); text-align: left; transition: background 0.2s;" onmouseover="this.style.background='hsl(210 20% 98%)'" onmouseout="this.style.background='transparent'">
+    <button onclick="handleQuoteAction('email')" <?php if (!$smtpConfigured): ?>disabled<?php endif; ?> style="width: 100%; display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.875rem; border: none; background: transparent; border-radius: 6px; cursor: <?php echo $smtpConfigured ? 'pointer' : 'not-allowed'; ?>; font-size: 0.875rem; color: <?php echo $smtpConfigured ? 'hsl(222 47% 17%)' : 'hsl(215 16% 60%)'; ?>; text-align: left; transition: background 0.2s; opacity: <?php echo $smtpConfigured ? '1' : '0.5'; ?>;" <?php if ($smtpConfigured): ?>onmouseover="this.style.background='hsl(210 20% 98%)'" onmouseout="this.style.background='transparent'"<?php endif; ?>>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-      Email Quote
+      Email Quote<?php if (!$smtpConfigured): ?> <span style="font-size: 0.75rem;">(SMTP not configured)</span><?php endif; ?>
     </button>
     <button onclick="handleQuoteAction('download')" style="width: 100%; display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.875rem; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 0.875rem; color: hsl(222 47% 17%); text-align: left; transition: background 0.2s;" onmouseover="this.style.background='hsl(210 20% 98%)'" onmouseout="this.style.background='transparent'">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -2896,10 +2900,39 @@ function showQuoteActions(id, status) {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
-  // Position dropdown relative to viewport + scroll position
-  dropdown.style.top = (rect.bottom + scrollTop + 5) + 'px';
-  dropdown.style.left = (rect.left + scrollLeft - 150) + 'px';
+  // Get dropdown dimensions
   dropdown.style.display = 'block';
+  dropdown.style.visibility = 'hidden';
+  const dropdownRect = dropdown.getBoundingClientRect();
+  dropdown.style.visibility = 'visible';
+  
+  // Calculate viewport dimensions
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Calculate positions
+  let top = rect.bottom + scrollTop + 5;
+  let left = rect.left + scrollLeft - 150;
+  
+  // Check if dropdown goes below viewport (bottom of screen)
+  if (rect.bottom + dropdownRect.height + 10 > viewportHeight) {
+    // Position above the button instead
+    top = rect.top + scrollTop - dropdownRect.height - 5;
+  }
+  
+  // Check if dropdown goes beyond right edge
+  if (left + dropdownRect.width > viewportWidth + scrollLeft) {
+    left = viewportWidth + scrollLeft - dropdownRect.width - 20;
+  }
+  
+  // Check if dropdown goes beyond left edge
+  if (left < scrollLeft) {
+    left = scrollLeft + 10;
+  }
+  
+  // Position dropdown
+  dropdown.style.top = top + 'px';
+  dropdown.style.left = left + 'px';
   
   console.log('Actions dropdown opened for quotation:', id);
   

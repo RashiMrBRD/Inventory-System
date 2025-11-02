@@ -2729,8 +2729,8 @@ function debounce(func, wait) {
 // No toast notifications - loading state handled by CSS
 </script>
 
-<!-- JsBarcode Library - Load before usage -->
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<!-- JsBarcode Library - Local copy for offline use -->
+<script src="assets/js/vendor/jsbarcode.min.js"></script>
 
 <script>
 // ============================================

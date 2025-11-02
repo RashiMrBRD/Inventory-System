@@ -8,11 +8,16 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Service\CurrencyService;
+use App\Service\FontService;
 
 $authController = new AuthController();
 $authController->requireLogin();
 
 $user = $authController->getCurrentUser();
+
+// Load current SMTP configuration
+$appConfig = require __DIR__ . '/../config/app.php';
+$smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
 
 // Get current timezone (from session or default to system/UTC)
 $currentTimezone = $_SESSION['timezone'] ?? date_default_timezone_get();
@@ -82,6 +87,83 @@ $currentCurrency = $_SESSION['currency'] ?? $detectedCurrency;
 // Get all available currencies
 $currencies = CurrencyService::getAllCurrencies();
 
+// Get current font (from session or default to 'system')
+$currentFont = $_SESSION['font_family'] ?? 'system';
+
+// Get current theme (from session or default to 'system')
+$currentTheme = $_SESSION['theme'] ?? 'system';
+
+// Initialize FontService (works with or without database)
+$fontService = new FontService();
+
+// Get custom fonts (from database or JSON file)
+$customFonts = [];
+try {
+    $dbCustomFonts = $fontService->getAllCustomFonts();
+    foreach ($dbCustomFonts as $dbFont) {
+        $fontKey = $fontService->sanitizeFileName($dbFont['font_family']);
+        $customFonts[$fontKey] = [
+            'id' => $dbFont['id'],
+            'name' => $dbFont['font_name'],
+            'description' => 'Custom uploaded font - ' . ucfirst($dbFont['font_category']),
+            'sample' => 'The quick brown fox jumps over the lazy dog',
+            'stack' => $dbFont['font_family'],
+            'is_custom' => true
+        ];
+    }
+} catch (Exception $e) {
+    // Silently continue - fonts will use JSON fallback
+}
+
+// Available font families (system + custom)
+$availableFonts = [
+    'system' => [
+        'name' => 'System UI',
+        'description' => 'Native system fonts (Segoe UI, San Francisco, Roboto)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto'
+    ],
+    'geometric' => [
+        'name' => 'Geometric Sans',
+        'description' => 'Clean and modern (Arial, Helvetica)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => 'Arial, Helvetica Neue, Helvetica'
+    ],
+    'humanist' => [
+        'name' => 'Humanist Sans',
+        'description' => 'Friendly and readable (Segoe UI, Tahoma, Verdana)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => 'Segoe UI, Tahoma, Geneva, Verdana'
+    ],
+    'transitional' => [
+        'name' => 'Transitional',
+        'description' => 'Professional balance (Trebuchet MS)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => 'Trebuchet MS, Lucida Grande'
+    ],
+    'monospace' => [
+        'name' => 'Monospace',
+        'description' => 'Fixed-width for technical displays (Consolas, Monaco)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => 'Consolas, Monaco, Courier New'
+    ],
+    'serif' => [
+        'name' => 'Classical Serif',
+        'description' => 'Traditional and elegant (Georgia, Times)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => 'Georgia, Times New Roman, Times'
+    ],
+    'modern-serif' => [
+        'name' => 'Modern Serif',
+        'description' => 'Contemporary serif (Cambria)',
+        'sample' => 'The quick brown fox jumps over the lazy dog',
+        'stack' => 'Cambria, Hoefler Text, Liberation Serif'
+    ]
+];
+
+// Merge system fonts with custom fonts
+$availableFonts = array_merge($availableFonts, $customFonts);
+
 // Handle form submission
 $message = '';
 $messageType = '';
@@ -105,6 +187,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $message = 'Invalid timezone selected';
             $messageType = 'danger';
+        }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'update_font') {
+        $selectedFont = $_POST['font_family'] ?? 'system';
+        // Validate font selection
+        if (array_key_exists($selectedFont, $availableFonts)) {
+            $_SESSION['font_family'] = $selectedFont;
+            $currentFont = $selectedFont;
+            $message = 'Font updated to ' . $availableFonts[$selectedFont]['name'];
+            $messageType = 'success';
+        } else {
+            $message = 'Invalid font selected';
+            $messageType = 'danger';
+        }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'upload_font') {
+        // Handle font upload
+        if (isset($_FILES['font_file']) && $_FILES['font_file']['error'] === UPLOAD_ERR_OK) {
+            $fontName = trim($_POST['font_name'] ?? '');
+            $fontFamily = trim($_POST['font_family_name'] ?? '');
+            $fontCategory = $_POST['font_category'] ?? 'sans-serif';
+            
+            if (empty($fontName) || empty($fontFamily)) {
+                $message = 'Font name and family are required';
+                $messageType = 'danger';
+            } else {
+                $result = $fontService->uploadFont(
+                    $_FILES['font_file'],
+                    $fontName,
+                    $fontFamily,
+                    $fontCategory,
+                    $user['id'] ?? null
+                );
+                
+                $message = $result['message'];
+                $messageType = $result['success'] ? 'success' : 'danger';
+                
+                // Reload custom fonts if successful
+                if ($result['success']) {
+                    header('Location: settings.php?tab=regional&upload=success');
+                    exit;
+                }
+            }
+        } else {
+            $message = 'Please select a font file to upload';
+            $messageType = 'danger';
+        }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'delete_font') {
+        $fontId = (int)($_POST['font_id'] ?? 0);
+        if ($fontId > 0) {
+            $result = $fontService->deleteFont($fontId);
+            $message = $result ? 'Font deleted successfully' : 'Failed to delete font';
+            $messageType = $result ? 'success' : 'danger';
+            
+            if ($result) {
+                header('Location: settings.php?tab=regional&delete=success');
+                exit;
+            }
+        }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'update_theme') {
+        $selectedTheme = $_POST['theme'] ?? 'system';
+        $allowedThemes = ['light', 'dark', 'system'];
+        
+        if (in_array($selectedTheme, $allowedThemes)) {
+            $_SESSION['theme'] = $selectedTheme;
+            $currentTheme = $selectedTheme;
+            $message = 'Theme updated to ' . ucfirst($selectedTheme);
+            $messageType = 'success';
+        } else {
+            $message = 'Invalid theme selected';
+            $messageType = 'danger';
+        }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'update_smtp') {
+        // SMTP Configuration Update
+        $smtpHost = trim($_POST['smtp_host'] ?? '');
+        $smtpPort = trim($_POST['smtp_port'] ?? '587');
+        $smtpUsername = trim($_POST['smtp_username'] ?? '');
+        $smtpPassword = $_POST['smtp_password'] ?? '';
+        $smtpEncryption = $_POST['smtp_encryption'] ?? 'tls';
+        $smtpFromAddress = trim($_POST['smtp_from_address'] ?? '');
+        $smtpFromName = trim($_POST['smtp_from_name'] ?? '');
+        
+        // If password is blank, keep the existing password from config
+        if (empty($smtpPassword) && !empty($appConfig['mail']['password'])) {
+            $smtpPassword = $appConfig['mail']['password'];
+        }
+        
+        // Validate required fields
+        if (empty($smtpHost) || empty($smtpUsername) || empty($smtpFromAddress)) {
+            $message = 'SMTP Host, Username, and From Address are required';
+            $messageType = 'danger';
+        } else {
+            // Update config/app.php file
+            $configPath = __DIR__ . '/../config/app.php';
+            $configContent = file_get_contents($configPath);
+            
+            // Build new mail configuration with getenv() structure
+            $newMailConfig = "    'mail' => [\n";
+            $newMailConfig .= "        'driver' => getenv('MAIL_DRIVER') ?: 'smtp', // smtp, sendmail, mailgun, etc\n";
+            $newMailConfig .= "        'host' => getenv('MAIL_HOST') ?: '" . addslashes($smtpHost) . "',\n";
+            $newMailConfig .= "        'port' => getenv('MAIL_PORT') ?: " . intval($smtpPort) . ",\n";
+            $newMailConfig .= "        'username' => getenv('MAIL_USERNAME') ?: '" . addslashes($smtpUsername) . "',\n";
+            $newMailConfig .= "        'password' => getenv('MAIL_PASSWORD') ?: '" . addslashes($smtpPassword) . "',\n";
+            $newMailConfig .= "        'encryption' => getenv('MAIL_ENCRYPTION') ?: '" . addslashes($smtpEncryption) . "',\n";
+            $newMailConfig .= "        'from' => [\n";
+            $newMailConfig .= "            'address' => getenv('MAIL_FROM_ADDRESS') ?: '" . addslashes($smtpFromAddress) . "',\n";
+            $newMailConfig .= "            'name' => getenv('MAIL_FROM_NAME') ?: '" . addslashes($smtpFromName) . "'\n";
+            $newMailConfig .= "        ]\n";
+            $newMailConfig .= "    ]";
+            
+            // Replace the mail configuration section
+            // Match the entire 'mail' => [...] block including nested arrays
+            $pattern = "/'mail'\s*=>\s*\[\s*(?:[^[\]]*|\[(?:[^[\]]*|\[[^\]]*\])*\])*\s*\]/s";
+            $configContent = preg_replace($pattern, $newMailConfig, $configContent);
+            
+            // Write back to file
+            if (file_put_contents($configPath, $configContent)) {
+                $message = 'SMTP configuration updated successfully. Email features are now enabled!';
+                $messageType = 'success';
+                $smtpConfigured = true;
+                // Reload config
+                $appConfig = require $configPath;
+            } else {
+                $message = 'Failed to update SMTP configuration. Check file permissions for config/app.php.';
+                $messageType = 'danger';
+            }
         }
     } else {
         // Here you would handle other settings updates
@@ -202,8 +408,207 @@ ob_start();
         </svg>
         Security
       </button>
+      <button class="tab-trigger" data-tab="system" style="padding: 0.75rem 1.5rem; background: none; border: none; border-bottom: 2px solid transparent; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; margin-bottom: -2px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+          <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+          <path d="M4 12c0 2.21 3.582 4 8 4s8-1.79 8-4"/>
+        </svg>
+        System Configuration
+      </button>
     </div>
   </div>
+</div>
+
+<!-- Tab Content: System Configuration -->
+<div class="tab-content" id="tab-system" style="display: none;">
+<div class="grid grid-cols-1 gap-6">
+  
+  <!-- SMTP Email Configuration -->
+  <div class="card">
+    <div class="card-header">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 class="card-title" style="margin-bottom: 0.25rem;">SMTP Email Configuration</h3>
+          <p class="card-description" style="margin: 0;">Configure email server settings for sending emails</p>
+        </div>
+        <div>
+          <?php if ($smtpConfigured): ?>
+            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: hsl(143 85% 96%); color: hsl(140 61% 13%); border-radius: 8px; font-size: 0.875rem; font-weight: 600;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              SMTP Configured
+            </span>
+          <?php else: ?>
+            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: hsl(48 96% 89%); color: hsl(25 95% 16%); border-radius: 8px; font-size: 0.875rem; font-weight: 600;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Not Configured
+            </span>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+    <div class="card-content" style="padding: 1.5rem;">
+      <form method="POST" id="smtpConfigForm">
+        <input type="hidden" name="action" value="update_smtp">
+        
+        <!-- Info Alert -->
+        <div style="background: hsl(240 5% 96%); border: 1px solid hsl(240 6% 90%); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: start; gap: 0.75rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color: hsl(240 5% 26%); flex-shrink: 0; margin-top: 0.125rem;">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div style="flex: 1; color: hsl(240 5% 26%);">
+              <strong style="display: block; margin-bottom: 0.5rem; font-size: 0.9375rem; color: hsl(240 6% 10%);">Email functionality requires SMTP configuration</strong>
+              <div style="font-size: 0.875rem; line-height: 1.6; color: hsl(240 5% 34%);">
+                Configure your SMTP server settings below to enable email features across the application (invoices, orders, quotations, projects, and notifications).
+              </div>
+              <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid hsl(240 6% 90%);">
+                <strong style="font-size: 0.875rem; display: block; margin-bottom: 0.5rem; color: hsl(240 6% 10%);">Common SMTP Providers:</strong>
+                <ul style="margin: 0; padding: 0 0 0 1.25rem; font-size: 0.875rem; line-height: 1.8; color: hsl(240 5% 34%);">
+                  <li><strong>Gmail:</strong> smtp.gmail.com (Port: 587, TLS) - Use App Password</li>
+                  <li><strong>Outlook/Office365:</strong> smtp.office365.com (Port: 587, TLS)</li>
+                  <li><strong>Yahoo:</strong> smtp.mail.yahoo.com (Port: 465, SSL)</li>
+                  <li><strong>Custom SMTP:</strong> Contact your hosting provider</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <div class="form-group">
+            <label for="smtp_host" class="form-label" style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem;">
+              SMTP Host <span style="color: hsl(0 74% 50%);">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="smtp_host" 
+              name="smtp_host" 
+              class="form-input" 
+              placeholder="smtp.gmail.com" 
+              value="<?php echo htmlspecialchars($appConfig['mail']['host'] ?? ''); ?>"
+              required
+              style="width: 100%;"
+            >
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Your SMTP server address</span>
+          </div>
+
+          <div class="form-group">
+            <label for="smtp_port" class="form-label" style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem;">
+              SMTP Port <span style="color: hsl(0 74% 50%);">*</span>
+            </label>
+            <input 
+              type="number" 
+              id="smtp_port" 
+              name="smtp_port" 
+              class="form-input" 
+              placeholder="587" 
+              value="<?php echo htmlspecialchars($appConfig['mail']['port'] ?? '587'); ?>"
+              required
+              style="width: 100%;"
+            >
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Usually 587 (TLS) or 465 (SSL)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="smtp_username" class="form-label" style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem;">
+              SMTP Username <span style="color: hsl(0 74% 50%);">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="smtp_username" 
+              name="smtp_username" 
+              class="form-input" 
+              placeholder="your-email@example.com" 
+              value="<?php echo htmlspecialchars($appConfig['mail']['username'] ?? ''); ?>"
+              required
+              style="width: 100%;"
+            >
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Your email address or username</span>
+          </div>
+
+          <div class="form-group">
+            <label for="smtp_password" class="form-label" style="display: block; margin-bottom: 0.5rem;">SMTP Password</label>
+            <input 
+              type="password" 
+              id="smtp_password" 
+              name="smtp_password" 
+              class="form-input" 
+              placeholder="<?php echo !empty($appConfig['mail']['password']) ? '••••••••' : 'Enter password'; ?>" 
+              value=""
+              style="width: 100%;"
+            >
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Leave blank to keep current password</span>
+          </div>
+
+          <div class="form-group">
+            <label for="smtp_encryption" class="form-label" style="display: block; margin-bottom: 0.5rem;">Encryption Method</label>
+            <select id="smtp_encryption" name="smtp_encryption" class="form-select" style="width: 100%;">
+              <option value="tls" <?php echo ($appConfig['mail']['encryption'] ?? 'tls') === 'tls' ? 'selected' : ''; ?>>TLS (Port 587)</option>
+              <option value="ssl" <?php echo ($appConfig['mail']['encryption'] ?? 'tls') === 'ssl' ? 'selected' : ''; ?>>SSL (Port 465)</option>
+            </select>
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Encryption protocol for secure connection</span>
+          </div>
+
+          <div class="form-group">
+            <label for="smtp_from_address" class="form-label" style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem;">
+              From Email Address <span style="color: hsl(0 74% 50%);">*</span>
+            </label>
+            <input 
+              type="email" 
+              id="smtp_from_address" 
+              name="smtp_from_address" 
+              class="form-input" 
+              placeholder="noreply@inventory.local" 
+              value="<?php echo htmlspecialchars($appConfig['mail']['from']['address'] ?? ''); ?>"
+              required
+              style="width: 100%;"
+            >
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Email address shown as sender</span>
+          </div>
+
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="smtp_from_name" class="form-label" style="display: block; margin-bottom: 0.5rem;">From Name</label>
+            <input 
+              type="text" 
+              id="smtp_from_name" 
+              name="smtp_from_name" 
+              class="form-input" 
+              placeholder="Inventory Management System" 
+              value="<?php echo htmlspecialchars($appConfig['mail']['from']['name'] ?? ''); ?>"
+              style="width: 100%;"
+            >
+            <span class="form-helper" style="display: block; margin-top: 0.375rem;">Name displayed as sender</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Save SMTP Configuration
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="testSmtpConnection()" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            Test Connection
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
 </div>
 
 <!-- Tab Content: Profile -->
@@ -304,13 +709,23 @@ ob_start();
         
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0;">
-            <div>
-              <label class="form-label" style="margin: 0; display: block;">Email Notifications</label>
-              <span class="form-helper">Receive email updates about system activities</span>
+            <div style="flex: 1;">
+              <label class="form-label" style="margin: 0; display: block; color: <?php echo $smtpConfigured ? 'var(--text-primary)' : 'var(--text-secondary)'; ?>;">
+                Email Notifications
+                <?php if (!$smtpConfigured): ?>
+                  <span style="color: hsl(25 95% 45%); font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">⚠ SMTP Required</span>
+                <?php endif; ?>
+              </label>
+              <span class="form-helper" style="color: <?php echo $smtpConfigured ? 'var(--text-secondary)' : 'hsl(215 16% 60%)'; ?>;">
+                Receive email updates about system activities
+                <?php if (!$smtpConfigured): ?>
+                  <a href="#" onclick="switchToSystemTab(); return false;" style="color: var(--color-primary); text-decoration: underline; margin-left: 0.25rem;">Configure SMTP</a>
+                <?php endif; ?>
+              </span>
             </div>
-            <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-              <input type="checkbox" name="email_notifications" checked style="opacity: 0; width: 0; height: 0;">
-              <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--color-primary); transition: .3s; border-radius: 24px;"></span>
+            <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; opacity: <?php echo $smtpConfigured ? '1' : '0.5'; ?>;">
+              <input type="checkbox" name="email_notifications" <?php echo $smtpConfigured ? 'checked' : 'disabled'; ?> style="opacity: 0; width: 0; height: 0;">
+              <span class="slider" style="position: absolute; cursor: <?php echo $smtpConfigured ? 'pointer' : 'not-allowed'; ?>; top: 0; left: 0; right: 0; bottom: 0; background-color: <?php echo $smtpConfigured ? 'var(--color-primary)' : 'hsl(215 16% 70%)'; ?>; transition: .3s; border-radius: 24px;"></span>
             </label>
           </div>
         </div>
@@ -437,7 +852,116 @@ ob_start();
 
 <!-- Tab Content: Regional Settings -->
 <div class="tab-content" id="tab-regional" style="display: none;">
-<div class="grid grid-cols-2 gap-6">
+<div class="grid grid-cols-3 gap-6">
+  
+  <!-- Theme Settings -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Theme</h3>
+      <p class="card-description">Choose your interface theme</p>
+    </div>
+    <div class="card-content">
+      <form method="POST" id="themeForm">
+        <input type="hidden" name="action" value="update_theme">
+        
+        <!-- Current Theme Display -->
+        <div class="alert alert-info mb-4" style="background: hsl(214 95% 93%); border: 1px solid hsl(214 84% 56%); padding: 1rem; border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="hsl(222 47% 17%)" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <div style="flex: 1;">
+              <strong style="color: hsl(222 47% 17%);">Current Theme:</strong>
+              <div style="margin-top: 0.25rem; font-size: 0.875rem; color: hsl(222 47% 17%);">
+                <?php echo ucfirst($currentTheme); ?> Mode
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Options -->
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          
+          <!-- Light Theme -->
+          <label class="theme-option" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="theme" value="light" <?php echo $currentTheme === 'light' ? 'checked' : ''; ?> 
+                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <strong style="font-size: 0.9375rem;">Light Mode</strong>
+              </div>
+              <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
+                Bright and clear interface optimized for well-lit environments
+              </p>
+            </div>
+          </label>
+
+          <!-- Dark Theme -->
+          <label class="theme-option" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="theme" value="dark" <?php echo $currentTheme === 'dark' ? 'checked' : ''; ?>
+                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+                <strong style="font-size: 0.9375rem;">Dark Mode</strong>
+              </div>
+              <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
+                Reduced eye strain in low-light conditions with dark backgrounds
+              </p>
+            </div>
+          </label>
+
+          <!-- System Theme -->
+          <label class="theme-option" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="theme" value="system" <?php echo $currentTheme === 'system' ? 'checked' : ''; ?>
+                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <strong style="font-size: 0.9375rem;">System Preference</strong>
+              </div>
+              <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
+                Automatically match your operating system's theme settings
+              </p>
+            </div>
+          </label>
+
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="margin-top: 1.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 13L9 17L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Apply Theme
+        </button>
+      </form>
+    </div>
+  </div>
   
   <!-- Timezone Settings (Moved to Regional tab) -->
   <div class="card">
@@ -595,6 +1119,225 @@ ob_start();
           Save Currency Preference
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Font Selection -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Font Settings</h3>
+      <p class="card-description">Choose your preferred font family</p>
+    </div>
+    <div class="card-content">
+      <form method="POST">
+        <input type="hidden" name="action" value="update_font">
+        
+        <!-- Current Font Display -->
+        <div class="alert alert-info mb-4" style="background-color: var(--color-info-light); border: 1px solid var(--color-info); padding: 1rem; border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color: var(--color-info);">
+              <path d="M4 7V4H20V7M9 20H15M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div style="flex: 1;">
+              <strong>Current Font:</strong>
+              <div style="margin-top: 0.25rem; font-size: 0.875rem;">
+                <?php echo htmlspecialchars($availableFonts[$currentFont]['name']); ?>
+                <span style="color: var(--text-secondary);">- <?php echo htmlspecialchars($availableFonts[$currentFont]['description']); ?></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="font_family" class="form-label">
+            <span>Select Font Family</span>
+            <span style="color: var(--text-secondary); font-weight: normal; font-size: 0.875rem;">
+              (Works offline - uses system fonts)
+            </span>
+          </label>
+          
+          <!-- Font Options Grid -->
+          <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+            <?php foreach ($availableFonts as $fontKey => $fontInfo): ?>
+            <label class="font-option-card" style="display: block; padding: 1rem; border: 2px solid <?php echo $fontKey === $currentFont ? 'var(--color-primary)' : 'var(--border-color)'; ?>; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; background: <?php echo $fontKey === $currentFont ? 'hsl(214 95% 93%)' : 'var(--bg-secondary)'; ?>;">
+              <input type="radio" name="font_family" value="<?php echo htmlspecialchars($fontKey); ?>" <?php echo $fontKey === $currentFont ? 'checked' : ''; ?> style="margin-right: 0.75rem; vertical-align: middle;">
+              <div style="display: inline-block; vertical-align: middle; width: calc(100% - 2rem);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <strong style="font-size: 0.9375rem;"><?php echo htmlspecialchars($fontInfo['name']); ?></strong>
+                  <?php if ($fontKey === $currentFont): ?>
+                  <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; background: var(--color-primary); color: white; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Active
+                  </span>
+                  <?php endif; ?>
+                </div>
+                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.625rem;">
+                  <?php echo htmlspecialchars($fontInfo['description']); ?>
+                </div>
+                <div style="padding: 0.625rem; background: var(--bg-primary); border-radius: 4px; font-family: <?php echo $fontInfo['stack']; ?>; font-size: 0.9375rem; color: var(--text-primary); border: 1px solid var(--border-color);">
+                  <?php echo htmlspecialchars($fontInfo['sample']); ?>
+                </div>
+              </div>
+            </label>
+            <?php endforeach; ?>
+          </div>
+          
+          <span class="form-helper" style="display: block; margin-top: 1rem;">
+            All fonts are system fonts - no internet connection required
+          </span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="margin-top: 1.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Save Font Preference
+        </button>
+      </form>
+
+      <!-- Detect System Fonts -->
+      <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          Detect System Fonts
+        </h4>
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Scan your system for installed fonts and see which ones are available
+        </p>
+        <button type="button" id="detectFontsBtn" class="btn btn-secondary" style="width: 100%;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          Scan for Available Fonts
+        </button>
+        
+        <!-- Detected Fonts Display -->
+        <div id="detectedFonts" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-color); max-height: 300px; overflow-y: auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <strong style="font-size: 0.9375rem;">Detected Fonts</strong>
+            <span id="fontCount" style="font-size: 0.875rem; color: var(--text-secondary);"></span>
+          </div>
+          <div id="detectedFontsList" style="display: grid; gap: 0.5rem;"></div>
+        </div>
+      </div>
+
+      <!-- Upload Custom Font -->
+      <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Upload Custom Font
+          <?php if ($fontService->isDatabaseAvailable()): ?>
+          <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; background: hsl(143 85% 96%); color: hsl(140 61% 13%); border: 1px solid hsl(140 61% 13%); border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            DB
+          </span>
+          <?php else: ?>
+          <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; background: hsl(214 95% 93%); color: hsl(222 47% 17%); border: 1px solid hsl(222 47% 17%); border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+              <polyline points="13 2 13 9 20 9"/>
+            </svg>
+            JSON
+          </span>
+          <?php endif; ?>
+        </h4>
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Upload your own font files (WOFF, WOFF2, TTF, OTF) - Maximum 5MB
+          <?php if (!$fontService->isDatabaseAvailable()): ?>
+          <br><strong>Note:</strong> Using file-based storage (database not configured)
+          <?php endif; ?>
+        </p>
+        
+        <form method="POST" enctype="multipart/form-data" id="uploadFontForm">
+          <input type="hidden" name="action" value="upload_font">
+          
+          <div class="form-group">
+            <label for="font_name" class="form-label">Font Display Name</label>
+            <input type="text" id="font_name" name="font_name" class="form-input" placeholder="e.g., My Custom Font" required>
+            <span class="form-helper">Friendly name shown in the font selector</span>
+          </div>
+
+          <div class="form-group">
+            <label for="font_family_name" class="form-label">Font Family Name</label>
+            <input type="text" id="font_family_name" name="font_family_name" class="form-input" placeholder="e.g., CustomFont" required>
+            <span class="form-helper">CSS font-family value (no spaces recommended)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="font_category" class="form-label">Font Category</label>
+            <select id="font_category" name="font_category" class="form-select">
+              <option value="sans-serif">Sans-Serif</option>
+              <option value="serif">Serif</option>
+              <option value="monospace">Monospace</option>
+              <option value="display">Display</option>
+              <option value="handwriting">Handwriting</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="font_file" class="form-label">Font File</label>
+            <input type="file" id="font_file" name="font_file" class="form-input" accept=".woff,.woff2,.ttf,.otf" required>
+            <span class="form-helper">Supported formats: WOFF, WOFF2, TTF, OTF (max 5MB)</span>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-full">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Upload Font
+          </button>
+        </form>
+      </div>
+
+      <!-- Manage Custom Fonts -->
+      <?php if (!empty($customFonts)): ?>
+      <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 7H4"/>
+            <path d="M10 11v6"/>
+            <path d="M14 11v6"/>
+            <path d="M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12"/>
+            <path d="M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+          </svg>
+          Manage Custom Fonts
+        </h4>
+        <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+          <?php foreach ($customFonts as $fontKey => $fontInfo): ?>
+          <?php if (isset($fontInfo['is_custom']) && $fontInfo['is_custom']): ?>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; font-size: 0.9375rem;"><?php echo htmlspecialchars($fontInfo['name']); ?></div>
+              <div style="font-size: 0.8125rem; color: var(--text-secondary);"><?php echo htmlspecialchars($fontInfo['description']); ?></div>
+            </div>
+            <form method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this font?');">
+              <input type="hidden" name="action" value="delete_font">
+              <input type="hidden" name="font_id" value="<?php echo $fontInfo['id']; ?>">
+              <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.375rem 0.75rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                Delete
+              </button>
+            </form>
+          </div>
+          <?php endif; ?>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -767,6 +1510,28 @@ ob_start();
 </div>
 
 <script>
+// SMTP Functions
+function testSmtpConnection() {
+  if (typeof Toast !== 'undefined') {
+    Toast.info('SMTP Connection Test - This feature requires PHPMailer or similar library.');
+  } else {
+    alert('SMTP Connection Test\n\nThis feature will send a test email to verify your configuration.\n\nNote: Implementation requires PHPMailer or similar library.');
+  }
+  // TODO: Implement actual SMTP test
+}
+
+function switchToSystemTab() {
+  // Find the system tab trigger
+  const systemTab = document.querySelector('[data-tab="system"]');
+  if (systemTab) {
+    systemTab.click();
+    // Smooth scroll to top after a short delay
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  }
+}
+
 // Tab switching functionality
 const tabTriggers = document.querySelectorAll('.tab-trigger');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -911,6 +1676,244 @@ setInterval(() => {
     previewTime.textContent = formatted;
   }
 }, 1000);
+
+// ============================================
+// THEME MANAGEMENT
+// ============================================
+
+// Add hover effects to theme options
+document.querySelectorAll('.theme-option').forEach(option => {
+  const input = option.querySelector('input[type="radio"]');
+  
+  option.addEventListener('mouseenter', function() {
+    this.style.borderColor = 'var(--color-primary)';
+    this.style.backgroundColor = 'var(--bg-secondary)';
+  });
+  
+  option.addEventListener('mouseleave', function() {
+    if (!input.checked) {
+      this.style.borderColor = 'var(--border-color)';
+      this.style.backgroundColor = 'transparent';
+    }
+  });
+  
+  // Update on selection
+  input.addEventListener('change', function() {
+    document.querySelectorAll('.theme-option').forEach(opt => {
+      opt.style.borderColor = 'var(--border-color)';
+      opt.style.backgroundColor = 'transparent';
+    });
+    
+    if (this.checked) {
+      this.closest('.theme-option').style.borderColor = 'var(--color-primary)';
+      this.closest('.theme-option').style.backgroundColor = 'var(--bg-secondary)';
+    }
+  });
+  
+  // Set initial state
+  if (input.checked) {
+    option.style.borderColor = 'var(--color-primary)';
+    option.style.backgroundColor = 'var(--bg-secondary)';
+  }
+});
+
+// Apply theme immediately on selection (optional live preview)
+document.querySelectorAll('input[name="theme"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const theme = this.value;
+    // You can add live preview here if desired
+    console.log('Theme selected:', theme);
+  });
+});
+
+// ============================================
+// FONT DETECTION & MANAGEMENT
+// ============================================
+
+// Load FontDetector
+const fontDetectorScript = document.createElement('script');
+fontDetectorScript.src = 'assets/js/font-detector.js';
+fontDetectorScript.onload = function() {
+  console.log('FontDetector loaded');
+};
+document.head.appendChild(fontDetectorScript);
+
+// Detect Fonts Button Handler
+document.getElementById('detectFontsBtn').addEventListener('click', async function() {
+  const btn = this;
+  const btnText = btn.innerHTML;
+  
+  // Show loading state
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+      <path d="M21 12a9 9 0 11-6.219-8.56"/>
+    </svg>
+    Scanning...
+  `;
+  
+  // Add spin animation
+  const spinStyle = document.createElement('style');
+  spinStyle.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(spinStyle);
+  
+  try {
+    // Wait for FontDetector to load
+    if (typeof FontDetector === 'undefined') {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    const detector = new FontDetector();
+    const fonts = await detector.detectAvailableFonts();
+    
+    // Display results
+    displayDetectedFonts(fonts);
+    
+    if (typeof Toast !== 'undefined') {
+      Toast.success(`Detected ${fonts.length} available fonts!`);
+    }
+  } catch (error) {
+    console.error('Font detection error:', error);
+    if (typeof Toast !== 'undefined') {
+      Toast.error('Failed to detect fonts. Check console for details.');
+    }
+  } finally {
+    // Restore button
+    btn.disabled = false;
+    btn.innerHTML = btnText;
+  }
+});
+
+function displayDetectedFonts(fonts) {
+  const container = document.getElementById('detectedFonts');
+  const fontsList = document.getElementById('detectedFontsList');
+  const fontCount = document.getElementById('fontCount');
+  
+  // Update count
+  fontCount.textContent = `${fonts.length} fonts found`;
+  
+  // Group by category
+  const categorized = {
+    'sans-serif': [],
+    'serif': [],
+    'monospace': []
+  };
+  
+  fonts.forEach(font => {
+    if (categorized[font.category]) {
+      categorized[font.category].push(font);
+    }
+  });
+  
+  // Build HTML
+  let html = '';
+  
+  Object.keys(categorized).forEach(category => {
+    if (categorized[category].length > 0) {
+      html += `
+        <div style="margin-bottom: 1rem;">
+          <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--color-primary); text-transform: uppercase;">
+            ${category} (${categorized[category].length})
+          </div>
+          <div style="display: grid; gap: 0.5rem;">
+      `;
+      
+      categorized[category].forEach(font => {
+        html += `
+          <div style="padding: 0.625rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+            <div style="font-weight: 500; font-size: 0.875rem; margin-bottom: 0.25rem;">${font.name}</div>
+            <div style="font-family: ${font.stack}; font-size: 0.8125rem; color: var(--text-secondary);">
+              The quick brown fox jumps over the lazy dog
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `
+          </div>
+        </div>
+      `;
+    }
+  });
+  
+  fontsList.innerHTML = html;
+  container.style.display = 'block';
+}
+
+// Font Option Card Hover Effects
+document.querySelectorAll('.font-option-card').forEach(card => {
+  card.addEventListener('mouseenter', function() {
+    if (!this.querySelector('input[type="radio"]').checked) {
+      this.style.borderColor = 'var(--color-primary)';
+      this.style.transform = 'translateY(-2px)';
+      this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+    }
+  });
+  
+  card.addEventListener('mouseleave', function() {
+    if (!this.querySelector('input[type="radio"]').checked) {
+      this.style.borderColor = 'var(--border-color)';
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = 'none';
+    }
+  });
+});
+
+// File Upload Preview
+document.getElementById('font_file')?.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    // Validate file size
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      if (typeof Toast !== 'undefined') {
+        Toast.error('File size exceeds 5MB limit');
+      }
+      this.value = '';
+      return;
+    }
+    
+    // Show file info
+    if (typeof Toast !== 'undefined') {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      Toast.info(`Selected: ${file.name} (${sizeMB}MB)`);
+    }
+    
+    // Auto-fill font name if empty
+    const fontNameInput = document.getElementById('font_name');
+    if (!fontNameInput.value) {
+      const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      fontNameInput.value = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+    }
+    
+    // Auto-fill font family if empty
+    const fontFamilyInput = document.getElementById('font_family_name');
+    if (!fontFamilyInput.value) {
+      const familyName = file.name.replace(/\.[^/.]+$/, '').replace(/\s+/g, '');
+      fontFamilyInput.value = familyName;
+    }
+  }
+});
+
+// Check for upload/delete success in URL
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('upload') === 'success' && typeof Toast !== 'undefined') {
+  Toast.success('Font uploaded successfully!');
+  // Remove parameter from URL
+  window.history.replaceState({}, document.title, window.location.pathname + '?tab=regional');
+}
+if (urlParams.get('delete') === 'success' && typeof Toast !== 'undefined') {
+  Toast.success('Font deleted successfully!');
+  window.history.replaceState({}, document.title, window.location.pathname + '?tab=regional');
+}
+
+// Switch to regional tab if URL parameter present
+if (urlParams.get('tab') === 'regional') {
+  const regionalTab = document.querySelector('[data-tab="regional"]');
+  if (regionalTab) {
+    setTimeout(() => regionalTab.click(), 100);
+  }
+}
 </script>
 
 <?php

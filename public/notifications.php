@@ -15,6 +15,10 @@ $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
 
+// Check SMTP configuration
+$appConfig = require __DIR__ . '/../config/app.php';
+$smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
+
 // Initialize repository with user ID
 $userId = $user['id'] ?? 'admin';
 $repo = new NotificationRepository($userId);
@@ -627,9 +631,9 @@ ob_start();
             <input type="checkbox" checked style="width: 1rem; height: 1rem;">
             <span class="text-sm">In-app notifications</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-            <input type="checkbox" checked style="width: 1rem; height: 1rem;">
-            <span class="text-sm">Email notifications</span>
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: <?php echo $smtpConfigured ? 'pointer' : 'not-allowed'; ?>;">
+            <input type="checkbox" <?php echo $smtpConfigured ? 'checked' : 'disabled'; ?> style="width: 1rem; height: 1rem; cursor: <?php echo $smtpConfigured ? 'pointer' : 'not-allowed'; ?>; accent-color: <?php echo $smtpConfigured ? '#7194A5' : '#9ca3af'; ?>;">
+            <span class="text-sm" style="color: <?php echo $smtpConfigured ? '#374151' : '#9ca3af'; ?>;">Email notifications<?php if (!$smtpConfigured): ?> <span style="font-size: 0.75rem; color: #dc2626;">(SMTP not configured)</span><?php endif; ?></span>
           </label>
           <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
             <input type="checkbox" style="width: 1rem; height: 1rem;">
