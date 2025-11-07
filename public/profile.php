@@ -4,11 +4,6 @@
  * Manage user account, profile photo, password, and personal information
  */
 
-// Prevent caching for reverse proxy compatibility
-header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
@@ -737,8 +732,9 @@ ob_start();
 
 // ========== EXPERIMENTAL FEATURE WARNING ==========
 // To remove this warning system, delete the following 2 lines and the features/experimental-warning folder
-require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
-renderExperimentalWarning('User Profile Management');
+// TEMPORARILY DISABLED FOR DEBUGGING
+// require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
+// renderExperimentalWarning('User Profile Management');
 // System auto-detects page and shows contextual warning with natural language
 // ===================================================
 ?>
@@ -2290,9 +2286,26 @@ document.addEventListener('keydown', function(e) {
 // Get page content
 $pageContent = ob_get_clean();
 
+// Debug: Check if content was captured
+if (empty($pageContent)) {
+    error_log('Profile: Warning - $pageContent is empty!');
+}
+
 // Set page title
 $pageTitle = 'User Profile';
 
+// Debug: Log before including layout
+error_log('Profile: About to include layout.php, pageContent length: ' . strlen($pageContent));
+
 // Include layout
-include __DIR__ . '/components/layout.php';
+$layoutPath = __DIR__ . '/components/layout.php';
+if (!file_exists($layoutPath)) {
+    error_log('Profile: ERROR - layout.php not found at: ' . $layoutPath);
+    die('Layout file not found');
+}
+
+include $layoutPath;
+
+// Debug: Log after including layout
+error_log('Profile: Layout included successfully');
 ?>

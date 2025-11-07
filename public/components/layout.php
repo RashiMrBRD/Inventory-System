@@ -16,6 +16,13 @@ use App\Helper\SessionHelper;
 // Ensure session is started
 SessionHelper::start();
 
+// Set cache control headers for dynamic pages
+if (!headers_sent()) {
+    header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 // Default values
 $pageTitle = $pageTitle ?? 'Inventory Management';
 $pageContent = $pageContent ?? '';
@@ -27,6 +34,9 @@ $additionalJS = $additionalJS ?? [];
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="description" content="Professional Inventory Management System">
   <title><?php echo htmlspecialchars($pageTitle); ?> - Inventory System</title>
   
