@@ -64,9 +64,30 @@ ServerSignature Off
 # Browser Caching
 <IfModule mod_expires.c>
     ExpiresActive On
+    
+    # Static assets (with versioning via query string)
     ExpiresByType text/css "access plus 1 month"
     ExpiresByType application/javascript "access plus 1 month"
     ExpiresByType image/jpeg "access plus 1 year"
     ExpiresByType image/png "access plus 1 year"
     ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    
+    # Favicon
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
+</IfModule>
+
+# Prevent caching of PHP files (for reverse proxy compatibility)
+<FilesMatch "\.(php)$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </IfModule>
+</FilesMatch>
+
+# Favicon handling
+<IfModule mod_rewrite.c>
+    RewriteRule ^favicon\.ico$ favicon.svg [L]
 </IfModule>

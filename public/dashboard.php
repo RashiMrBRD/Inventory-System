@@ -228,6 +228,13 @@ $pageTitle = 'Dashboard';
 
 // Start output buffering for content
 ob_start();
+
+// ========== WELCOME MODAL ==========
+// To remove this welcome system, delete the following 2 lines and the features/experimental-warning folder
+require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
+renderExperimentalWarning('Dashboard - Welcome');
+// System auto-detects page and shows welcome modal with app info and team members
+// ===================================================
 ?>
 
 <style>

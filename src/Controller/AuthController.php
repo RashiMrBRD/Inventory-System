@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Model\User;
+use App\Service\SessionService;
 
 /**
  * Auth Controller
@@ -11,10 +12,12 @@ use App\Model\User;
 class AuthController
 {
     private User $userModel;
+    private SessionService $sessionService;
 
     public function __construct()
     {
         $this->userModel = new User();
+        $this->sessionService = new SessionService();
         
         // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
@@ -48,6 +51,12 @@ class AuthController
             $_SESSION['access_level'] = $user['access_level'] ?? 'user';
             $_SESSION['last_activity'] = time();
 
+            // Track session login
+            $this->sessionService->createSession(
+                (string)$user['_id'],
+                $user['username']
+            );
+
             return [
                 'success' => true,
                 'message' => 'Login successful',
@@ -74,6 +83,12 @@ class AuthController
      */
     public function logout(): array
     {
+        // Track session end before destroying
+        if (isset($_SESSION['user_id'])) {
+            $sessionId = session_id();
+            $this->sessionService->endSession($sessionId);
+        }
+        
         session_destroy();
         
         return [
@@ -426,6 +441,47 @@ class AuthController
     }
 
     /**
+     * Update user password
+     * 
+     * @param string $userId
+     * @param string $newPassword
+     * @return array Response with status and message
+     */
+    public function updatePassword(string $userId, string $newPassword): array
+    {
+        try {
+            // Validate new password
+            if (strlen($newPassword) < 6) {
+                return [
+                    'success' => false,
+                    'message' => 'New password must be at least 6 characters'
+                ];
+            }
+
+            // Update password
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $result = $this->userModel->updateUser($userId, ['password' => $hashedPassword]);
+
+            if ($result) {
+                return [
+                    'success' => true,
+                    'message' => 'Password updated successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to update password'
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Check session timeout
      * This method validates if the session is still active
      * 
@@ -444,6 +500,13 @@ class AuthController
         }
         
         $_SESSION['last_activity'] = time();
+        
+        // Update session activity in database
+        if (isset($_SESSION['user_id'])) {
+            $sessionId = session_id();
+            $this->sessionService->updateActivity($sessionId);
+        }
+        
         return true;
     }
 }

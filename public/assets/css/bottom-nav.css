@@ -1,0 +1,313 @@
+/**
+ * Bottom Navigation Bar
+ * Mobile-only navigation bar fixed at bottom
+ * Shadcn-inspired design with smooth animations
+ */
+
+/* Bottom Navigation Container */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+  padding: 0;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav {
+    background: #1f2937;
+    border-top-color: #374151;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Show on mobile only */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  /* Add bottom padding to content to prevent overlap */
+  .content {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* Bottom Nav Item */
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex: 1;
+  padding: 0.5rem 0.25rem;
+  text-decoration: none;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  position: relative;
+  border-radius: 12px;
+  margin: 0 0.25rem;
+}
+
+.bottom-nav-item:hover {
+  background: #f3f4f6;
+  color: #000000;
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav-item.active {
+  color: #000000;
+}
+
+.bottom-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background: #000000;
+  border-radius: 0 0 3px 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-item {
+    color: #9ca3af;
+  }
+
+  .bottom-nav-item:hover {
+    background: #374151;
+    color: #ffffff;
+  }
+
+  .bottom-nav-item.active {
+    color: #ffffff;
+  }
+
+  .bottom-nav-item.active::before {
+    background: #ffffff;
+  }
+}
+
+/* Bottom Nav Icon */
+.bottom-nav-icon {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+  transition: transform 0.2s ease;
+}
+
+.bottom-nav-item:hover .bottom-nav-icon {
+  transform: translateY(-2px);
+}
+
+.bottom-nav-item.active .bottom-nav-icon {
+  transform: scale(1.1);
+}
+
+/* Bottom Nav Label */
+.bottom-nav-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bottom-nav-item.active .bottom-nav-label {
+  font-weight: 600;
+}
+
+/* FAB (Floating Action Button) for Add Item */
+.bottom-nav-item-fab {
+  position: relative;
+  padding-top: 0;
+}
+
+.bottom-nav-fab {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 3px solid #ffffff;
+  transition: all 0.2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-fab {
+    background: #ffffff;
+    border-color: #1f2937;
+  }
+}
+
+.bottom-nav-fab .bottom-nav-icon {
+  width: 28px;
+  height: 28px;
+  stroke: white;
+  stroke-width: 3;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-fab .bottom-nav-icon {
+    stroke: #000000;
+  }
+}
+
+.bottom-nav-item-fab:hover .bottom-nav-fab {
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.bottom-nav-item-fab:active .bottom-nav-fab {
+  transform: translateX(-50%) scale(1.05);
+}
+
+.bottom-nav-item-fab.active .bottom-nav-fab {
+  background: #1a1a1a;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-item-fab.active .bottom-nav-fab {
+    background: #f5f5f5;
+  }
+}
+
+/* Bottom Nav Avatar */
+.bottom-nav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.bottom-nav-item:hover .bottom-nav-avatar {
+  border-color: #000000;
+  transform: translateY(-2px);
+}
+
+.bottom-nav-item.active .bottom-nav-avatar {
+  border-color: #000000;
+  border-width: 2.5px;
+  transform: scale(1.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-avatar {
+    border-color: #4b5563;
+  }
+
+  .bottom-nav-item:hover .bottom-nav-avatar {
+    border-color: #ffffff;
+  }
+
+  .bottom-nav-item.active .bottom-nav-avatar {
+    border-color: #ffffff;
+  }
+}
+
+.bottom-nav-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bottom-nav-avatar-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-avatar-initial {
+    background: #ffffff;
+    color: #000000;
+  }
+}
+
+/* Ripple Effect on Tap */
+.bottom-nav-item::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-nav-item::after {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.bottom-nav-item:active::after {
+  width: 100px;
+  height: 100px;
+  opacity: 1;
+  transition: width 0s, height 0s, opacity 0.3s;
+}
+
+/* Removed safe-area-inset support - causes gap on Android browsers */
+
+/* Animation on page load */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.bottom-nav {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+  .bottom-nav {
+    display: none !important;
+  }
+}

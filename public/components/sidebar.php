@@ -162,6 +162,32 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </div>
 
     <div class="sidebar-section">
+      <div class="sidebar-section-title">Collaboration</div>
+      <a href="conversations.php" class="sidebar-link <?= $currentPage === 'conversations.php' ? 'active' : '' ?>">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="sidebar-link-text">Conversations</span>
+      </a>
+      <a href="system-alerts.php" class="sidebar-link <?= $currentPage === 'system-alerts.php' ? 'active' : '' ?>">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="sidebar-link-text">System Alerts</span>
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Documentation</div>
+      <a href="docs.php" class="sidebar-link <?= $currentPage === 'docs.php' ? 'active' : '' ?>">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="sidebar-link-text">Documentations</span>
+      </a>
+    </div>
+
+    <div class="sidebar-section">
       <div class="sidebar-section-title">Settings</div>
       
       <a href="settings.php" class="sidebar-link <?= $currentPage === 'settings.php' ? 'active' : '' ?>">

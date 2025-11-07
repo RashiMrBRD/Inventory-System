@@ -18,8 +18,9 @@ $profilePhoto = $currentUser['profile_photo'] ?? '';
 
 <header class="app-header">
   <div class="header-left">
-    <button class="sidebar-toggle btn btn-ghost btn-icon show-mobile" aria-label="Toggle menu">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-button" id="mobile-menu-button" aria-label="Open menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M3 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <path d="M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

@@ -42,6 +42,12 @@ $additionalJS = $additionalJS ?? [];
   <!-- Toast Notification System -->
   <link rel="stylesheet" href="assets/css/toast.css">
   
+  <!-- Mobile Menu System -->
+  <link rel="stylesheet" href="assets/css/mobile-menu.css">
+  
+  <!-- Bottom Navigation Bar -->
+  <link rel="stylesheet" href="assets/css/bottom-nav.css">
+  
   <!-- Font System (Offline-first) -->
   <link rel="stylesheet" href="assets/css/fonts.css">
   
@@ -56,6 +62,12 @@ $additionalJS = $additionalJS ?? [];
   <?php endforeach; ?>
 </head>
 <body data-font="<?php echo htmlspecialchars($_SESSION['font_family'] ?? 'system'); ?>">
+  <!-- Mobile Menu -->
+  <?php include __DIR__ . '/mobile-menu.php'; ?>
+
+  <!-- Bottom Navigation (Mobile Only) -->
+  <?php include __DIR__ . '/bottom-nav.php'; ?>
+
   <div class="app-wrapper">
     <?php include __DIR__ . '/sidebar.php'; ?>
     
@@ -74,8 +86,14 @@ $additionalJS = $additionalJS ?? [];
   <!-- Barcode Scanner Modal -->
   <?php include __DIR__ . '/barcode-scanner.php'; ?>
 
+  <!-- Error Handler (Load first to catch all errors) -->
+  <script src="assets/js/error-handler.js"></script>
+  
   <!-- Core JavaScript -->
   <script src="assets/js/sidebar.js"></script>
+  
+  <!-- Mobile Menu System -->
+  <script src="assets/js/mobile-menu.js"></script>
   
   <!-- Toast Notification System -->
   <script src="assets/js/toast.js"></script>
