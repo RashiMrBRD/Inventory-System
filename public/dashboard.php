@@ -191,6 +191,48 @@ try {
 }
 
 // ============================================
+// CALCULATE TRENDS (Previous Period Comparison)
+// ============================================
+$prevStartDate = new \DateTimeImmutable("-" . ($daysBack * 2) . " days");
+$prevEndDate = $startDate;
+
+$revenuePrevPeriod = 0;
+$paidRevenuePrevPeriod = 0;
+
+try {
+    foreach ($invoices as $inv) {
+        $date = $inv['date'] ?? null;
+        if (isDashboardInRange($date, $prevStartDate, $prevEndDate)) {
+            $total = (float)($inv['total'] ?? 0);
+            $revenuePrevPeriod += $total;
+            
+            if (($inv['status'] ?? '') === 'paid') {
+                $paidRevenuePrevPeriod += $total;
+            }
+        }
+    }
+} catch (Exception $e) {
+    $revenuePrevPeriod = 0;
+    $paidRevenuePrevPeriod = 0;
+}
+
+// Calculate percentage changes
+$revenueChange = 0;
+$collectionRateChange = 0;
+
+if ($revenuePrevPeriod > 0) {
+    $revenueChange = round((($revenueInPeriod - $revenuePrevPeriod) / $revenuePrevPeriod) * 100, 1);
+}
+
+// Collection rate comparison
+$currentCollectionRate = $totalRevenue > 0 ? ($paidRevenue / $totalRevenue) * 100 : 0;
+$prevCollectionRate = $revenuePrevPeriod > 0 ? ($paidRevenuePrevPeriod / $revenuePrevPeriod) * 100 : 0;
+
+if ($prevCollectionRate > 0) {
+    $collectionRateChange = round($currentCollectionRate - $prevCollectionRate, 1);
+}
+
+// ============================================
 // COMPLIANCE TRACKING
 // ============================================
 $birModel = new BirForm();
@@ -1050,11 +1092,15 @@ renderExperimentalWarning('Dashboard - Welcome');
       </div>
       <!-- Compact Trend -->
       <div style="margin-top: 0.5rem;">
-        <span class="trend-indicator up" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
-          <span class="trend-arrow" style="font-size: 0.875rem;">↑</span>
-          <span>+12.5%</span>
+        <?php if ($collectionRateChange != 0): ?>
+        <span class="trend-indicator <?php echo $collectionRateChange > 0 ? 'up' : 'down'; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+          <span class="trend-arrow" style="font-size: 0.875rem;"><?php echo $collectionRateChange > 0 ? '↑' : '↓'; ?></span>
+          <span><?php echo $collectionRateChange > 0 ? '+' : ''; ?><?php echo $collectionRateChange; ?>%</span>
         </span>
-        <span style="font-size: 0.6875rem; color: var(--text-secondary); margin-left: 0.375rem;">vs last mo</span>
+        <span style="font-size: 0.6875rem; color: var(--text-secondary); margin-left: 0.375rem;">vs last period</span>
+        <?php else: ?>
+        <span style="font-size: 0.6875rem; color: var(--text-secondary);">No change vs last period</span>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -1593,10 +1639,14 @@ renderExperimentalWarning('Dashboard - Welcome');
             <?php echo CurrencyHelper::format($totalRevenue); ?>
           </div>
         </div>
-        <div class="trend-indicator up">
-          <span class="trend-arrow">↑</span>
-          <span>+15.3%</span>
+        <?php if ($revenueChange != 0): ?>
+        <div class="trend-indicator <?php echo $revenueChange > 0 ? 'up' : 'down'; ?>">
+          <span class="trend-arrow"><?php echo $revenueChange > 0 ? '↑' : '↓'; ?></span>
+          <span><?php echo $revenueChange > 0 ? '+' : ''; ?><?php echo $revenueChange; ?>%</span>
         </div>
+        <?php else: ?>
+        <div style="font-size: 0.75rem; color: var(--text-secondary);">—</div>
+        <?php endif; ?>
       </div>
       
       <!-- Compact Revenue Breakdown -->

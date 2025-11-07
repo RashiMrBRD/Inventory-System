@@ -13,7 +13,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Service\SessionService;
-use App\Model\User;
+use App\Model\User as UserModel;
 use App\Service\SecurityEventService;
 
 $authController = new AuthController();
@@ -21,11 +21,25 @@ $authController->requireLogin();
 
 $user = $authController->getCurrentUser();
 
-// Ensure user data is valid
+// Ensure user data is valid - if null after requireLogin, try to re-fetch
 if (!$user || !is_array($user)) {
-    error_log('Profile: User data is null or invalid');
-    header('Location: login.php');
-    exit();
+    error_log('Profile: User data is null or invalid, session_id: ' . ($_SESSION['user_id'] ?? 'none'));
+    
+    // Try to reload user from session
+    if (isset($_SESSION['user_id'])) {
+        $userModel = new UserModel();
+        $user = $userModel->findById($_SESSION['user_id']);
+        
+        if (!$user || !is_array($user)) {
+            error_log('Profile: Failed to reload user, clearing session');
+            session_destroy();
+            header('Location: login.php');
+            exit();
+        }
+    } else {
+        header('Location: login.php');
+        exit();
+    }
 }
 
 // Get user ID (MongoDB uses _id)
@@ -291,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $newTeams[] = $t;
                         }
                         if (!$removed) { throw new \Exception('Team not found'); }
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, ['teams' => $newTeams]);
                         if ($ok) {
                             $user = $authController->getCurrentUser();
@@ -365,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'toggle_mfa':
                   $enable = isset($_POST['enable']) && $_POST['enable'] == '1';
                   try {
-                    $userModel = new User();
+                    $userModel = new UserModel();
                     $ok = $userModel->updateUser($userId, ['mfa_enabled' => $enable]);
                     if ($ok) {
                       $user = $authController->getCurrentUser();
@@ -431,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 case 'start_mfa_setup':
                     try {
-                    $userModel = new User();
+                    $userModel = new UserModel();
                     $secret = generateBase32Secret(32);
                     $ok = $userModel->updateUser($userId, ['mfa_temp_secret' => $secret]);
                     if ($ok) {
@@ -455,7 +469,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $tempSecret = $user['mfa_temp_secret'] ?? '';
                         if ($tempSecret && $code && verifyTotp($tempSecret, $code)) {
                       $recovery = generateRecoveryCodes(10);
-                      $userModel = new User();
+                      $userModel = new UserModel();
                       $ok = $userModel->updateUser($userId, [
                         'mfa_enabled' => true,
                         'mfa_secret' => $tempSecret,
@@ -486,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 case 'cancel_mfa_setup':
                     try {
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, ['mfa_temp_secret' => null]);
                         if ($ok) {
                             $user = $authController->getCurrentUser();
@@ -505,7 +519,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 case 'disable_mfa':
                     try {
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, [
                             'mfa_enabled' => false,
                             'mfa_secret' => null,
@@ -531,7 +545,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'regenerate_recovery_codes':
                     try {
                         $codes = generateRecoveryCodes(10);
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, ['mfa_recovery_codes' => $codes]);
                         if ($ok) {
                           $user = $authController->getCurrentUser();
@@ -565,7 +579,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $entry['label'] = $label ?: $name;
                         }
                         $methods[] = $entry;
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, ['billing_methods' => $methods]);
                         if ($ok) {
                             $user = $authController->getCurrentUser();
@@ -588,7 +602,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $methods = $user['billing_methods'] ?? [];
                         if ($idx >= 0 && $idx < count($methods)) {
                             array_splice($methods, $idx, 1);
-                            $userModel = new User();
+                            $userModel = new UserModel();
                             $ok = $userModel->updateUser($userId, ['billing_methods' => $methods]);
                             if ($ok) {
                                 $user = $authController->getCurrentUser();
@@ -625,7 +639,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'token' => $token,
                             'owner' => $userId
                         ];
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, ['teams' => $teams]);
                         if ($ok) {
                             $user = $authController->getCurrentUser();
@@ -679,7 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $newTeams[] = $t;
                         }
                         if (!$removed) { throw new \Exception('Team not found'); }
-                        $userModel = new User();
+                        $userModel = new UserModel();
                         $ok = $userModel->updateUser($userId, ['teams' => $newTeams]);
                         if ($ok) {
                             $user = $authController->getCurrentUser();
