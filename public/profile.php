@@ -21,6 +21,13 @@ $authController->requireLogin();
 
 $user = $authController->getCurrentUser();
 
+// Ensure user data is valid
+if (!$user || !is_array($user)) {
+    error_log('Profile: User data is null or invalid');
+    header('Location: login.php');
+    exit();
+}
+
 // Get user ID (MongoDB uses _id)
 $userId = isset($user['_id']) ? (string)$user['_id'] : (isset($user['id']) ? $user['id'] : '');
 

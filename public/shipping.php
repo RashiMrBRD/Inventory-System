@@ -13,6 +13,13 @@ $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
 
+// Ensure user data is valid
+if (!$user || !is_array($user)) {
+    error_log('Shipping: User data is null or invalid');
+    header('Location: login.php');
+    exit();
+}
+
 // Real shipments from database
 $shipmentModel = new Shipment();
 try {

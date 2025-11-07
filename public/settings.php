@@ -17,6 +17,13 @@ $authController->requireLogin();
 
 $user = $authController->getCurrentUser();
 
+// Ensure user data is valid
+if (!$user || !is_array($user)) {
+    error_log('Settings: User data is null or invalid');
+    header('Location: login.php');
+    exit();
+}
+
 // Load current SMTP configuration
 $appConfig = require __DIR__ . '/../config/app.php';
 $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
@@ -168,8 +175,8 @@ $availableFonts = array_merge($availableFonts, $customFonts);
 
 // Handle form submission
 // Check if user is using demo credentials
-$isDemoUser = ($user['username'] === 'admin' && isset($_POST['verify_demo']));
-if (!$isDemoUser && $user['username'] === 'admin') {
+$isDemoUser = (isset($user['username']) && $user['username'] === 'admin' && isset($_POST['verify_demo']));
+if (!$isDemoUser && isset($user['username']) && $user['username'] === 'admin') {
     // Verify if this is actually the demo account by checking password
     $testUser = $authController->login('admin', 'admin123');
     $isDemoUser = $testUser['success'] ?? false;

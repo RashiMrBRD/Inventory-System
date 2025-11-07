@@ -15,6 +15,13 @@ $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
 
+// Ensure user data is valid
+if (!$user || !is_array($user)) {
+    error_log('Quotations: User data is null or invalid');
+    header('Location: login.php');
+    exit();
+}
+
 // Check SMTP configuration
 $appConfig = require __DIR__ . '/../config/app.php';
 $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);

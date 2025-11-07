@@ -8,6 +8,13 @@ $auth = new AuthController();
 $auth->requireLogin();
 $user = $auth->getCurrentUser();
 
+// Ensure user data is valid
+if (!$user || !is_array($user)) {
+    error_log('System Alerts: User data is null or invalid');
+    header('Location: login.php');
+    exit();
+}
+
 $message = '';
 $messageType = '';
 
