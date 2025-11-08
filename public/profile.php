@@ -4,10 +4,16 @@
  * Manage user account, profile photo, password, and personal information
  */
 
+// Prevent caching for reverse proxy compatibility
+header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Service\SessionService;
+use App\Helper\SessionHelper;
 use App\Model\User as UserModel;
 use App\Service\SecurityEventService;
 
@@ -714,7 +720,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Post/Redirect/Get: avoid resubmission on refresh
     if (!headers_sent() && !empty($message)) {
-        if (!isset($_SESSION)) { session_start(); }
+        SessionHelper::start();
         $_SESSION['profile_flash'] = ['message' => $message, 'type' => $messageType ?: 'info'];
         $redirectUrl = $_SERVER['PHP_SELF'];
         // preserve relevant query params if present
@@ -728,13 +734,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Start output buffering
-ob_start();
+if (ob_start() === false) {
+    error_log('Profile: Failed to start output buffering');
+}
 
 // ========== EXPERIMENTAL FEATURE WARNING ==========
 // To remove this warning system, delete the following 2 lines and the features/experimental-warning folder
-// TEMPORARILY DISABLED FOR DEBUGGING
-// require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
-// renderExperimentalWarning('User Profile Management');
+try {
+    if (file_exists(__DIR__ . '/features/experimental-warning/experimental-warning.php')) {
+        require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
+        renderExperimentalWarning('User Profile Management');
+    } else {
+        error_log('Profile: Experimental warning file not found');
+    }
+} catch (\Throwable $e) {
+    error_log('Profile: Error loading experimental warning: ' . $e->getMessage());
+}
 // System auto-detects page and shows contextual warning with natural language
 // ===================================================
 ?>
@@ -2284,28 +2299,52 @@ document.addEventListener('keydown', function(e) {
 
 <?php
 // Get page content
-$pageContent = ob_get_clean();
-
-// Debug: Check if content was captured
-if (empty($pageContent)) {
-    error_log('Profile: Warning - $pageContent is empty!');
+$bufferLevel = ob_get_level();
+if ($bufferLevel === 0) {
+    error_log('Profile: Error - No active output buffer when trying to get content');
+    $pageContent = '';
+} else {
+    $pageContent = ob_get_clean();
+    if ($pageContent === false) {
+        error_log('Profile: Error - ob_get_clean() returned false');
+        $pageContent = '';
+    }
 }
 
 // Set page title
 $pageTitle = 'User Profile';
 
-// Debug: Log before including layout
-error_log('Profile: About to include layout.php, pageContent length: ' . strlen($pageContent));
-
-// Include layout
-$layoutPath = __DIR__ . '/components/layout.php';
-if (!file_exists($layoutPath)) {
-    error_log('Profile: ERROR - layout.php not found at: ' . $layoutPath);
-    die('Layout file not found');
+// Debug: Check if we have content
+if (empty($pageContent)) {
+    error_log('Profile: Warning - Page content is empty, buffer level was: ' . $bufferLevel);
 }
 
-include $layoutPath;
+// Debug: Check if layout file exists
+$layoutPath = __DIR__ . '/components/layout.php';
+error_log('Profile: About to include layout from: ' . $layoutPath);
+error_log('Profile: pageContent length: ' . strlen($pageContent));
+error_log('Profile: pageTitle: ' . $pageTitle);
 
-// Debug: Log after including layout
-error_log('Profile: Layout included successfully');
+if (!file_exists($layoutPath)) {
+    error_log('Profile: Error - Layout file not found at: ' . $layoutPath);
+    // Fallback: Display content directly without layout
+    echo '<!DOCTYPE html><html><head><title>' . htmlspecialchars($pageTitle) . '</title></head><body>';
+    echo '<div style="padding: 20px; border: 2px solid red;"><strong>ERROR:</strong> Layout file not found at: ' . htmlspecialchars($layoutPath) . '</div>';
+    echo $pageContent;
+    echo '</body></html>';
+} else {
+    error_log('Profile: Layout file found, including it now');
+    // Include layout - this should render the full page
+    try {
+        include $layoutPath;
+        error_log('Profile: Layout included successfully');
+    } catch (\Throwable $e) {
+        error_log('Profile: Error including layout: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+        // Fallback: Display content directly
+        echo '<!DOCTYPE html><html><head><title>' . htmlspecialchars($pageTitle) . '</title></head><body>';
+        echo '<div style="padding: 20px; border: 2px solid red;"><strong>ERROR:</strong> ' . htmlspecialchars($e->getMessage()) . '</div>';
+        echo $pageContent;
+        echo '</body></html>';
+    }
+}
 ?>
