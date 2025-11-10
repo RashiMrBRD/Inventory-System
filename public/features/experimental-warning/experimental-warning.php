@@ -79,8 +79,25 @@ function renderExperimentalWarning($pageName, $options = []) {
     
     ?>
     <!-- Experimental Warning System -->
-    <link rel="stylesheet" href="/features/experimental-warning/experimental-warning.css?v=<?php echo time(); ?>">
-    <script src="/features/experimental-warning/experimental-warning.js?v=<?php echo time(); ?>"></script>
+    <?php
+        if (!function_exists('asset_proxy_url')) {
+            function asset_proxy_url(string $rel): string {
+                $configPath = __DIR__ . '/../../../config/app.php';
+                $cfg = file_exists($configPath) ? require $configPath : [];
+                $key = $cfg['assets']['signing_key'] ?? (getenv('ASSET_SIGNING_KEY') ?: 'change-me-dev-key');
+                $exp = time() + 3600;
+                try { $nonce = bin2hex(random_bytes(12)); } catch (\Throwable $e) { $nonce = bin2hex((string)mt_rand()); }
+                $b64 = rtrim(strtr(base64_encode($rel), '+/', '-_'), '=');
+                $sig = hash_hmac('sha256', $rel . '|' . $exp . '|' . $nonce, $key);
+                $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+                if ($dir === '/' || $dir === '\\' || $dir === '.') { $dir = ''; }
+                $prefix = $dir !== '' ? ('/' . trim($dir, '/') . '/') : '/';
+                return $prefix . 'asset.php?d=' . rawurlencode($b64) . '&e=' . $exp . '&n=' . rawurlencode($nonce) . '&s=' . $sig;
+            }
+        }
+    ?>
+    <link rel="stylesheet" href="<?php echo asset_proxy_url('features/experimental-warning/experimental-warning.css'); ?>">
+    <script src="<?php echo asset_proxy_url('features/experimental-warning/experimental-warning.js'); ?>"></script>
     <?php if ($config['autoInit']): ?>
     <script>
         // Auto-initialize experimental warning modal with page detection

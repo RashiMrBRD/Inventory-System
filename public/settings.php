@@ -28,8 +28,12 @@ if (!$user || !is_array($user)) {
 $appConfig = require __DIR__ . '/../config/app.php';
 $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
 
-// Get current timezone (from session or default to system/UTC)
-$currentTimezone = $_SESSION['timezone'] ?? date_default_timezone_get();
+// Get current timezone (from user database, then session, then default to system/UTC)
+$currentTimezone = $user['timezone'] ?? $_SESSION['timezone'] ?? date_default_timezone_get();
+// Update session if loaded from database
+if (isset($user['timezone'])) {
+    $_SESSION['timezone'] = $user['timezone'];
+}
 date_default_timezone_set($currentTimezone);
 
 // List of common timezones grouped by region
@@ -99,8 +103,12 @@ $currencies = CurrencyService::getAllCurrencies();
 // Get current font (from session or default to 'system')
 $currentFont = $_SESSION['font_family'] ?? 'system';
 
-// Get current theme (from session or default to 'system')
-$currentTheme = $_SESSION['theme'] ?? 'system';
+// Get current theme (from user database, then session, then default to 'light')
+$currentTheme = $user['theme'] ?? $_SESSION['theme'] ?? 'light';
+// Update session if loaded from database
+if (isset($user['theme'])) {
+    $_SESSION['theme'] = $user['theme'];
+}
 
 // Initialize FontService (works with or without database)
 $fontService = new FontService();
@@ -243,15 +251,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedTimezone = $_POST['timezone'] ?? 'UTC';
         // Validate timezone
         if (in_array($selectedTimezone, timezone_identifiers_list())) {
+            // Save to session
             $_SESSION['timezone'] = $selectedTimezone;
-            $currentTimezone = $selectedTimezone;
             date_default_timezone_set($selectedTimezone);
-            $message = 'Timezone updated to ' . $selectedTimezone;
-            $messageType = 'success';
+            
+            // Save to database for persistence across sessions
+            if (isset($user['_id'])) {
+                $updateData = ['timezone' => $selectedTimezone];
+                $authController->updateUserProfile((string)$user['_id'], $updateData);
+            }
+            
+            $_SESSION['flash_message'] = 'Timezone updated to ' . $selectedTimezone;
+            $_SESSION['flash_type'] = 'success';
+            $_SESSION['active_settings_tab'] = 'tab-regional';
         } else {
-            $message = 'Invalid timezone selected';
-            $messageType = 'danger';
+            $_SESSION['flash_message'] = 'Invalid timezone selected';
+            $_SESSION['flash_type'] = 'error';
+            $_SESSION['active_settings_tab'] = 'tab-regional';
         }
+        
+        // Redirect to prevent form resubmission
+        header('Location: settings.php');
+        exit();
     } elseif (isset($_POST['action']) && $_POST['action'] === 'change_password') {
         // Handle password change
         $currentPassword = $_POST['current_password'] ?? '';
@@ -362,18 +383,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif (isset($_POST['action']) && $_POST['action'] === 'update_theme') {
-        $selectedTheme = $_POST['theme'] ?? 'system';
+        $selectedTheme = $_POST['theme'] ?? 'light';
         $allowedThemes = ['light', 'dark', 'system'];
         
         if (in_array($selectedTheme, $allowedThemes)) {
+            // Save to session
             $_SESSION['theme'] = $selectedTheme;
-            $currentTheme = $selectedTheme;
-            $message = 'Theme updated to ' . ucfirst($selectedTheme);
-            $messageType = 'success';
+            
+            // Save to database for persistence across sessions
+            if (isset($user['_id'])) {
+                $updateData = ['theme' => $selectedTheme];
+                $authController->updateUserProfile((string)$user['_id'], $updateData);
+            }
+            
+            $_SESSION['flash_message'] = 'Theme updated to ' . ucfirst($selectedTheme) . ' Mode';
+            $_SESSION['flash_type'] = 'success';
+            $_SESSION['active_settings_tab'] = 'tab-regional';
         } else {
-            $message = 'Invalid theme selected';
-            $messageType = 'danger';
+            $_SESSION['flash_message'] = 'Invalid theme selected';
+            $_SESSION['flash_type'] = 'error';
+            $_SESSION['active_settings_tab'] = 'tab-regional';
         }
+        
+        // Redirect to prevent form resubmission
+        header('Location: settings.php');
+        exit();
     } elseif (isset($_POST['action']) && $_POST['action'] === 'update_smtp') {
         // SMTP Configuration Update
         $smtpHost = trim($_POST['smtp_host'] ?? '');
@@ -1274,8 +1308,8 @@ ob_start();
     </div>
     <div class="card-content">
       
-      <!-- Warning Notice (Hidden by default, shown on change attempt) -->
-      <div id="theme-warning" class="alert" style="display: none; background: hsl(48 96% 89%); border: 2px solid hsl(45 93% 47%); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; animation: slideDown 0.3s ease-out;">
+      <!-- Warning Notice for Unimplemented Themes -->
+      <div id="theme-warning" class="alert" style="display: none; background: #fef3c7; border: 1px solid #fcd34d; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
         <div style="display: flex; align-items: flex-start; gap: 1rem;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(25 95% 45%)" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -1283,9 +1317,9 @@ ob_start();
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
           <div style="flex: 1;">
-            <strong style="font-size: 0.9375rem; color: hsl(25 95% 16%); display: block; margin-bottom: 0.5rem;">Theme Support Not Yet Implemented</strong>
-            <p style="font-size: 0.875rem; color: hsl(25 95% 20%); margin: 0; line-height: 1.5;">
-              Dark mode and theme customization features are currently unavailable. Please contact your system administrator to implement this feature.
+            <strong style="font-size: 0.9375rem; color: #78350f; display: block; margin-bottom: 0.5rem;">Theme Support Not Yet Fully Implemented</strong>
+            <p style="font-size: 0.875rem; color: #78350f; margin: 0; line-height: 1.5;">
+              Dark mode and System Preference features are still under development. Some components may not display correctly with these themes.
             </p>
           </div>
           <button type="button" onclick="closeThemeWarning()" style="background: none; border: none; cursor: pointer; padding: 0.25rem; color: hsl(25 95% 35%); transition: all 0.2s; flex-shrink: 0; margin-left: auto;" 
@@ -1320,7 +1354,7 @@ ob_start();
             <div style="flex: 1;">
               <strong style="color: hsl(222 47% 17%);">Current Theme:</strong>
               <div style="margin-top: 0.25rem; font-size: 0.875rem; color: hsl(222 47% 17%);">
-                Light Mode (Default)
+                <?php echo ($currentTheme === 'system') ? 'System Preference' : (($currentTheme === 'dark') ? 'Dark Mode' : 'Light Mode'); ?>
               </div>
             </div>
           </div>
@@ -1331,9 +1365,8 @@ ob_start();
           
           <!-- Light Theme -->
           <label class="theme-option" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 2px solid var(--color-primary); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s; background: hsl(214 95% 97%);">
-            <input type="radio" name="theme" value="light" checked
-                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);" 
-                   onchange="handleThemeChange(this)">
+            <input type="radio" name="theme" value="light" <?php echo $currentTheme === 'light' ? 'checked' : ''; ?>
+                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);">
             <div style="flex: 1;">
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1348,7 +1381,9 @@ ob_start();
                   <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                 </svg>
                 <strong style="font-size: 0.9375rem;">Light Mode</strong>
+                <?php if ($currentTheme === 'light'): ?>
                 <span style="font-size: 0.75rem; color: hsl(214 84% 46%); background: hsl(214 95% 93%); padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 600;">Active</span>
+                <?php endif; ?>
               </div>
               <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
                 Bright and clear interface optimized for well-lit environments
@@ -1358,15 +1393,17 @@ ob_start();
 
           <!-- Dark Theme -->
           <label class="theme-option" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s;">
-            <input type="radio" name="theme" value="dark"
-                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);" 
-                   onchange="handleThemeChange(this)">
+            <input type="radio" name="theme" value="dark" <?php echo $currentTheme === 'dark' ? 'checked' : ''; ?>
+                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);">
             <div style="flex: 1;">
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                 </svg>
                 <strong style="font-size: 0.9375rem;">Dark Mode</strong>
+                <?php if ($currentTheme === 'dark'): ?>
+                <span style="font-size: 0.75rem; color: hsl(214 84% 46%); background: hsl(214 95% 93%); padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 600;">Active</span>
+                <?php endif; ?>
               </div>
               <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">
                 Reduced eye strain in low-light conditions with dark backgrounds
@@ -1376,9 +1413,8 @@ ob_start();
 
           <!-- System Theme -->
           <label class="theme-option" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s;">
-            <input type="radio" name="theme" value="system"
-                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);" 
-                   onchange="handleThemeChange(this)">
+            <input type="radio" name="theme" value="system" <?php echo $currentTheme === 'system' ? 'checked' : ''; ?>
+                   style="margin-top: 0.125rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary);">
             <div style="flex: 1;">
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1387,7 +1423,11 @@ ob_start();
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
                 <strong style="font-size: 0.9375rem;">System Preference</strong>
+                <?php if ($currentTheme === 'system'): ?>
+                <span style="font-size: 0.75rem; color: hsl(214 84% 46%); background: hsl(214 95% 93%); padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 600;">Active</span>
+                <?php else: ?>
                 <span style="font-size: 0.75rem; color: hsl(142 76% 36%); background: hsl(142 76% 95%); padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 600;">Recommended</span>
+                <?php endif; ?>
               </div>
               <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0; line-height: 1.5;">
                 Automatically match your operating system's theme settings. When implemented, this will sync with your OS dark/light mode preference.
@@ -1397,13 +1437,37 @@ ob_start();
 
         </div>
 
-        <button type="button" onclick="showThemeWarningPersistent()" class="btn btn-primary w-full" style="margin-top: 1.5rem;">
+        <button type="submit" class="btn btn-primary w-full" style="margin-top: 1.5rem;" id="applyThemeBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 13L9 17L19 7" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Apply Theme
         </button>
       </form>
+
+      <!-- Theme Warning Modal (Shadcn-inspired) -->
+      <div id="themeWarningModal" class="theme-modal-overlay" style="display: none;">
+        <div class="theme-modal-content">
+          <div class="theme-modal-header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="flex-shrink: 0;">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div>
+              <h3 class="theme-modal-title" id="themeModalTitle">Theme Not Fully Implemented</h3>
+              <p class="theme-modal-description" id="themeModalDescription">
+                This theme is still under development. Some components may not display correctly.
+              </p>
+            </div>
+          </div>
+          <div class="theme-modal-footer">
+            <button type="button" class="theme-modal-cancel" onclick="cancelThemeChange()">Cancel</button>
+            <button type="button" class="theme-modal-action" onclick="confirmThemeChange()">Continue Anyway</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
   
@@ -2191,6 +2255,115 @@ ob_start();
   align-items: center;
   color: var(--color-primary);
 }
+
+/* Theme Warning Modal (Shadcn-inspired) */
+.theme-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.theme-modal-content {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  max-width: 32rem;
+  width: calc(100% - 2rem);
+  padding: 1.5rem;
+  animation: zoomIn 0.2s ease-out;
+}
+
+.theme-modal-header {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.theme-modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.theme-modal-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.theme-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-direction: row-reverse;
+}
+
+.theme-modal-action,
+.theme-modal-cancel {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.theme-modal-action {
+  background: #111827;
+  color: #ffffff;
+}
+
+.theme-modal-action:hover {
+  background: #1f2937;
+}
+
+.theme-modal-cancel {
+  background: transparent;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.theme-modal-cancel:hover {
+  background: #f3f4f6;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .theme-modal-footer {
+    flex-direction: column-reverse;
+  }
+  
+  .theme-modal-action,
+  .theme-modal-cancel {
+    width: 100%;
+  }
+}
 </style>
 
 <script>
@@ -2237,102 +2410,103 @@ document.addEventListener('DOMContentLoaded', function() {
 // THEME HANDLING FUNCTIONS
 // ============================================
 
-let originalThemeSelection = 'light'; // Track original selection
-let themeChangeTimeout = null;
-let currentAttemptedTheme = null;
+let previousThemeSelection = '<?php echo $currentTheme; ?>'; // Track previous theme
+let pendingThemeSelection = null;
 
-function handleThemeChange(radioElement) {
-  const themeWarning = document.getElementById('theme-warning');
-  const selectedValue = radioElement.value;
+// Initialize theme form submission handler
+document.addEventListener('DOMContentLoaded', function() {
+  const themeForm = document.getElementById('themeForm');
   
-  // Only show warning if user selects something other than light
-  if (selectedValue !== 'light') {
-    // Store the attempted theme
-    currentAttemptedTheme = selectedValue;
-    
-    // Add loading animation to the selected option
-    const selectedLabel = radioElement.closest('.theme-option');
-    selectedLabel.classList.add('theme-loading');
-    
-    // Add spinner icon to the label
-    const labelDiv = selectedLabel.querySelector('div > div');
-    let spinnerSpan = selectedLabel.querySelector('.theme-spinner');
-    if (!spinnerSpan) {
-      spinnerSpan = document.createElement('span');
-      spinnerSpan.className = 'theme-spinner';
-      spinnerSpan.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
-          <circle cx="12" cy="12" r="10" opacity="0.25"/>
-          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
-        </svg>
-      `;
-      spinnerSpan.style.cssText = 'display: inline-flex; align-items: center; margin-left: 0.5rem;';
-      labelDiv.appendChild(spinnerSpan);
-    }
-    
-    // Show warning with animation
-    themeWarning.style.display = 'block';
-    themeWarning.style.animation = 'slideDown 0.3s ease-out';
-    
-    // Smooth scroll to warning
-    setTimeout(() => {
-      themeWarning.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
-    
-    // Show toast notification
-    if (typeof Toast !== 'undefined') {
-      Toast.warning('Processing theme change...', 2000);
-    }
-    
-    // Don't revert immediately - keep showing loading state
-    // Will revert only when warning is closed
-  } else {
-    // Hide warning if light is selected
-    closeThemeWarning();
+  // Intercept form submission to show modal for Dark/System themes
+  if (themeForm) {
+    themeForm.addEventListener('submit', function(e) {
+      const selectedTheme = document.querySelector('input[name="theme"]:checked');
+      
+      if (selectedTheme && (selectedTheme.value === 'dark' || selectedTheme.value === 'system')) {
+        e.preventDefault();
+        pendingThemeSelection = selectedTheme.value;
+        showThemeWarningModal(selectedTheme.value);
+        console.log('Theme change requires confirmation:', selectedTheme.value);
+      } else {
+        console.log('Applying theme:', selectedTheme ? selectedTheme.value : 'none');
+      }
+    });
   }
+});
+
+function showThemeWarningModal(theme) {
+  const modal = document.getElementById('themeWarningModal');
+  const title = document.getElementById('themeModalTitle');
+  const description = document.getElementById('themeModalDescription');
+  
+  if (!modal) {
+    console.error('Theme warning modal not found');
+    return;
+  }
+  
+  // Update modal content based on theme
+  if (theme === 'dark') {
+    title.textContent = 'Dark Mode Not Fully Implemented';
+    description.textContent = 'Dark mode is still under development. Some components may not display correctly with this theme. Do you want to continue anyway?';
+  } else if (theme === 'system') {
+    title.textContent = 'System Preference Not Fully Implemented';
+    description.textContent = 'System preference theme is still under development. The theme will follow your OS settings, but some components may not display correctly. Do you want to continue anyway?';
+  }
+  
+  console.log('Showing theme warning modal for:', theme);
+  
+  // Show modal
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function confirmThemeChange() {
+  const modal = document.getElementById('themeWarningModal');
+  const themeForm = document.getElementById('themeForm');
+  
+  console.log('User confirmed theme change to:', pendingThemeSelection);
+  
+  if (pendingThemeSelection) {
+    // Apply the pending theme selection
+    const pendingRadio = document.querySelector(`input[name="theme"][value="${pendingThemeSelection}"]`);
+    if (pendingRadio) {
+      pendingRadio.checked = true;
+      previousThemeSelection = pendingThemeSelection;
+    }
+    
+    // Submit the form
+    if (themeForm) {
+      themeForm.submit();
+    }
+  }
+  
+  // Hide modal
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  pendingThemeSelection = null;
+}
+
+function cancelThemeChange() {
+  const modal = document.getElementById('themeWarningModal');
+  
+  console.log('User cancelled theme change');
+  
+  // Revert to previous selection
+  const previousRadio = document.querySelector(`input[name="theme"][value="${previousThemeSelection}"]`);
+  if (previousRadio) {
+    previousRadio.checked = true;
+  }
+  
+  // Hide modal
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  pendingThemeSelection = null;
 }
 
 function closeThemeWarning() {
   const themeWarning = document.getElementById('theme-warning');
-  
-  // Fade out animation
-  themeWarning.style.animation = 'fadeOut 0.3s ease-out';
-  
-  setTimeout(() => {
+  if (themeWarning) {
     themeWarning.style.display = 'none';
-    themeWarning.style.animation = '';
-    
-    // Remove loading states from all theme options
-    document.querySelectorAll('.theme-option').forEach(option => {
-      option.classList.remove('theme-loading');
-      const spinner = option.querySelector('.theme-spinner');
-      if (spinner) {
-        spinner.remove();
-      }
-    });
-    
-    // Revert to light theme
-    const lightRadio = document.querySelector('input[name="theme"][value="light"]');
-    if (lightRadio) {
-      lightRadio.checked = true;
-    }
-    
-    currentAttemptedTheme = null;
-  }, 300);
-}
-
-function showThemeWarningPersistent() {
-  const themeWarning = document.getElementById('theme-warning');
-  const selectedTheme = document.querySelector('input[name="theme"]:checked');
-  
-  if (!selectedTheme || selectedTheme.value === 'light') {
-    // Show info toast that theme is already set
-    if (typeof Toast !== 'undefined') {
-      Toast.info('Light theme is currently active and working correctly.', 3000);
-    }
-  } else {
-    // Trigger the same behavior as clicking the theme
-    handleThemeChange(selectedTheme);
   }
 }
 
@@ -2461,6 +2635,13 @@ function switchTab(tabName) {
     // Show target content
     targetContent.classList.add('active');
     targetContent.style.display = 'block';
+
+    const mainContent = document.querySelector('.content');
+    if (mainContent && typeof mainContent.scrollTo === 'function') {
+      mainContent.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
     
     // Update hidden input for persistence
     const activeTabInput = document.getElementById('activeTabInput');

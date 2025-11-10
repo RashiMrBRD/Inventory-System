@@ -234,45 +234,52 @@
    =================================== */
 
 @media (prefers-color-scheme: dark) {
-  .toast {
+  body[data-theme="system"] .toast {
     background: hsl(0 0% 12%);
     border-color: hsl(0 0% 24%);
     color: hsl(0 0% 98%);
   }
 
-  .toast-success {
+  body[data-theme="system"] .toast-success {
     background: hsl(142 76% 12%);
     border-color: hsl(142 76% 36%);
     color: hsl(142 76% 86%);
   }
 
-  .toast-warning {
+  body[data-theme="system"] .toast-warning {
     background: hsl(32 95% 12%);
     border-color: hsl(32 95% 44%);
     color: hsl(48 96% 76%);
   }
 
-  .toast-danger {
+  body[data-theme="system"] .toast-danger {
     background: hsl(0 84% 12%);
     border-color: hsl(0 84% 60%);
     color: hsl(0 86% 86%);
   }
 
-  .toast-info {
+  body[data-theme="system"] .toast-info {
     background: hsl(221 83% 12%);
     border-color: hsl(221 83% 53%);
     color: hsl(214 95% 86%);
   }
 
-  .toast-close {
-    color: hsl(0 0% 65%);
-  }
-
-  .toast-close:hover {
-    background: hsl(0 0% 100% / 0.1);
-    color: hsl(0 0% 98%);
-  }
+  body[data-theme="system"] .toast-close { color: hsl(0 0% 65%); }
+  body[data-theme="system"] .toast-close:hover { background: hsl(0 0% 100% / 0.1); color: hsl(0 0% 98%); }
 }
+
+/* Explicit dark theme (user-selected) */
+body[data-theme="dark"] .toast {
+  background: hsl(0 0% 12%);
+  border-color: hsl(0 0% 24%);
+  color: hsl(0 0% 98%);
+}
+body[data-theme="dark"] .toast-success { background: hsl(142 76% 12%); border-color: hsl(142 76% 36%); color: hsl(142 76% 86%); }
+body[data-theme="dark"] .toast-warning { background: hsl(32 95% 12%); border-color: hsl(32 95% 44%); color: hsl(48 96% 76%); }
+body[data-theme="dark"] .toast-danger { background: hsl(0 84% 12%); border-color: hsl(0 84% 60%); color: hsl(0 86% 86%); }
+body[data-theme="dark"] .toast-info { background: hsl(221 83% 12%); border-color: hsl(221 83% 53%); color: hsl(214 95% 86%); }
+body[data-theme="dark"] .toast-close { color: hsl(0 0% 65%); }
+body[data-theme="dark"] .toast-close:hover { background: hsl(0 0% 100% / 0.1); color: hsl(0 0% 98%); }
 
 /* ===================================
    ACCESSIBILITY

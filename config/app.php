@@ -61,5 +61,11 @@ return [
             'address' => getenv('MAIL_FROM_ADDRESS') ?: 'noreply@inventory.local',
             'name' => getenv('MAIL_FROM_NAME') ?: 'Inventory Management System'
         ]
+    ],
+
+    // Asset proxy configuration
+    'assets' => [
+        // Prefer environment; fallback is dev-only. Set ASSET_SIGNING_KEY in production.
+        'signing_key' => getenv('ASSET_SIGNING_KEY') ?: 'change-me-dev-key'
     ]
 ];

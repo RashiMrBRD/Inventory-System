@@ -26,10 +26,115 @@
    */
   class ExperimentalWarning {
     constructor(options = {}) {
-      this.options = {
+      this.options = this.mergeOptions(options);
+      this.isOpen = false;
+      this.overlay = null;
+      this.theme = window.ThemeAPI || null;
+      this.currentColors = this.getThemeColors();
+      
+      // Log theme initialization for debugging
+      if (this.theme) {
+        const currentTheme = this.theme.currentTheme || document.body.getAttribute('data-theme') || 'unknown';
+        console.log('Experimental Warning: Initialized with theme:', currentTheme);
+      } else {
+        console.warn('Experimental Warning: ThemeAPI not available, using default colors');
+      }
+      
+      // Listen for theme changes
+      if (this.theme) {
+        this.theme.onChange(() => {
+          this.currentColors = this.getThemeColors();
+          console.log('Experimental Warning: Theme changed, updating modal colors');
+          if (this.isOpen) {
+            this.updateModalColors();
+          }
+        });
+      }
+    }
+
+    /**
+     * Get theme colors from Theme API
+     */
+    getThemeColors() {
+      if (!this.theme) {
+        return this.getDefaultColors();
+      }
+      return this.theme.getColors();
+    }
+
+    /**
+     * Fallback colors if Theme API not available
+     */
+    getDefaultColors() {
+      return {
+        bgPrimary: '#ffffff',
+        bgSecondary: '#f9fafb',
+        borderPrimary: '#e5e7eb',
+        textPrimary: '#111827',
+        textSecondary: '#6b7280',
+        iconNeutral: '#f3f4f6',
+        iconNeutralColor: '#6b7280',
+        cardBg: '#f9fafb',
+        cardBorder: '#e5e7eb',
+        warning: { bg: '#fef3c7', border: '#fcd34d', text: '#78350f' },
+        modal: {
+          overlay: 'rgba(0, 0, 0, 0.5)',
+          background: '#ffffff',
+          border: '#e5e7eb'
+        }
+      };
+    }
+
+    /**
+     * Update modal colors when theme changes
+     */
+    updateModalColors() {
+      if (!this.overlay) return;
+
+      const modal = this.overlay.querySelector('.experimental-warning-modal');
+      const body = this.overlay.querySelector('.experimental-warning-body');
+      const recommendation = this.overlay.querySelector('.experimental-warning-recommendation');
+      const footer = this.overlay.querySelector('.experimental-warning-footer');
+
+      if (modal) {
+        modal.style.background = this.currentColors.modal.background;
+        modal.style.borderColor = this.currentColors.modal.border;
+      }
+
+      if (body) {
+        body.style.background = this.currentColors.cardBg;
+        body.style.borderColor = this.currentColors.cardBorder;
+      }
+
+      if (recommendation) {
+        recommendation.style.background = this.currentColors.warning.bg;
+        recommendation.style.borderColor = this.currentColors.warning.border;
+        const text = recommendation.querySelector('.experimental-warning-recommendation-text');
+        if (text) {
+          text.style.color = this.currentColors.warning.text;
+        }
+      }
+
+      if (footer) {
+        footer.style.borderTopColor = this.currentColors.borderPrimary;
+      }
+
+      // Update all text colors
+      const titles = this.overlay.querySelectorAll('.experimental-warning-title, .experimental-warning-body-title');
+      titles.forEach(el => el.style.color = this.currentColors.textPrimary);
+
+      const descriptions = this.overlay.querySelectorAll('.experimental-warning-description, .experimental-warning-body-text');
+      descriptions.forEach(el => el.style.color = this.currentColors.textSecondary);
+    }
+
+    /**
+     * Merge options with defaults
+     */
+    mergeOptions(options) {
+      return {
         pageName: options.pageName || 'This Feature',
         pageFile: options.pageFile || 'unknown.php',
-        title: options.title || '⚠️ Experimental Feature Detected',
+        title: options.title || '  Experimental Feature Detected',
         description: options.description || 'This feature is currently in experimental status and is not yet ready for production use.',
         details: options.details || 'Because this feature is still under development, you may encounter unexpected behavior.',
         recommendation: options.recommendation || 'If you have any suggestions or ideas, please contact the administrator.',
@@ -37,9 +142,6 @@
         appInfo: options.appInfo || null,
         ...options
       };
-
-      this.overlay = null;
-      this.isOpen = false;
     }
 
     /**
@@ -165,26 +267,39 @@
 
           <!-- Footer (Fixed at bottom) -->
           <div class="experimental-warning-footer">
-            <button 
-              type="button" 
-              class="experimental-warning-btn experimental-warning-btn-secondary" 
-              data-action="cancel"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              Go Back
-            </button>
-            <button 
-              type="button" 
-              class="experimental-warning-btn experimental-warning-btn-primary" 
-              data-action="continue"
-            >
-              Continue Anyway
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
+            ${this.options.isWelcome ? `
+              <button 
+                type="button" 
+                class="experimental-warning-btn experimental-warning-btn-primary experimental-warning-btn-full" 
+                data-action="continue"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Okay
+              </button>
+            ` : `
+              <button 
+                type="button" 
+                class="experimental-warning-btn experimental-warning-btn-secondary" 
+                data-action="cancel"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Go Back
+              </button>
+              <button 
+                type="button" 
+                class="experimental-warning-btn experimental-warning-btn-primary" 
+                data-action="continue"
+              >
+                Continue Anyway
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            `}
           </div>
         </div>
       `;

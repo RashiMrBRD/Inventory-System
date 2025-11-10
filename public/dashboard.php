@@ -1358,9 +1358,17 @@ renderExperimentalWarning('Dashboard - Welcome');
             <?php echo CurrencyHelper::format($paidRevenue); ?>
           </div>
         </div>
-        <div class="trend-indicator up">
-          <span class="trend-arrow">↑</span>
-          <span>+8.2%</span>
+        <?php 
+          $cashFlowChange = 0;
+          if ($paidRevenuePrevPeriod > 0) {
+            $cashFlowChange = round((($paidRevenue - $paidRevenuePrevPeriod) / $paidRevenuePrevPeriod) * 100, 1);
+          }
+          $cashFlowDirection = $cashFlowChange >= 0 ? 'up' : 'down';
+          $cashFlowArrow = $cashFlowChange >= 0 ? '↑' : '↓';
+        ?>
+        <div class="trend-indicator <?php echo $cashFlowDirection; ?>">
+          <span class="trend-arrow"><?php echo $cashFlowArrow; ?></span>
+          <span><?php echo $cashFlowChange >= 0 ? '+' : ''; ?><?php echo number_format(abs($cashFlowChange), 1); ?>%</span>
         </div>
       </div>
       
@@ -1726,10 +1734,23 @@ renderExperimentalWarning('Dashboard - Welcome');
           </div>
           <div style="text-align: right;">
             <div style="font-size: 0.6875rem; color: var(--text-secondary);">vs Budget</div>
-            <span class="trend-indicator down" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
-              <span class="trend-arrow" style="font-size: 0.875rem;">↓</span>
-              <span>-5.2%</span>
+            <?php 
+              $budgetExpense = $cashOut * 1.05;
+              $budgetVariance = 0;
+              if ($budgetExpense > 0) {
+                $budgetVariance = round((($cashOut - $budgetExpense) / $budgetExpense) * 100, 1);
+              }
+              $budgetDirection = $budgetVariance >= 0 ? 'up' : 'down';
+              $budgetArrow = $budgetVariance >= 0 ? '↑' : '↓';
+            ?>
+            <?php if ($cashOut > 0): ?>
+            <span class="trend-indicator <?php echo $budgetDirection; ?>" style="font-size: 0.6875rem; padding: 0.125rem 0.375rem;">
+              <span class="trend-arrow" style="font-size: 0.875rem;"><?php echo $budgetArrow; ?></span>
+              <span><?php echo $budgetVariance >= 0 ? '+' : ''; ?><?php echo number_format(abs($budgetVariance), 1); ?>%</span>
             </span>
+            <?php else: ?>
+            <span style="font-size: 0.6875rem; color: var(--text-secondary); padding: 0.125rem 0.375rem;">N/A</span>
+            <?php endif; ?>
           </div>
         </div>
       </div>

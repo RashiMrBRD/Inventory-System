@@ -2,11 +2,13 @@
 /**
  * Database Migration Runner
  * Run this script to create the custom_fonts table
+ * 
+ * Usage: php database/scripts/run_migrations.php
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
-$config = require __DIR__ . '/config/database.php';
+$config = require __DIR__ . '/../../config/database.php';
 
 try {
     // Connect to database
@@ -19,7 +21,7 @@ try {
     echo "Connected to database: {$config['database']}\n";
     
     // Read migration file
-    $migrationFile = __DIR__ . '/database/migrations/005_create_custom_fonts_table.sql';
+    $migrationFile = __DIR__ . '/../migrations/005_create_custom_fonts_table.sql';
     
     if (!file_exists($migrationFile)) {
         die("Migration file not found: $migrationFile\n");

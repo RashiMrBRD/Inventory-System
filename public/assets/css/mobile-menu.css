@@ -36,13 +36,16 @@
   height: 100%;
   background: hsl(0 0% 100%);
   z-index: 999;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
   transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-direction: column;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-menu.open {
-  display: block;
+  display: flex;
   left: 0;
   animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -51,9 +54,27 @@
   left: -100%;
 }
 
-/* Dark Mode */
+/* Default menu appearance follows light theme */
+.mobile-menu {
+  background: hsl(0 0% 100%);
+  border-right: none;
+}
+
+/* Respect explicit theme selections */
+body[data-theme="dark"] .mobile-menu,
+body[data-resolved-theme="dark"] .mobile-menu {
+  background: hsl(240 10% 3.9%);
+  border-right: 1px solid hsl(240 3.7% 15.9%);
+}
+
+body[data-theme="light"] .mobile-menu,
+body[data-resolved-theme="light"] .mobile-menu {
+  background: hsl(0 0% 100%);
+  border-right: none;
+}
+
 @media (prefers-color-scheme: dark) {
-  .mobile-menu {
+  body[data-theme="system"] .mobile-menu {
     background: hsl(240 10% 3.9%);
     border-right: 1px solid hsl(240 3.7% 15.9%);
   }
@@ -70,7 +91,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-header {
+  body[data-theme="system"] .mobile-menu-header {
     background: linear-gradient(135deg, hsl(217 30% 12%) 0%, hsl(240 10% 3.9%) 100%);
     border-bottom-color: hsl(240 3.7% 15.9%);
   }
@@ -87,7 +108,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-logo {
+  body[data-theme="system"] .mobile-menu-logo {
     color: hsl(0 0% 98%);
   }
 }
@@ -124,13 +145,13 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-close {
+  body[data-theme="system"] .mobile-menu-close {
     background: hsl(0 30% 15%);
     border-color: hsl(0 30% 25%);
     color: hsl(0 84% 70%);
   }
   
-  .mobile-menu-close:hover {
+  body[data-theme="system"] .mobile-menu-close:hover {
     background: hsl(0 84% 50%);
     border-color: hsl(0 84% 40%);
     color: white;
@@ -139,7 +160,20 @@
 
 /* Mobile Menu Content */
 .mobile-menu-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 0.5rem 0;
+  
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.mobile-menu-content::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 
 /* Mobile Menu Section */
@@ -152,7 +186,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-section + .mobile-menu-section {
+  body[data-theme="system"] .mobile-menu-section + .mobile-menu-section {
     border-top-color: hsl(240 3.7% 15.9%);
   }
 }
@@ -171,7 +205,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-section-title {
+  body[data-theme="system"] .mobile-menu-section-title {
     color: hsl(217 91% 70%);
     background: hsl(217 30% 12%);
   }
@@ -222,21 +256,21 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-link {
+  body[data-theme="system"] .mobile-menu-link {
     color: hsl(0 0% 98%);
   }
   
-  .mobile-menu-link:hover {
+  body[data-theme="system"] .mobile-menu-link:hover {
     background: hsl(240 3.7% 15.9%);
     color: hsl(217 91% 70%);
   }
   
-  .mobile-menu-link.active {
+  body[data-theme="system"] .mobile-menu-link.active {
     background: hsl(217 91% 10%);
     color: hsl(217 91% 70%);
   }
   
-  .mobile-menu-link.active::before {
+  body[data-theme="system"] .mobile-menu-link.active::before {
     background: hsl(217 91% 70%);
   }
 }
@@ -294,18 +328,18 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .mobile-menu-button {
+  body[data-theme="system"] .mobile-menu-button {
     background: hsl(240 3.7% 15.9%);
     border-color: hsl(240 3.7% 25.9%);
     color: hsl(0 0% 98%);
   }
   
-  .mobile-menu-button:hover {
+  body[data-theme="system"] .mobile-menu-button:hover {
     background: hsl(240 4.9% 20%);
     border-color: hsl(217 91% 60%);
   }
   
-  .mobile-menu-button:active {
+  body[data-theme="system"] .mobile-menu-button:active {
     background: hsl(217 91% 15%);
   }
 }
@@ -361,4 +395,91 @@
 /* Prevent body scroll when menu is open */
 body.mobile-menu-open {
   overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Explicit Theme Overrides — respect settings.php selection */
+/* Dark theme explicitly selected */
+body[data-theme="dark"] .mobile-menu,
+body[data-resolved-theme="dark"] .mobile-menu {
+  background: hsl(240 10% 3.9%);
+  border-right: 1px solid hsl(240 3.7% 15.9%);
+}
+body[data-theme="dark"] .mobile-menu-header,
+body[data-resolved-theme="dark"] .mobile-menu-header {
+  background: linear-gradient(135deg, hsl(217 30% 12%) 0%, hsl(240 10% 3.9%) 100%);
+  border-bottom-color: hsl(240 3.7% 15.9%);
+}
+body[data-theme="dark"] .mobile-menu-logo,
+body[data-resolved-theme="dark"] .mobile-menu-logo { color: hsl(0 0% 98%); }
+body[data-theme="dark"] .mobile-menu-close,
+body[data-resolved-theme="dark"] .mobile-menu-close {
+  background: hsl(0 30% 15%);
+  border-color: hsl(0 30% 25%);
+  color: hsl(0 84% 70%);
+}
+body[data-theme="dark"] .mobile-menu-section + .mobile-menu-section,
+body[data-resolved-theme="dark"] .mobile-menu-section + .mobile-menu-section { border-top-color: hsl(240 3.7% 15.9%); }
+body[data-theme="dark"] .mobile-menu-section-title,
+body[data-resolved-theme="dark"] .mobile-menu-section-title {
+  color: hsl(217 91% 70%);
+  background: hsl(217 30% 12%);
+}
+body[data-theme="dark"] .mobile-menu-link,
+body[data-resolved-theme="dark"] .mobile-menu-link { color: hsl(0 0% 98%); }
+body[data-theme="dark"] .mobile-menu-link:hover,
+body[data-resolved-theme="dark"] .mobile-menu-link:hover {
+  background: hsl(240 3.7% 15.9%);
+  color: hsl(217 91% 70%);
+}
+body[data-theme="dark"] .mobile-menu-link.active,
+body[data-resolved-theme="dark"] .mobile-menu-link.active {
+  background: hsl(217 91% 10%);
+  color: hsl(217 91% 70%);
+}
+body[data-theme="dark"] .mobile-menu-link.active::before,
+body[data-resolved-theme="dark"] .mobile-menu-link.active::before { background: hsl(217 91% 70%); }
+body[data-theme="dark"] .mobile-menu-button,
+body[data-resolved-theme="dark"] .mobile-menu-button {
+  background: hsl(240 3.7% 15.9%);
+  border-color: hsl(240 3.7% 25.9%);
+  color: hsl(0 0% 98%);
+}
+body[data-theme="dark"] .mobile-menu-button:hover,
+body[data-resolved-theme="dark"] .mobile-menu-button:hover {
+  background: hsl(240 4.9% 20%);
+  border-color: hsl(217 91% 60%);
+}
+body[data-theme="dark"] .mobile-menu-button:active,
+body[data-resolved-theme="dark"] .mobile-menu-button:active { background: hsl(217 91% 15%); }
+
+/* Light theme explicitly selected (override OS dark) */
+body[data-theme="light"] .mobile-menu,
+body[data-resolved-theme="light"] .mobile-menu { background: hsl(0 0% 100%); border-right: none; }
+body[data-theme="light"] .mobile-menu-header,
+body[data-resolved-theme="light"] .mobile-menu-header {
+  background: linear-gradient(135deg, hsl(217 91% 98%) 0%, hsl(0 0% 100%) 100%);
+  border-bottom-color: hsl(240 5.9% 90%);
+}
+body[data-theme="light"] .mobile-menu-logo,
+body[data-resolved-theme="light"] .mobile-menu-logo { color: hsl(240 10% 3.9%); }
+body[data-theme="light"] .mobile-menu-section + .mobile-menu-section,
+body[data-resolved-theme="light"] .mobile-menu-section + .mobile-menu-section { border-top-color: hsl(240 5.9% 90%); }
+body[data-theme="light"] .mobile-menu-section-title,
+body[data-resolved-theme="light"] .mobile-menu-section-title { color: hsl(217 91% 60%); background: hsl(217 91% 98%); }
+body[data-theme="light"] .mobile-menu-link,
+body[data-resolved-theme="light"] .mobile-menu-link { color: hsl(240 10% 3.9%); }
+body[data-theme="light"] .mobile-menu-link:hover,
+body[data-resolved-theme="light"] .mobile-menu-link:hover { background: hsl(240 4.8% 95.9%); color: hsl(217 91% 60%); }
+body[data-theme="light"] .mobile-menu-link.active,
+body[data-resolved-theme="light"] .mobile-menu-link.active { background: hsl(217 91% 95%); color: hsl(217 91% 60%); }
+body[data-theme="light"] .mobile-menu-link.active::before,
+body[data-resolved-theme="light"] .mobile-menu-link.active::before { background: linear-gradient(180deg, hsl(217 91% 60%) 0%, hsl(217 91% 50%) 100%); }
+body[data-theme="light"] .mobile-menu-button,
+body[data-resolved-theme="light"] .mobile-menu-button {
+  background: hsl(0 0% 100%);
+  border-color: hsl(240 5.9% 90%);
+  color: hsl(240 10% 3.9%);
 }

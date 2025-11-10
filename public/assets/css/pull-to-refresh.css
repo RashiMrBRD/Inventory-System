@@ -1,0 +1,217 @@
+/**
+ * Pull-to-Refresh Styles - Scroll-Driven Animation
+ * Inspired by nerdy.dev + shadcn design principles
+ * Uses scroll-snap and view-timeline for native feel
+ */
+
+/* Enable scroll snap on mobile when PTR is active */
+@media (max-width: 768px) {
+  html {
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+  }
+
+  html.ptr-active {
+    scroll-snap-type: y mandatory;
+  }
+
+/* Reveal PTR when active or loading */
+html.ptr-active #ptr-header,
+#ptr-header[loading-state="loading"],
+html.ptr-active #ptr-header[loading-state="loading"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+  
+  /* Main content snaps to start */
+  html.ptr-active .content {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
+/* PTR Header Element */
+#ptr-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  z-index: 9998;
+  pointer-events: none;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  background: linear-gradient(180deg, 
+    hsl(0 0% 100%) 0%, 
+    hsl(0 0% 100% / 0.9) 70%,
+    hsl(0 0% 100% / 0) 100%);
+  opacity: 0;
+  transform: translateY(-60%);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+body[data-theme="dark"] #ptr-header,
+body[data-resolved-theme="dark"] #ptr-header {
+  background: linear-gradient(180deg, 
+    hsl(240 10% 3.9%) 0%, 
+    hsl(240 10% 3.9% / 0.9) 70%,
+    hsl(240 10% 3.9% / 0) 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] #ptr-header {
+    background: linear-gradient(180deg, 
+      hsl(240 10% 3.9%) 0%, 
+      hsl(240 10% 3.9% / 0.9) 70%,
+      hsl(240 10% 3.9% / 0) 100%);
+  }
+}
+
+/* Delayed snap point for PTR trigger */
+html.ptr-active #ptr-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  block-size: 10px;
+  animation: ptr-delayed-snap 2ms forwards;
+}
+
+@keyframes ptr-delayed-snap {
+  to { 
+    scroll-snap-align: start;
+  }
+}
+
+/* PTR Icon - Rotates in on scroll */
+#ptr-icon {
+  width: 32px;
+  height: 32px;
+  color: hsl(217 91% 60%);
+  transform: rotateZ(0deg);
+  animation: linear ptr-rotate-in;
+  animation-timeline: view();
+  animation-range: exit 0% exit 100%;
+}
+
+body[data-theme="dark"] #ptr-icon,
+body[data-resolved-theme="dark"] #ptr-icon {
+  color: hsl(217 91% 70%);
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] #ptr-icon {
+    color: hsl(217 91% 70%);
+  }
+}
+
+@keyframes ptr-rotate-in {
+  to { 
+    transform: rotateZ(0.5turn);
+  }
+}
+
+/* PTR Text - Fades out on scroll */
+#ptr-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(240 5.9% 64.9%);
+  animation: linear ptr-fade-out;
+  animation-timeline: view();
+  animation-range: exit -200% exit 100%;
+}
+
+body[data-theme="dark"] #ptr-text,
+body[data-resolved-theme="dark"] #ptr-text {
+  color: hsl(240 5% 84.9%);
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] #ptr-text {
+    color: hsl(240 5% 84.9%);
+  }
+}
+
+@keyframes ptr-fade-out {
+  to { 
+    opacity: 0;
+  }
+}
+
+/* Pulse Line Wave Animation for Loading State */
+#ptr-header[loading-state="loading"] #ptr-icon {
+  display: none;
+}
+
+#ptr-loader {
+  display: none;
+  width: 80px;
+  height: 32px;
+  position: relative;
+}
+
+#ptr-header[loading-state="loading"] #ptr-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pulse Line Waves */
+.ptr-wave {
+  position: absolute;
+  width: 4px;
+  height: 100%;
+  background: hsl(217 91% 60%);
+  border-radius: 2px;
+  transform-origin: center;
+  animation: ptr-pulse-line 1.2s ease-in-out infinite;
+}
+
+body[data-theme="dark"] .ptr-wave,
+body[data-resolved-theme="dark"] .ptr-wave {
+  background: hsl(217 91% 70%);
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] .ptr-wave {
+    background: hsl(217 91% 70%);
+  }
+}
+
+.ptr-wave:nth-child(1) { left: 0%; animation-delay: 0s; }
+.ptr-wave:nth-child(2) { left: 20%; animation-delay: 0.1s; }
+.ptr-wave:nth-child(3) { left: 40%; animation-delay: 0.2s; }
+.ptr-wave:nth-child(4) { left: 60%; animation-delay: 0.3s; }
+.ptr-wave:nth-child(5) { left: 80%; animation-delay: 0.4s; }
+
+@keyframes ptr-pulse-line {
+  0%, 100% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Hide PTR on desktop */
+@media (min-width: 769px) {
+  #ptr-header {
+    display: none !important;
+  }
+  
+  html {
+    scroll-snap-type: none !important;
+  }
+}
+
+/* Polyfill support check */
+@supports not (animation-timeline: view()) {
+  #ptr-header {
+    display: none !important;
+  }
+}

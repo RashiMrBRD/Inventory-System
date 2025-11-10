@@ -94,8 +94,25 @@
 </div>
 
 <!-- External Libraries - Local copies for offline use -->
-<script src="../assets/js/vendor/jsbarcode.min.js"></script>
-<script src="../assets/js/vendor/html5-qrcode.min.js"></script>
+<?php
+if (!function_exists('asset_proxy_url')) {
+  function asset_proxy_url(string $rel): string {
+    $configPath = __DIR__ . '/../../config/app.php';
+    $cfg = file_exists($configPath) ? require $configPath : [];
+    $key = $cfg['assets']['signing_key'] ?? (getenv('ASSET_SIGNING_KEY') ?: 'change-me-dev-key');
+    $exp = time() + 3600;
+    try { $nonce = bin2hex(random_bytes(12)); } catch (\Throwable $e) { $nonce = bin2hex((string)mt_rand()); }
+    $b64 = rtrim(strtr(base64_encode($rel), '+/', '-_'), '=');
+    $sig = hash_hmac('sha256', $rel . '|' . $exp . '|' . $nonce, $key);
+    $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+    if ($dir === '/' || $dir === '\\' || $dir === '.') { $dir = ''; }
+    $prefix = $dir !== '' ? ('/' . trim($dir, '/') . '/') : '/';
+    return $prefix . 'asset.php?d=' . rawurlencode($b64) . '&e=' . $exp . '&n=' . rawurlencode($nonce) . '&s=' . $sig;
+  }
+}
+?>
+<script src="<?php echo asset_proxy_url('assets/js/vendor/jsbarcode.min.js'); ?>"></script>
+<script src="<?php echo asset_proxy_url('assets/js/vendor/html5-qrcode.min.js'); ?>"></script>
 
 <script>
 (function() {

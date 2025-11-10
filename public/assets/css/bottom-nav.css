@@ -11,17 +11,18 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
   background: #ffffff;
   border-top: 1px solid #e5e7eb;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   z-index: 50;
-  padding: 0;
+  padding: 0 env(safe-area-inset-left, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-right, 0px);
   margin: 0;
+  box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav {
+  body[data-theme="system"] .bottom-nav {
     background: #1f2937;
     border-top-color: #374151;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
@@ -38,7 +39,7 @@
 
   /* Add bottom padding to content to prevent overlap */
   .content {
-    padding-bottom: 80px !important;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 
@@ -85,20 +86,20 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-item {
+  body[data-theme="system"] .bottom-nav-item {
     color: #9ca3af;
   }
 
-  .bottom-nav-item:hover {
+  body[data-theme="system"] .bottom-nav-item:hover {
     background: #374151;
     color: #ffffff;
   }
 
-  .bottom-nav-item.active {
+  body[data-theme="system"] .bottom-nav-item.active {
     color: #ffffff;
   }
 
-  .bottom-nav-item.active::before {
+  body[data-theme="system"] .bottom-nav-item.active::before {
     background: #ffffff;
   }
 }
@@ -156,7 +157,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-fab {
+  body[data-theme="system"] .bottom-nav-fab {
     background: #ffffff;
     border-color: #1f2937;
   }
@@ -170,7 +171,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-fab .bottom-nav-icon {
+  body[data-theme="system"] .bottom-nav-fab .bottom-nav-icon {
     stroke: #000000;
   }
 }
@@ -190,7 +191,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-item-fab.active .bottom-nav-fab {
+  body[data-theme="system"] .bottom-nav-item-fab.active .bottom-nav-fab {
     background: #f5f5f5;
   }
 }
@@ -220,15 +221,15 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-avatar {
+  body[data-theme="system"] .bottom-nav-avatar {
     border-color: #4b5563;
   }
 
-  .bottom-nav-item:hover .bottom-nav-avatar {
+  body[data-theme="system"] .bottom-nav-item:hover .bottom-nav-avatar {
     border-color: #ffffff;
   }
 
-  .bottom-nav-item.active .bottom-nav-avatar {
+  body[data-theme="system"] .bottom-nav-item.active .bottom-nav-avatar {
     border-color: #ffffff;
   }
 }
@@ -252,7 +253,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-avatar-initial {
+  body[data-theme="system"] .bottom-nav-avatar-initial {
     background: #ffffff;
     color: #000000;
   }
@@ -275,7 +276,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bottom-nav-item::after {
+  body[data-theme="system"] .bottom-nav-item::after {
     background: rgba(255, 255, 255, 0.1);
   }
 }
@@ -311,3 +312,24 @@
     display: none !important;
   }
 }
+
+/* Explicit dark theme (user-selected) */
+body[data-theme="dark"] .bottom-nav {
+  background: #1f2937;
+  border-top-color: #374151;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+body[data-theme="dark"] .bottom-nav-item { color: #9ca3af; }
+body[data-theme="dark"] .bottom-nav-item:hover { background: #374151; color: #ffffff; }
+body[data-theme="dark"] .bottom-nav-item.active { color: #ffffff; }
+body[data-theme="dark"] .bottom-nav-item.active::before { background: #ffffff; }
+
+body[data-theme="dark"] .bottom-nav-fab { background: #ffffff; border-color: #1f2937; }
+body[data-theme="dark"] .bottom-nav-fab .bottom-nav-icon { stroke: #000000; }
+body[data-theme="dark"] .bottom-nav-item-fab.active .bottom-nav-fab { background: #f5f5f5; }
+
+body[data-theme="dark"] .bottom-nav-avatar { border-color: #4b5563; }
+body[data-theme="dark"] .bottom-nav-item:hover .bottom-nav-avatar { border-color: #ffffff; }
+body[data-theme="dark"] .bottom-nav-item.active .bottom-nav-avatar { border-color: #ffffff; }
+body[data-theme="dark"] .bottom-nav-avatar-initial { background: #ffffff; color: #000000; }
+body[data-theme="dark"] .bottom-nav-item::after { background: rgba(255, 255, 255, 0.1); }

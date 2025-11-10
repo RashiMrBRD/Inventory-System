@@ -1086,6 +1086,159 @@ html, body {
   margin-right: 0.75rem;
   font-size: 0.875em;
 }
+
+@media (max-width: 768px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    background: var(--bg-secondary);
+  }
+
+  .docs-page-container {
+    height: auto;
+    min-height: 100vh;
+    background: var(--bg-secondary);
+  }
+
+  .docs-hero {
+    position: sticky;
+    top: calc(var(--header-height, 64px) + env(safe-area-inset-top, 0));
+    padding: 1rem 1.25rem;
+    border-radius: 0 0 1rem 1rem;
+  }
+
+  .docs-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .docs-hero-title {
+    font-size: 1.25rem;
+  }
+
+  .docs-search-wrapper {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .docs-search-input {
+    font-size: 0.875rem;
+  }
+
+  .docs-wrapper {
+    overflow: visible;
+  }
+
+  .docs-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-width: 100%;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .docs-content {
+    order: 1;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-primary);
+  }
+
+  .docs-content-inner {
+    padding: 1.25rem 1rem 4.5rem;
+    max-width: 100%;
+  }
+
+  .docs-breadcrumb {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .docs-content-title {
+    font-size: 1.5rem;
+  }
+
+  .docs-content-meta {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .docs-sidebar {
+    order: 3;
+    width: 100%;
+    margin: 1rem 0 0;
+    border: none;
+    border-radius: 1rem;
+    box-shadow: none;
+    background: transparent;
+    max-height: none;
+  }
+
+  .docs-sidebar-header {
+    border-radius: 1rem 1rem 0 0;
+    padding: 0.875rem 1rem;
+  }
+
+  .docs-sidebar-scroll {
+    max-height: none;
+    padding: 0.75rem 1rem 1.25rem;
+    background: white;
+    border-radius: 0 0 1rem 1rem;
+  }
+
+  .docs-sidebar-view.active .docs-sidebar-link,
+  .docs-sidebar-view.active .docs-toc-link {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .docs-sidebar-toggle {
+    padding: 0.375rem 0.75rem;
+  }
+
+  .docs-navigation {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .docs-nav-btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .docs-progress {
+    justify-content: space-between;
+  }
+
+  .docs-progress-bar {
+    max-width: none;
+  }
+
+  .md-render {
+    font-size: 0.9375rem;
+  }
+
+  .md-render h1 {
+    font-size: 1.75rem;
+  }
+
+  .md-render h2 {
+    font-size: 1.5rem;
+  }
+
+  .md-render pre.md-code {
+    margin: 1.25rem 0;
+  }
+
+  .docs-empty {
+    padding: 3rem 1.5rem;
+  }
+}
 </style>
 
 <div class="docs-page-container">

@@ -25,7 +25,9 @@
   const menuOverlay = document.getElementById('mobile-menu-overlay');
   const menu = document.getElementById('mobile-menu');
   const menuClose = document.getElementById('mobile-menu-close');
+  const menuContent = document.querySelector('.mobile-menu-content');
   const body = document.body;
+  let scrollPosition = 0;
 
   // Check if running on mobile
   function isMobile() {
@@ -38,10 +40,14 @@
   function openMenu() {
     if (!isMobile() || isOpen) return;
 
+    // Save scroll position
+    scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
     // Add classes
     menuOverlay.classList.add('open');
     menu.classList.add('open');
     body.classList.add('mobile-menu-open');
+    body.style.top = `-${scrollPosition}px`;
     
     isOpen = true;
 
@@ -50,11 +56,19 @@
     menuClose.addEventListener('click', closeMenu);
     document.addEventListener('keydown', handleEscapeKey);
 
-    // Enable touch swipe
+    // Enable touch swipe and prevent body scroll
     if (CONFIG.enableTouchSwipe) {
       menu.addEventListener('touchstart', handleTouchStart, { passive: true });
       menu.addEventListener('touchmove', handleTouchMove, { passive: false });
       menu.addEventListener('touchend', handleTouchEnd);
+    }
+    
+    // Prevent body scroll from menu content
+    if (menuContent) {
+      menuContent.addEventListener('touchstart', (e) => {
+        window.touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      menuContent.addEventListener('touchmove', preventBodyScroll, { passive: false });
     }
 
     console.log('📱 Mobile menu opened');
@@ -74,6 +88,8 @@
       menuOverlay.classList.remove('open', 'closing');
       menu.classList.remove('open', 'closing');
       body.classList.remove('mobile-menu-open');
+      body.style.top = '';
+      window.scrollTo(0, scrollPosition);
       isOpen = false;
     }, CONFIG.animationDuration);
 
@@ -86,6 +102,10 @@
       menu.removeEventListener('touchstart', handleTouchStart);
       menu.removeEventListener('touchmove', handleTouchMove);
       menu.removeEventListener('touchend', handleTouchEnd);
+    }
+    
+    if (menuContent) {
+      menuContent.removeEventListener('touchmove', preventBodyScroll);
     }
 
     console.log('📱 Mobile menu closed');
@@ -115,6 +135,13 @@
    * Touch event handlers for swipe-to-close
    */
   function handleTouchStart(e) {
+    // Only handle swipe from menu edge, not from scrollable content
+    const target = e.target;
+    if (menuContent && menuContent.contains(target)) {
+      // Allow scrolling in content area
+      return;
+    }
+    
     startX = e.touches[0].clientX;
     currentX = startX;
     isSwiping = true;
@@ -135,6 +162,24 @@
       // Update overlay opacity based on swipe
       const opacity = 1 + (translateX / menu.offsetWidth);
       menuOverlay.style.opacity = opacity;
+    }
+  }
+  
+  /**
+   * Prevent body scroll propagation from menu content
+   */
+  function preventBodyScroll(e) {
+    if (!menuContent) return;
+    
+    const scrollTop = menuContent.scrollTop;
+    const scrollHeight = menuContent.scrollHeight;
+    const clientHeight = menuContent.clientHeight;
+    const deltaY = e.touches ? e.touches[0].clientY - (window.touchStartY || e.touches[0].clientY) : 0;
+    
+    // Prevent overscroll bounce
+    if ((scrollTop === 0 && deltaY > 0) || 
+        (scrollTop + clientHeight >= scrollHeight && deltaY < 0)) {
+      e.preventDefault();
     }
   }
 

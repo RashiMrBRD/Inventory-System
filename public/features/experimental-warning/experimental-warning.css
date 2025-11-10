@@ -6,7 +6,10 @@
 
 /* Prevent body scroll when modal is open */
 body.experimental-warning-active {
-  overflow: hidden;
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
 }
 
 /* Modal Overlay */
@@ -114,7 +117,7 @@ body.experimental-warning-active {
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.4;
-  color: hsl(240 10% 3.9%);
+  color: #111827;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -134,15 +137,15 @@ body.experimental-warning-active {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: hsl(38 92% 95%);
-  color: hsl(32 95% 44%);
+  background: #f3f4f6;
+  color: #6b7280;
   font-size: 1.25rem;
   flex-shrink: 0;
 }
 
 .experimental-warning-description {
   font-size: 0.875rem;
-  color: hsl(240 3.8% 46.1%);
+  color: #6b7280;
   line-height: 1.6;
 }
 
@@ -150,16 +153,15 @@ body.experimental-warning-active {
 .experimental-warning-body {
   margin: 1.5rem 0 1rem 0;
   padding: 1rem;
-  background: hsl(38 92% 98%);
-  border: 1px solid hsl(38 92% 90%);
-  border-left: 4px solid hsl(32 95% 44%);
-  border-radius: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 
 .experimental-warning-body-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: hsl(240 10% 3.9%);
+  color: #111827;
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
@@ -167,19 +169,20 @@ body.experimental-warning-active {
 }
 
 .experimental-warning-body-title strong {
-  color: hsl(32 95% 44%);
+  color: #111827;
   font-family: 'Courier New', monospace;
   font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .experimental-warning-body-text {
   font-size: 0.875rem;
-  color: hsl(240 3.8% 46.1%);
+  color: #6b7280;
   line-height: 1.7;
 }
 
 .experimental-warning-body-text strong {
-  color: hsl(240 10% 3.9%);
+  color: #111827;
   font-weight: 600;
 }
 
@@ -196,7 +199,7 @@ body.experimental-warning-active {
 }
 
 .app-info-item strong {
-  color: hsl(240 10% 3.9%);
+  color: #111827;
   font-weight: 600;
   display: block;
   margin-bottom: 0.375rem;
@@ -213,28 +216,26 @@ body.experimental-warning-active {
 
 .team-member {
   padding: 0.5rem 0.75rem;
-  background: hsl(142 76% 96%);
-  border: 1px solid hsl(142 76% 88%);
-  border-radius: 4px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 0.8125rem;
-  color: hsl(240 10% 3.9%);
+  color: #111827;
 }
 
 /* Welcome Modal Styling */
 .experimental-warning-welcome {
-  background: linear-gradient(135deg, hsl(217 91% 98%) 0%, hsl(142 76% 98%) 100%);
-  border: 1px solid hsl(217 91% 90%);
-  border-left: 4px solid hsl(217 91% 60%);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
 }
 
 /* Recommendation Section */
 .experimental-warning-recommendation {
   margin: 1rem 0 1.5rem 0;
   padding: 1rem;
-  background: hsl(214 95% 98%);
-  border: 1px solid hsl(214 95% 90%);
-  border-left: 4px solid hsl(217 91% 60%);
-  border-radius: 6px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
@@ -248,7 +249,7 @@ body.experimental-warning-active {
 
 .experimental-warning-recommendation-text {
   font-size: 0.875rem;
-  color: hsl(240 3.8% 46.1%);
+  color: #78350f;
   line-height: 1.7;
   flex: 1;
 }
@@ -392,88 +393,119 @@ body.experimental-warning-active {
   }
 }
 
-/* Prevent body scroll when modal is open */
-body.experimental-warning-active {
-  overflow: hidden;
+/* Full width button for welcome modal */
+.experimental-warning-btn-full {
+  width: 100%;
+  justify-content: center;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
+/* Enhanced mobile support */
+@media (max-width: 768px) {
+  /* Prevent scroll on mobile when modal is active */
+  body.experimental-warning-active {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+    touch-action: none;
+    -webkit-overflow-scrolling: none;
+  }
+  
+  /* Make modal completely visible on mobile */
+  .experimental-warning-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
   .experimental-warning-modal {
+    max-height: none;
+    height: auto;
+    min-height: min-content;
+    margin: 1rem auto;
+  }
+  
+  /* Adjust content area for better mobile viewing */
+  .experimental-warning-content {
+    max-height: calc(100vh - 12rem);
+  }
+  
+  /* Better touch targets on mobile */
+  .experimental-warning-btn {
+    min-height: 48px;
+    height: auto;
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Larger close button for mobile */
+  .experimental-warning-close {
+    width: 2.5rem;
+    height: 2.5rem;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+  
+  /* Adjust icon sizes for mobile */
+  .experimental-warning-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1.125rem;
+  }
+  
+  /* Team list mobile layout */
+  .team-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode support driven by OS (only when System Preference is selected) */
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] .experimental-warning-modal {
     background: hsl(240 10% 3.9%);
     border-color: hsl(240 3.7% 15.9%);
   }
 
-  .experimental-warning-title {
-    color: hsl(0 0% 98%);
-  }
+  body[data-theme="system"] .experimental-warning-title { color: hsl(0 0% 98%); }
 
-  .experimental-warning-description,
-  .experimental-warning-body-text,
-  .experimental-warning-recommendation-text {
-    color: hsl(240 5% 64.9%);
-  }
+  body[data-theme="system"] .experimental-warning-description,
+  body[data-theme="system"] .experimental-warning-body-text,
+  body[data-theme="system"] .experimental-warning-recommendation-text { color: hsl(240 5% 64.9%); }
 
-  .experimental-warning-body {
-    background: hsl(38 20% 10%);
-    border-color: hsl(38 20% 20%);
-  }
+  body[data-theme="system"] .experimental-warning-body { background: hsl(38 20% 10%); border-color: hsl(38 20% 20%); }
+  body[data-theme="system"] .experimental-warning-body-title { color: hsl(0 0% 98%); }
+  body[data-theme="system"] .experimental-warning-body-title strong { color: hsl(38 70% 60%); }
+  body[data-theme="system"] .experimental-warning-body-text strong { color: hsl(0 0% 98%); }
 
-  .experimental-warning-body-title {
-    color: hsl(0 0% 98%);
-  }
+  body[data-theme="system"] .experimental-warning-recommendation { background: hsl(217 20% 12%); border-color: hsl(217 20% 22%); }
+  body[data-theme="system"] .experimental-warning-welcome { background: linear-gradient(135deg, hsl(217 30% 12%) 0%, hsl(142 30% 12%) 100%); border-color: hsl(217 30% 22%); }
 
-  .experimental-warning-body-title strong {
-    color: hsl(38 70% 60%);
-  }
+  body[data-theme="system"] .team-member { background: hsl(142 30% 15%); border-color: hsl(142 30% 25%); color: hsl(0 0% 98%); }
+  body[data-theme="system"] .app-info-item strong { color: hsl(0 0% 98%); }
 
-  .experimental-warning-body-text strong {
-    color: hsl(0 0% 98%);
-  }
-
-  .experimental-warning-recommendation {
-    background: hsl(217 20% 12%);
-    border-color: hsl(217 20% 22%);
-  }
-
-  .experimental-warning-welcome {
-    background: linear-gradient(135deg, hsl(217 30% 12%) 0%, hsl(142 30% 12%) 100%);
-    border-color: hsl(217 30% 22%);
-  }
-
-  .team-member {
-    background: hsl(142 30% 15%);
-    border-color: hsl(142 30% 25%);
-    color: hsl(0 0% 98%);
-  }
-
-  .app-info-item strong {
-    color: hsl(0 0% 98%);
-  }
-
-  .experimental-warning-btn-primary {
-    background: hsl(0 0% 98%);
-    color: hsl(240 10% 3.9%);
-  }
-
-  .experimental-warning-btn-primary:hover {
-    background: hsl(240 5% 84.9%);
-  }
-
-  .experimental-warning-btn-secondary {
-    border-color: hsl(240 3.7% 15.9%);
-    color: hsl(0 0% 98%);
-  }
-
-  .experimental-warning-btn-secondary:hover {
-    background: hsl(240 3.7% 15.9%);
-  }
-
-  .experimental-warning-close {
-    color: hsl(240 5% 64.9%);
-  }
-
-  .experimental-warning-close:hover {
-    background: hsl(240 3.7% 15.9%);
-  }
+  body[data-theme="system"] .experimental-warning-btn-primary { background: hsl(0 0% 98%); color: hsl(240 10% 3.9%); }
+  body[data-theme="system"] .experimental-warning-btn-primary:hover { background: hsl(240 5% 84.9%); }
+  body[data-theme="system"] .experimental-warning-btn-secondary { border-color: hsl(240 3.7% 15.9%); color: hsl(0 0% 98%); }
+  body[data-theme="system"] .experimental-warning-btn-secondary:hover { background: hsl(240 3.7% 15.9%); }
+  body[data-theme="system"] .experimental-warning-close { color: hsl(240 5% 64.9%); }
+  body[data-theme="system"] .experimental-warning-close:hover { background: hsl(240 3.7% 15.9%); }
 }
+
+/* Explicit dark theme (user-selected) */
+body[data-theme="dark"] .experimental-warning-modal { background: hsl(240 10% 3.9%); border-color: hsl(240 3.7% 15.9%); }
+body[data-theme="dark"] .experimental-warning-title { color: hsl(0 0% 98%); }
+body[data-theme="dark"] .experimental-warning-description,
+body[data-theme="dark"] .experimental-warning-body-text,
+body[data-theme="dark"] .experimental-warning-recommendation-text { color: hsl(240 5% 64.9%); }
+body[data-theme="dark"] .experimental-warning-body { background: hsl(38 20% 10%); border-color: hsl(38 20% 20%); }
+body[data-theme="dark"] .experimental-warning-body-title { color: hsl(0 0% 98%); }
+body[data-theme="dark"] .experimental-warning-body-title strong { color: hsl(38 70% 60%); }
+body[data-theme="dark"] .experimental-warning-body-text strong { color: hsl(0 0% 98%); }
+body[data-theme="dark"] .experimental-warning-recommendation { background: hsl(217 20% 12%); border-color: hsl(217 20% 22%); }
+body[data-theme="dark"] .experimental-warning-welcome { background: linear-gradient(135deg, hsl(217 30% 12%) 0%, hsl(142 30% 12%) 100%); border-color: hsl(217 30% 22%); }
+body[data-theme="dark"] .team-member { background: hsl(142 30% 15%); border-color: hsl(142 30% 25%); color: hsl(0 0% 98%); }
+body[data-theme="dark"] .app-info-item strong { color: hsl(0 0% 98%); }
+body[data-theme="dark"] .experimental-warning-btn-primary { background: hsl(0 0% 98%); color: hsl(240 10% 3.9%); }
+body[data-theme="dark"] .experimental-warning-btn-primary:hover { background: hsl(240 5% 84.9%); }
+body[data-theme="dark"] .experimental-warning-btn-secondary { border-color: hsl(240 3.7% 15.9%); color: hsl(0 0% 98%); }
+body[data-theme="dark"] .experimental-warning-btn-secondary:hover { background: hsl(240 3.7% 15.9%); }
+body[data-theme="dark"] .experimental-warning-close { color: hsl(240 5% 64.9%); }
+body[data-theme="dark"] .experimental-warning-close:hover { background: hsl(240 3.7% 15.9%); }
