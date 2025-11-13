@@ -55,11 +55,26 @@ Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloadi
 ![Inventory Dashboard](assets/features-showcase0.png)
 *Low stock alerts and inventory management in action*
 
+![Search Functionality](assets/features-showcase1.png)
+*Fast and intuitive search functionality to quickly find inventory items*
+
 ![Barcode Scanning](assets/features-showcase2.png)
 *Built-in barcode tracking support for easy inventory management*
 
+![User Management](assets/features-showcase3.png)
+*Role-based access control for team collaboration and security*
+
 ![Data Visualization](assets/features-showcase4.png)
 *Powerful data visualization for business insights and reporting*
+
+![Notifications System](assets/features-showcase5.png)
+*Real-time notifications keep team members informed of critical events*
+
+![Mobile Responsiveness](assets/features-showcase6.png)
+*Fully responsive design works seamlessly on all devices*
+
+![Export Capabilities](assets/features-showcase7.png)
+*Export data in multiple formats for external analysis and reporting*
 
 ## What You Need To Run This System
 
