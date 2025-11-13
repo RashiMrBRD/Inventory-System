@@ -13,11 +13,16 @@
 
 This system is a modern and secure way for businesses to effortlessly track their inventory, designed to be simple yet powerful so anyone can use it without hassle. While inventory management can often feel complex, this solution keeps things straightforward by focusing on security and reliability, ensuring that business data stays protected at all times. It is built to grow with your needs, whether you are a small shop or a larger operation, and it connects easily with other tools you might already use. The system follows industry-standard organization, so it feels familiar and intuitive, meaning you will not waste time figuring out how it works because you can start managing your inventory right away.
 
+
+
 <div align="center">
 <h2>🌟 What This System Does 🌟</h2>
 </div>
 
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
+
+
+
+
 
 Managing inventory is something that every business needs, but there is often a gap between simple spreadsheets and complex enterprise software. This system fills that gap by providing a complete inventory management solution built on modern technology. The idea behind this project is to give businesses a professional tool they can trust without requiring extensive training or setup.
 
