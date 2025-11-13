@@ -275,6 +275,8 @@ composer install --no-dev --optimize-autoloader
 
 When you are ready to deploy this system to a production environment, there are several important steps you need to follow to ensure security and optimal performance. First, update your environment variables by setting `APP_ENV=production` and `APP_DEBUG=false` because debug mode should never be enabled in production where it could expose sensitive information.
 
+Next, optimize your PHP dependencies by running `composer install --no-dev --optimize-autoloader`. This command removes development dependencies that are not needed in production and optimizes the autoloader for faster performance.
+
 ### Server Configuration
 
 If you are using Apache, configure your VirtualHost to point the DocumentRoot to `/path/to/inventory/public` so that only public files are accessible:
@@ -292,6 +294,10 @@ If you are using Apache, configure your VirtualHost to point the DocumentRoot to
 ```
 
 ### Security Essentials
+
+Security is critical in production environments. Make sure to change any default passwords immediately, including the admin account you created during setup. Configure MongoDB authentication properly with strong credentials and restrict database access to only the application server. Enable HTTPS on your web server because transmitting inventory data over unencrypted connections is a security risk. Finally, set proper file permissions on the server so that the web server can read files but not write to them except in specific directories like `var/logs` and `var/sessions`.
+
+**Production Security Checklist:**
 
 - ✅ Change all default passwords immediately
 - ✅ Configure MongoDB authentication with strong credentials
@@ -312,13 +318,13 @@ The system sends security headers with every response, including X-Frame-Options
 
 <div align="center">
 
-**Version 0.1.x - Alpha Stage**
+**Version 0.3.x - Alpha Stage**
 
 ![Development](https://img.shields.io/badge/development-active-brightgreen) ![Issues](https://img.shields.io/badge/breaking%20changes-possible-orange)
 
 </div>
 
-This system is currently in version 0.1.x alpha stage, which means that while it is functional and usable, there may still be breaking changes as development continues. The alpha designation indicates that we are actively improving features and fixing issues, so if you deploy this in production, be prepared to adapt to updates. Feedback from users during this phase is incredibly valuable because it helps us identify what works well and what needs improvement.
+This system is currently in version 0.3.x alpha stage, which means that while it is functional and usable, there may still be breaking changes as development continues. The alpha designation indicates that we are actively improving features and fixing issues, so if you deploy this in production, be prepared to adapt to updates. Feedback from users during this phase is incredibly valuable because it helps us identify what works well and what needs improvement.
 
 ## Issues You Might Encounter
 
@@ -337,7 +343,7 @@ Apache configuration was improved by adding a global `ServerName` directive and 
 <details>
 <summary><b>❌ MongoDB extension not found</b></summary>
 
-Add `extension=mongodb` to your `php.ini` file and restart Apache.
+If you encounter an error saying the MongoDB extension is not found, you need to add `extension=mongodb` to your `php.ini` file and then restart Apache. You can verify that the extension loaded correctly by running `php -m | findstr mongodb` in your terminal, which should show the MongoDB extension in the list.
 
 ```bash
 # Verify extension is loaded
@@ -347,6 +353,8 @@ php -m | findstr mongodb
 
 <details>
 <summary><b>❌ MongoDB connection refused</b></summary>
+
+When you see a MongoDB connection refused error, it usually means that the MongoDB service is not running. On Windows, you can start it by opening `services.msc`, finding MongoDB in the list, and clicking Start. On Linux, use your system's service manager like `systemctl start mongod`.
 
 **Windows:** Open `services.msc`, find MongoDB, and click Start
 
@@ -359,9 +367,11 @@ systemctl start mongod
 <details>
 <summary><b>❌ 404 Not Found error</b></summary>
 
-Ensure you are accessing the correct URL: `http://localhost/inventory/public/`
+If you get a 404 Not Found error, make sure you are accessing the application through the correct URL, which should be `http://localhost/inventory/public/`. Sometimes the issue is with your Apache configuration, so check the Apache error logs at `C:\xampp\apache\logs\error.log` for more details about what went wrong.
 
-Check Apache error logs:
+**Correct URL:** `http://localhost/inventory/public/`
+
+**Check Apache error logs:**
 ```
 C:\xampp\apache\logs\error.log
 ```
@@ -370,7 +380,9 @@ C:\xampp\apache\logs\error.log
 <details>
 <summary><b>❌ Login not working</b></summary>
 
-Initialize the database by visiting:
+When login does not work even though you entered the correct credentials, you might need to initialize the database. Visit `http://localhost/inventory/scripts/setup_mongodb` to run the setup script that creates the necessary database structure and user accounts.
+
+**Initialize the database by visiting:**
 ```
 http://localhost/inventory/scripts/setup_mongodb
 ```
@@ -379,6 +391,9 @@ http://localhost/inventory/scripts/setup_mongodb
 <details>
 <summary><b>❌ CSS not loading</b></summary>
 
+If CSS files are not loading and the page looks broken, there are two common causes. First, make sure that `mod_rewrite` is enabled in Apache because the application uses URL rewriting for clean URLs. Second, try clearing your browser cache by pressing Ctrl+F5, which forces the browser to download fresh copies of all assets.
+
+**Solutions:**
 1. Enable `mod_rewrite` in Apache
 2. Clear browser cache with `Ctrl+F5`
 </details>
@@ -386,7 +401,12 @@ http://localhost/inventory/scripts/setup_mongodb
 <details>
 <summary><b>❌ API Unauthorized errors</b></summary>
 
-Make sure you are logged in through the web interface first. Verify cookies are enabled in your browser.
+When the API returns Unauthorized errors, it usually means you are not logged in or your session has expired. Make sure you log in first through the web interface, and verify that cookies are enabled in your browser because they are required for session management.
+
+**Quick fixes:**
+- Log in through the web interface first
+- Verify cookies are enabled in your browser
+- Check if your session has expired
 </details>
 
 ## License and Legal Information
