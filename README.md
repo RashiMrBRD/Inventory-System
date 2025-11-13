@@ -518,7 +518,6 @@ Keep your dependencies up to date because software updates often include securit
 
 <div align="center">
 
-<hr style="height:4px;border-width:0;color:gold;background-color:gold">
 
 <h2>🌟 Built With Modern Technologies 🌟</h2>
 
