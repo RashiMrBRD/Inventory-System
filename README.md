@@ -13,19 +13,27 @@
 
 This system is a modern and secure way for businesses to effortlessly track their inventory, designed to be simple yet powerful so anyone can use it without hassle. While inventory management can often feel complex, this solution keeps things straightforward by focusing on security and reliability, ensuring that business data stays protected at all times. It is built to grow with your needs, whether you are a small shop or a larger operation, and it connects easily with other tools you might already use. The system follows industry-standard organization, so it feels familiar and intuitive, meaning you will not waste time figuring out how it works because you can start managing your inventory right away.
 
-## What This System Does
+<div align="center">
+<h2>🌟 What This System Does 🌟</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 Managing inventory is something that every business needs, but there is often a gap between simple spreadsheets and complex enterprise software. This system fills that gap by providing a complete inventory management solution built on modern technology. The idea behind this project is to give businesses a professional tool they can trust without requiring extensive training or setup.
 
 The system handles everything from basic item tracking to advanced features like barcode scanning, automated low stock alerts, and role-based access control. Because it is built with security in mind from the ground up, you can be confident that your business data stays protected. There is also a full RESTful API included, which means that you can integrate this system with other tools your business uses, from accounting software to e-commerce platforms.
 
 ![Dashboard Overview](assets/dashboard0.png)
-*The main dashboard showing inventory overview, financial metrics, and quick actions*
+<p align="center"><em>✨ The main dashboard showing inventory overview, financial metrics, and quick actions ✨</em></p>
 
 ![Financial Dashboard](assets/dashboard1.png)
-*Financial performance tracking with real-time data and analytics*
+<p align="center"><em>📊 Financial performance tracking with real-time data and analytics 📈</em></p>
 
-## Key Features That Make This System Powerful
+<div align="center">
+<h2>✨ Key Features That Make This System Powerful ✨</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 <table>
 <tr>
@@ -53,36 +61,44 @@ The responsive design means that you can manage inventory from any device, wheth
 Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloading standards, making the codebase maintainable and extensible. MongoDB provides the database layer, offering flexibility and scalability as your inventory grows. There is full CORS support configured, so integrating with external services and APIs works smoothly.
 
 ![Inventory Dashboard](assets/features-showcase0.png)
-*Low stock alerts and inventory management in action*
+<p align="center"><em>🔔 Low stock alerts and inventory management in action 📦</em></p>
 
 ![Search Functionality](assets/features-showcase1.png)
-*Fast and intuitive search functionality to quickly find inventory items*
+<p align="center"><em>🔍 Fast and intuitive search functionality to quickly find inventory items 🔎</em></p>
 
 ![Barcode Scanning](assets/features-showcase2.png)
-*Built-in barcode tracking support for easy inventory management*
+<p align="center"><em>📱 Built-in barcode tracking support for easy inventory management 📲</em></p>
 
 ![User Management](assets/features-showcase3.png)
-*Role-based access control for team collaboration and security*
+<p align="center"><em>👥 Role-based access control for team collaboration and security 🔐</em></p>
 
 ![Data Visualization](assets/features-showcase4.png)
-*Powerful data visualization for business insights and reporting*
+<p align="center"><em>📊 Powerful data visualization for business insights and reporting 📑</em></p>
 
 ![Notifications System](assets/features-showcase5.png)
-*Real-time notifications keep team members informed of critical events*
+<p align="center"><em>🔔 Real-time notifications keep team members informed of critical events 📱</em></p>
 
 ![Mobile Responsiveness](assets/features-showcase6.png)
-*Fully responsive design works seamlessly on all devices*
+<p align="center"><em>💻 Fully responsive design works seamlessly on all devices 📱</em></p>
 
 ![Export Capabilities](assets/features-showcase7.png)
-*Export data in multiple formats for external analysis and reporting*
+<p align="center"><em>📊 Export data in multiple formats for external analysis and reporting 📈</em></p>
 
-## What You Need To Run This System
+<div align="center">
+<h2>🔧 What You Need To Run This System 🔧</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 Before you start, there are a few technical requirements that your server or computer needs to meet. The system is built on PHP version 8.3 or newer because this version provides the latest security features and performance improvements. For data storage, you will need MongoDB version 7.0 or newer, which is a modern database that handles inventory data efficiently.
 
 You can run the application on either Apache version 2.4 or Nginx web servers, depending on your preference or existing infrastructure. Composer is required for managing PHP dependencies, and while you can install everything manually, using Docker and Docker Compose is highly recommended because it simplifies the entire setup process and ensures consistency across different environments.
 
-## Getting Started With Docker
+<div align="center">
+<h2>🐳 Getting Started With Docker 🐳</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > 🚀 **Recommended Method** - Docker provides the fastest and most reliable way to run this system
 
@@ -102,11 +118,15 @@ docker-compose -f container/docker-compose.yml up -d --build
 Once everything is running, you can access the web interface at `http://localhost:8082` and the MongoDB admin interface at `http://localhost:8081`. When you first run the system, you will need to set up an admin account by filling out the initial setup form. After that, users can create their own accounts through the sign up page or sign in if they already have credentials. There is also a guest role feature that allows visitors to access certain pages without signing up or signing in, but only if a team member or admin has sent them an invite link. This makes it easy to share specific information with partners or clients without requiring them to create full accounts. When you want to stop the system, simply run `docker-compose -f container/docker-compose.yml down`.
 
 ![Docker Setup](assets/docker-running.png)
-*Docker containers running successfully with web interface accessible*
+<p align="center"><em>🐳 Docker containers running successfully with web interface accessible 🚀</em></p>
 
 If you prefer manual setup, start by creating your environment file with `cp .env.sample .env`, then install the PHP dependencies using `composer install` because the autoloader needs these files. Finally, start the containers the same way as before. There are also convenient helper scripts available in the `container/docker/scripts` directory that make starting, stopping, and viewing logs easier.
 
-## How The System Is Organized
+<div align="center">
+<h2>📂 How The System Is Organized 📂</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 Understanding the project structure helps you navigate the codebase and make modifications when needed. The architecture follows industry-standard patterns that many developers will recognize immediately. Below is the complete directory structure showing where everything lives
 
@@ -215,7 +235,11 @@ inventory/
 
 The system uses several well-established design patterns that make the code easier to maintain and extend. The DatabaseService class implements the Singleton pattern, which ensures that there is only one database connection throughout the application lifecycle. The overall structure follows the MVC or Model-View-Controller pattern, separating business logic from presentation and data access. There is a Front Controller pattern implemented in `public/index` that handles all incoming requests, and the Model layer acts as a Repository, abstracting data access from the rest of the application.
 
-## Installing Without Docker
+<div align="center">
+<h2>⚙️ Installing Without Docker ⚙️</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 If you prefer not to use Docker or need to run the system on an existing server, you can install it manually. Before you begin, make sure you have XAMPP installed or at least Apache with PHP 8.3 or newer. You will also need MongoDB version 7.0 or higher and Composer for dependency management. There is one additional step that is important, which is adding the MongoDB PHP extension to your `php.ini` file by including the line `extension=mongodb`.
 
@@ -223,7 +247,11 @@ Once you have all the prerequisites ready, clone the repository to your local ma
 
 After configuration is complete, initialize the database by visiting `http://localhost/inventory/scripts/setup_mongodb` in your browser. This script will create the necessary database structure and prepare everything for first use. Finally, you can access the application by navigating to `http://localhost/inventory/public/login` where you will be prompted to create your admin account.
 
-## Quick Testing Without Web Server Setup
+<div align="center">
+<h2>⚡ Quick Testing Without Web Server Setup ⚡</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > ⚡ **Quick Start** - Get running in under 2 minutes with PHP's built-in server
 
@@ -245,14 +273,18 @@ php -S localhost:8000 -t public
 After installing dependencies with `composer install` and creating your `.env` file, simply run `php -S localhost:8000 -t public` from the project root directory. This command starts a development server on port 8000 and serves files from the public directory. You can then access the application by visiting `http://localhost:8000` in your browser.
 
 ![PHP Built-in Server](assets/php-server0.png)
-*Quick testing with PHP's built-in development server - terminal view*
+<p align="center"><em>⚙️ Quick testing with PHP's built-in development server - terminal view 💻</em></p>
 
 ![PHP Server Interface](assets/php-server1.png)
-*The application running in browser using PHP's built-in development server*
+<p align="center"><em>🌐 The application running in browser using PHP's built-in development server ⚡</em></p>
 
 Keep in mind that this built-in server is only meant for development and testing purposes. It is single-threaded and does not have the security features or performance optimizations of production web servers like Apache or Nginx, so never use it for production deployments.
 
-## Using The API
+<div align="center">
+<h2>🔌 Using The API 🔌</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > 🔌 **RESTful API** - Complete integration capabilities with JSON responses
 
@@ -282,9 +314,13 @@ DELETE /api/v1/inventory?id={id}      # Delete item
 The inventory endpoints require authentication because they handle sensitive business data. You can list all items, retrieve specific items by ID, search through your catalog, and filter for low stock items. Creating, updating, and deleting items is fully supported through standard REST methods.
 
 ![API Testing](assets/api-example.png)
-*API endpoints in action showing JSON response format*
+<p align="center"><em>🔌 API endpoints in action showing JSON response format 📡</em></p>
 
-## Preparing For Production Deployment
+<div align="center">
+<h2>🚀 Preparing For Production Deployment 🚀</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > ⚠️ **Production Checklist** - Essential steps before going live
 
@@ -332,7 +368,11 @@ Security is critical in production environments. Make sure to change any default
 - ✅ Set proper file permissions (read-only except `var/logs` and `var/sessions`)
 - ✅ Enable firewall rules to limit access
 
-## Security Built Into Every Layer
+<div align="center">
+<h2>🔒 Security Built Into Every Layer 🔒</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 Security is not an afterthought in this system but rather a fundamental part of the architecture. All passwords are hashed using bcrypt, which is an industry-standard algorithm that makes it extremely difficult for attackers to recover the original passwords even if they gain access to the database. Session timeout protection is implemented so that inactive sessions expire automatically, preventing unauthorized access if someone walks away from their computer.
 
@@ -340,7 +380,11 @@ Input validation and XSS protection are applied to every user input because mali
 
 The system sends security headers with every response, including X-Frame-Options, X-XSS-Protection, and X-Content-Type-Options, which tell browsers to enforce additional security policies. HTTPS enforcement is recommended and easy to configure because inventory data should always be transmitted over encrypted connections. MongoDB authentication is required, and the role-based access control system ensures that users can only access the features and data they are authorized to see.
 
-## Current Development Status
+<div align="center">
+<h2>📊 Current Development Status 📊</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 <div align="center">
 
@@ -364,7 +408,11 @@ We have recently made several important improvements to the system. The Docker c
 
 Apache configuration was improved by adding a global `ServerName` directive and enabling the `remoteip` module with trusted subnets, which is important for deployments behind proxies. The Docker network was renamed to `inventory` for better clarity. There was also a MongoDB connection fix related to the `authSource` parameter that was causing authentication issues. Finally, the ports were standardized so that the web interface always runs on port 8082 and the MongoDB Express admin interface runs on port 8081.
 
-## Solving Common Problems
+<div align="center">
+<h2>🛠️ Solving Common Problems 🛠️</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 <details>
 <summary><b>❌ MongoDB extension not found</b></summary>
@@ -435,11 +483,19 @@ When the API returns Unauthorized errors, it usually means you are not logged in
 - Check if your session has expired
 </details>
 
-## License and Legal Information
+<div align="center">
+<h2>⚖️ License and Legal Information ⚖️</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 This project is licensed under the MIT License, which means you are free to use, modify, and distribute the software for both personal and commercial purposes. The only requirement is that you include the original copyright notice and license text in any copies or substantial portions of the software. You can find the complete license details in the LICENSE file included with this repository.
 
-## Contributing to This Project
+<div align="center">
+<h2>👥 Contributing to This Project 👥</h2>
+</div>
+
+<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 We welcome contributions from developers of all skill levels because community input makes this project better. If you want to contribute code, documentation, or bug reports, please start by reading our Contributing Guidelines and Code of Conduct, which are located in the `.github` directory. These documents explain how to submit pull requests, report issues, and interact with other contributors in a respectful and productive manner.
 
@@ -455,19 +511,25 @@ Monitoring logs is important for catching problems before they become serious. S
 
 Keep your dependencies up to date because software updates often include security patches and bug fixes. Run `composer update` periodically, but test updates in a staging environment before applying them to production. Use strong passwords for all accounts, especially administrative accounts, and consider implementing two-factor authentication for added security. Finally, always use HTTPS in production because it encrypts data in transit and protects against man-in-the-middle attacks.
 
----
-
 <div align="center">
 
-### Built With Modern Technologies
+<hr style="height:4px;border-width:0;color:gold;background-color:gold">
 
-![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Apache](https://img.shields.io/badge/Apache-2.4-D22128?style=for-the-badge&logo=apache&logoColor=white)
+<h2>🌟 Built With Modern Technologies 🌟</h2>
 
-**Developed with care for modern inventory management**
+<a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP" /></a>
+<a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/MongoDB-7.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" /></a>
+<a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" /></a>
+<a href="https://httpd.apache.org/"><img src="https://img.shields.io/badge/Apache-2.4-D22128?style=for-the-badge&logo=apache&logoColor=white" alt="Apache" /></a>
 
-⭐ Star this repository if you find it helpful!
+<p><strong>Developed with ❤️ for modern inventory management</strong></p>
+
+<br>
+
+<h3>⭐ Star this repository if you find it helpful! ⭐</h3>
+
+<p>Your star helps others discover this project and encourages continued development.</p>
+
+<hr style="height:4px;border-width:0;color:gold;background-color:gold">
 
 </div>
