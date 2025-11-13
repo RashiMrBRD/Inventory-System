@@ -19,7 +19,7 @@ Managing inventory is something that every business needs, but there is often a 
 
 The system handles everything from basic item tracking to advanced features like barcode scanning, automated low stock alerts, and role-based access control. Because it is built with security in mind from the ground up, you can be confident that your business data stays protected. There is also a full RESTful API included, which means that you can integrate this system with other tools your business uses, from accounting software to e-commerce platforms.
 
-![Dashboard Overview](docs/screenshots/dashboard.png)
+![Dashboard Overview](assets/dashboard1.png)
 *The main dashboard showing inventory overview, financial metrics, and quick actions*
 
 ## Key Features That Make This System Powerful
@@ -49,7 +49,7 @@ The responsive design means that you can manage inventory from any device, wheth
 
 Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloading standards, making the codebase maintainable and extensible. MongoDB provides the database layer, offering flexibility and scalability as your inventory grows. There is full CORS support configured, so integrating with external services and APIs works smoothly.
 
-![Feature Showcase](docs/screenshots/features-showcase.png)
+![Feature Showcase](assets/features-showcase7.png)
 *Low stock alerts, barcode scanning, and inventory management in action*
 
 ## What You Need To Run This System
@@ -77,7 +77,7 @@ docker-compose -f container/docker-compose.yml up -d --build
 
 Once everything is running, you can access the web interface at `http://localhost:8082` and the MongoDB admin interface at `http://localhost:8081`. When you first run the system, you will need to set up an admin account by filling out the initial setup form. After that, users can create their own accounts through the sign up page or sign in if they already have credentials. There is also a guest role feature that allows visitors to access certain pages without signing up or signing in, but only if a team member or admin has sent them an invite link. This makes it easy to share specific information with partners or clients without requiring them to create full accounts. When you want to stop the system, simply run `docker-compose -f container/docker-compose.yml down`.
 
-![Docker Setup](docs/screenshots/docker-running.png)
+![Docker Setup](assets/docker-running.png)
 *Docker containers running successfully with web interface accessible*
 
 If you prefer manual setup, start by creating your environment file with `cp .env.sample .env`, then install the PHP dependencies using `composer install` because the autoloader needs these files. Finally, start the containers the same way as before. There are also convenient helper scripts available in the `container/docker/scripts` directory that make starting, stopping, and viewing logs easier.
@@ -220,7 +220,7 @@ php -S localhost:8000 -t public
 
 After installing dependencies with `composer install` and creating your `.env` file, simply run `php -S localhost:8000 -t public` from the project root directory. This command starts a development server on port 8000 and serves files from the public directory. You can then access the application by visiting `http://localhost:8000` in your browser.
 
-![PHP Built-in Server](docs/screenshots/php-server.png)
+![PHP Built-in Server](assets/php-server1.png)
 *Quick testing with PHP's built-in development server*
 
 Keep in mind that this built-in server is only meant for development and testing purposes. It is single-threaded and does not have the security features or performance optimizations of production web servers like Apache or Nginx, so never use it for production deployments.
@@ -254,7 +254,7 @@ DELETE /api/v1/inventory?id={id}      # Delete item
 
 The inventory endpoints require authentication because they handle sensitive business data. You can list all items, retrieve specific items by ID, search through your catalog, and filter for low stock items. Creating, updating, and deleting items is fully supported through standard REST methods.
 
-![API Testing](docs/screenshots/api-example.png)
+![API Testing](assets/api-example.png)
 *API endpoints in action showing JSON response format*
 
 ## Preparing For Production Deployment
