@@ -1,16 +1,15 @@
-<div align="center"> # Inventory Management System </div>
-
 <div align="center">
 
-![status](https://img.shields.io/badge/status-alpha-yellow) ![php](https://img.shields.io/badge/PHP-8.3-blue) ![db](https://img.shields.io/badge/MongoDB-7.x-green) ![server](https://img.shields.io/badge/Apache-2.4-lightgrey) ![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED) ![license](https://img.shields.io/badge/license-MIT-green)
+# 📦 Inventory Management System 📊
 
-**A modern, secure, and powerful inventory management solution built for businesses of all sizes**
+[![status](https://img.shields.io/badge/status-alpha-yellow)](https://github.com/RashiMrBRD/Inventory-System) [![php](https://img.shields.io/badge/PHP-8.3-blue)](https://www.php.net/) [![db](https://img.shields.io/badge/MongoDB-7.x-green)](https://www.mongodb.com/) [![server](https://img.shields.io/badge/Apache-2.4-lightgrey)](https://httpd.apache.org/) [![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED)](https://docs.docker.com/compose/) [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+### 🚀 A modern, secure, and powerful inventory management solution built for businesses of all sizes
 
 [Quick Start](#getting-started-with-docker) • [Features](#key-features-that-make-this-system-powerful) • [Documentation](#how-the-system-is-organized) • [API](#using-the-api) • [Contributing](#contributing-to-this-project)
 
 </div>
 
----
 
 This system is a modern and secure way for businesses to effortlessly track their inventory, designed to be simple yet powerful so anyone can use it without hassle. While inventory management can often feel complex, this solution keeps things straightforward by focusing on security and reliability, ensuring that business data stays protected at all times. It is built to grow with your needs, whether you are a small shop or a larger operation, and it connects easily with other tools you might already use. The system follows industry-standard organization, so it feels familiar and intuitive, meaning you will not waste time figuring out how it works because you can start managing your inventory right away.
 
