@@ -4,7 +4,7 @@
 
 [![status](https://img.shields.io/badge/status-alpha-yellow)](https://github.com/RashiMrBRD/Inventory-System) [![php](https://img.shields.io/badge/PHP-8.3-blue)](https://www.php.net/) [![db](https://img.shields.io/badge/MongoDB-7.x-green)](https://www.mongodb.com/) [![server](https://img.shields.io/badge/Apache-2.4-lightgrey)](https://httpd.apache.org/) [![docker](https://img.shields.io/badge/Docker%20Compose-3.8-2496ED)](https://docs.docker.com/compose/) [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-### 🚀 A modern, secure, and powerful inventory management solution built for businesses of all sizes
+###   A modern, secure, and powerful inventory management solution built for businesses of all sizes
 
 [Quick Start](#getting-started-with-docker) • [Features](#key-features-that-make-this-system-powerful) • [Documentation](#how-the-system-is-organized) • [API](#using-the-api) • [Contributing](#contributing-to-this-project)
 
