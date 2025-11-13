@@ -22,6 +22,9 @@ The system handles everything from basic item tracking to advanced features like
 ![Dashboard Overview](assets/dashboard0.png)
 *The main dashboard showing inventory overview, financial metrics, and quick actions*
 
+![Financial Dashboard](assets/dashboard1.png)
+*Financial performance tracking with real-time data and analytics*
+
 ## Key Features That Make This System Powerful
 
 <table>
@@ -49,8 +52,14 @@ The responsive design means that you can manage inventory from any device, wheth
 
 Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloading standards, making the codebase maintainable and extensible. MongoDB provides the database layer, offering flexibility and scalability as your inventory grows. There is full CORS support configured, so integrating with external services and APIs works smoothly.
 
-![Feature Showcase](assets/features-showcase0.png)
-*Low stock alerts, barcode scanning, and inventory management in action*
+![Inventory Dashboard](assets/features-showcase0.png)
+*Low stock alerts and inventory management in action*
+
+![Barcode Scanning](assets/features-showcase2.png)
+*Built-in barcode tracking support for easy inventory management*
+
+![Data Visualization](assets/features-showcase4.png)
+*Powerful data visualization for business insights and reporting*
 
 ## What You Need To Run This System
 
@@ -221,7 +230,10 @@ php -S localhost:8000 -t public
 After installing dependencies with `composer install` and creating your `.env` file, simply run `php -S localhost:8000 -t public` from the project root directory. This command starts a development server on port 8000 and serves files from the public directory. You can then access the application by visiting `http://localhost:8000` in your browser.
 
 ![PHP Built-in Server](assets/php-server0.png)
-*Quick testing with PHP's built-in development server*
+*Quick testing with PHP's built-in development server - terminal view*
+
+![PHP Server Interface](assets/php-server1.png)
+*The application running in browser using PHP's built-in development server*
 
 Keep in mind that this built-in server is only meant for development and testing purposes. It is single-threaded and does not have the security features or performance optimizations of production web servers like Apache or Nginx, so never use it for production deployments.
 
