@@ -10,19 +10,11 @@
 
 </div>
 
-
 This system is a modern and secure way for businesses to effortlessly track their inventory, designed to be simple yet powerful so anyone can use it without hassle. While inventory management can often feel complex, this solution keeps things straightforward by focusing on security and reliability, ensuring that business data stays protected at all times. It is built to grow with your needs, whether you are a small shop or a larger operation, and it connects easily with other tools you might already use. The system follows industry-standard organization, so it feels familiar and intuitive, meaning you will not waste time figuring out how it works because you can start managing your inventory right away.
-
-
 
 <div align="center">
 <h2>🌟 What This System Does 🌟</h2>
 </div>
-
-
-
-
-
 
 Managing inventory is something that every business needs, but there is often a gap between simple spreadsheets and complex enterprise software. This system fills that gap by providing a complete inventory management solution built on modern technology. The idea behind this project is to give businesses a professional tool they can trust without requiring extensive training or setup.
 
@@ -37,8 +29,6 @@ The system handles everything from basic item tracking to advanced features like
 <div align="center">
 <h2>✨ Key Features That Make This System Powerful ✨</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 <table>
 <tr>
@@ -93,8 +83,6 @@ Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloadi
 <h2>🔧 What You Need To Run This System 🔧</h2>
 </div>
 
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
-
 Before you start, there are a few technical requirements that your server or computer needs to meet. The system is built on PHP version 8.3 or newer because this version provides the latest security features and performance improvements. For data storage, you will need MongoDB version 7.0 or newer, which is a modern database that handles inventory data efficiently.
 
 You can run the application on either Apache version 2.4 or Nginx web servers, depending on your preference or existing infrastructure. Composer is required for managing PHP dependencies, and while you can install everything manually, using Docker and Docker Compose is highly recommended because it simplifies the entire setup process and ensures consistency across different environments.
@@ -102,8 +90,6 @@ You can run the application on either Apache version 2.4 or Nginx web servers, d
 <div align="center">
 <h2>🐳 Getting Started With Docker 🐳</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > 🚀 **Recommended Method** - Docker provides the fastest and most reliable way to run this system
 
@@ -130,8 +116,6 @@ If you prefer manual setup, start by creating your environment file with `cp .en
 <div align="center">
 <h2>📂 How The System Is Organized 📂</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 Understanding the project structure helps you navigate the codebase and make modifications when needed. The architecture follows industry-standard patterns that many developers will recognize immediately. Below is the complete directory structure showing where everything lives
 
@@ -244,8 +228,6 @@ The system uses several well-established design patterns that make the code easi
 <h2>⚙️ Installing Without Docker ⚙️</h2>
 </div>
 
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
-
 If you prefer not to use Docker or need to run the system on an existing server, you can install it manually. Before you begin, make sure you have XAMPP installed or at least Apache with PHP 8.3 or newer. You will also need MongoDB version 7.0 or higher and Composer for dependency management. There is one additional step that is important, which is adding the MongoDB PHP extension to your `php.ini` file by including the line `extension=mongodb`.
 
 Once you have all the prerequisites ready, clone the repository to your local machine and navigate into the `inventory` directory. Run `composer install` to download all required PHP dependencies. Next, create your environment configuration file by copying the sample file with `cp .env.sample .env`, then open the `.env` file and edit it with your MongoDB credentials.
@@ -255,8 +237,6 @@ After configuration is complete, initialize the database by visiting `http://loc
 <div align="center">
 <h2>⚡ Quick Testing Without Web Server Setup ⚡</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > ⚡ **Quick Start** - Get running in under 2 minutes with PHP's built-in server
 
@@ -288,8 +268,6 @@ Keep in mind that this built-in server is only meant for development and testing
 <div align="center">
 <h2>🔌 Using The API 🔌</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > 🔌 **RESTful API** - Complete integration capabilities with JSON responses
 
@@ -324,8 +302,6 @@ The inventory endpoints require authentication because they handle sensitive bus
 <div align="center">
 <h2>🚀 Preparing For Production Deployment 🚀</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 > ⚠️ **Production Checklist** - Essential steps before going live
 
@@ -377,8 +353,6 @@ Security is critical in production environments. Make sure to change any default
 <h2>🔒 Security Built Into Every Layer 🔒</h2>
 </div>
 
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
-
 Security is not an afterthought in this system but rather a fundamental part of the architecture. All passwords are hashed using bcrypt, which is an industry-standard algorithm that makes it extremely difficult for attackers to recover the original passwords even if they gain access to the database. Session timeout protection is implemented so that inactive sessions expire automatically, preventing unauthorized access if someone walks away from their computer.
 
 Input validation and XSS protection are applied to every user input because malicious users might try to inject scripts or harmful code. All database queries use MongoDB parameterized queries, which means that user input is never directly concatenated into query strings where it could be exploited. CSRF protection is enabled for all form submissions, ensuring that requests are actually coming from your application and not from malicious third-party sites.
@@ -388,8 +362,6 @@ The system sends security headers with every response, including X-Frame-Options
 <div align="center">
 <h2>📊 Current Development Status 📊</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 <div align="center">
 
@@ -416,8 +388,6 @@ Apache configuration was improved by adding a global `ServerName` directive and 
 <div align="center">
 <h2>🛠️ Solving Common Problems 🛠️</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 <details>
 <summary><b>❌ MongoDB extension not found</b></summary>
@@ -492,15 +462,11 @@ When the API returns Unauthorized errors, it usually means you are not logged in
 <h2>⚖️ License and Legal Information ⚖️</h2>
 </div>
 
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
-
 This project is licensed under the MIT License, which means you are free to use, modify, and distribute the software for both personal and commercial purposes. The only requirement is that you include the original copyright notice and license text in any copies or substantial portions of the software. You can find the complete license details in the LICENSE file included with this repository.
 
 <div align="center">
 <h2>👥 Contributing to This Project 👥</h2>
 </div>
-
-<hr style="height:2px;border-width:0;color:#4A90E2;background-color:#4A90E2">
 
 We welcome contributions from developers of all skill levels because community input makes this project better. If you want to contribute code, documentation, or bug reports, please start by reading our Contributing Guidelines and Code of Conduct, which are located in the `.github` directory. These documents explain how to submit pull requests, report issues, and interact with other contributors in a respectful and productive manner.
 
