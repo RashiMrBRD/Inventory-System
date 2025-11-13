@@ -95,7 +95,7 @@ if (!function_exists('asset_url')) {
                 ? $baseUrl . '/'
                 : '/' . ($basePath !== '' ? $basePath . '/' : '');
 
-            return $prefix . 'asset.php?d=' . rawurlencode($b64) . '&e=' . $exp . '&n=' . rawurlencode($nonce) . '&s=' . $sig;
+            return $prefix . 'asset?d=' . rawurlencode($b64) . '&e=' . $exp . '&n=' . rawurlencode($nonce) . '&s=' . $sig;
         }
 
         $url = $baseUrl !== ''
