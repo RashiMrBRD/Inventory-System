@@ -1,4 +1,4 @@
-# Inventory Management System
+<div align="center"> # Inventory Management System </div>
 
 <div align="center">
 
