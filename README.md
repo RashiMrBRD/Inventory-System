@@ -76,19 +76,19 @@ Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloadi
 <td width="33%">
 
 ![Inventory Dashboard](assets/features-showcase0.png)
-<p align="center"><em>Low stock alerts</em></p>
+<p align="center"><em>Inventory Dashboard</em></p>
 
 </td>
 <td width="33%">
 
 ![Search Functionality](assets/features-showcase1.png)
-<p align="center"><em>Fast inventory search</em></p>
+<p align="center"><em>Adding item</em></p>
 
 </td>
 <td width="33%">
 
 ![Barcode Scanning](assets/features-showcase2.png)
-<p align="center"><em>Barcode tracking</em></p>
+<p align="center"><em>Invoicing</em></p>
 
 </td>
 </tr>
@@ -97,19 +97,19 @@ Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloadi
 <td width="33%">
 
 ![User Management](assets/features-showcase3.png)
-<p align="center"><em>Role-based access</em></p>
+<p align="center"><em>Order Management</em></p>
 
 </td>
 <td width="33%">
 
 ![Data Visualization](assets/features-showcase4.png)
-<p align="center"><em>Data insights</em></p>
+<p align="center"><em>Project Management</em></p>
 
 </td>
 <td width="33%">
 
 ![Notifications](assets/features-showcase5.png)
-<p align="center"><em>Real-time alerts</em></p>
+<p align="center"><em>Shipping</em></p>
 
 </td>
 </tr>
@@ -118,13 +118,13 @@ Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloadi
 <td width="33%">
 
 ![Mobile Responsiveness](assets/features-showcase6.png)
-<p align="center"><em>Responsive design</em></p>
+<p align="center"><em>Notifications and Alerts</em></p>
 
 </td>
 <td width="33%">
 
 ![Export Capabilities](assets/features-showcase7.png)
-<p align="center"><em>Data export</em></p>
+<p align="center"><em>Journal Entries</em></p>
 
 </td>
 <td width="33%">
@@ -323,7 +323,7 @@ After installing dependencies with `composer install` and creating your `.env` f
 <td width="50%">
 
 ![Browser View](assets/php-server1.png)
-<p align="center"><em>PHP server browser view</em></p>
+<p align="center"><em>PHP server terminal view</em></p>
 
 </td>
 </tr>
