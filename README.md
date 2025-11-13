@@ -20,11 +20,24 @@ Managing inventory is something that every business needs, but there is often a 
 
 The system handles everything from basic item tracking to advanced features like barcode scanning, automated low stock alerts, and role-based access control. Because it is built with security in mind from the ground up, you can be confident that your business data stays protected. There is also a full RESTful API included, which means that you can integrate this system with other tools your business uses, from accounting software to e-commerce platforms.
 
+<div align="center">
+<table>
+<tr>
+<td width="50%">
+
 ![Dashboard Overview](assets/dashboard0.png)
-<p align="center"><em>✨ The main dashboard showing inventory overview, financial metrics, and quick actions ✨</em></p>
+<p align="center"><em>✨ Main dashboard with metrics ✨</em></p>
+
+</td>
+<td width="50%">
 
 ![Financial Dashboard](assets/dashboard1.png)
-<p align="center"><em>📊 Financial performance tracking with real-time data and analytics 📈</em></p>
+<p align="center"><em>📊 Financial tracking and analytics 📈</em></p>
+
+</td>
+</tr>
+</table>
+</div>
 
 <div align="center">
 <h2>✨ Key Features That Make This System Powerful ✨</h2>
@@ -55,29 +68,70 @@ The responsive design means that you can manage inventory from any device, wheth
 
 Behind the scenes, the system uses a clean MVC architecture with PSR-4 autoloading standards, making the codebase maintainable and extensible. MongoDB provides the database layer, offering flexibility and scalability as your inventory grows. There is full CORS support configured, so integrating with external services and APIs works smoothly.
 
+<div align="center">
+<h3>📱 Feature Showcase Gallery 📊</h3>
+
+<table>
+<tr>
+<td width="33%">
+
 ![Inventory Dashboard](assets/features-showcase0.png)
-<p align="center"><em>🔔 Low stock alerts and inventory management in action 📦</em></p>
+<p align="center"><em>🔔 Low stock alerts</em></p>
+
+</td>
+<td width="33%">
 
 ![Search Functionality](assets/features-showcase1.png)
-<p align="center"><em>🔍 Fast and intuitive search functionality to quickly find inventory items 🔎</em></p>
+<p align="center"><em>🔍 Fast inventory search</em></p>
+
+</td>
+<td width="33%">
 
 ![Barcode Scanning](assets/features-showcase2.png)
-<p align="center"><em>📱 Built-in barcode tracking support for easy inventory management 📲</em></p>
+<p align="center"><em>📱 Barcode tracking</em></p>
+
+</td>
+</tr>
+
+<tr>
+<td width="33%">
 
 ![User Management](assets/features-showcase3.png)
-<p align="center"><em>👥 Role-based access control for team collaboration and security 🔐</em></p>
+<p align="center"><em>👥 Role-based access</em></p>
+
+</td>
+<td width="33%">
 
 ![Data Visualization](assets/features-showcase4.png)
-<p align="center"><em>📊 Powerful data visualization for business insights and reporting 📑</em></p>
+<p align="center"><em>📊 Data insights</em></p>
 
-![Notifications System](assets/features-showcase5.png)
-<p align="center"><em>🔔 Real-time notifications keep team members informed of critical events 📱</em></p>
+</td>
+<td width="33%">
+
+![Notifications](assets/features-showcase5.png)
+<p align="center"><em>🔔 Real-time alerts</em></p>
+
+</td>
+</tr>
+
+<tr>
+<td width="33%">
 
 ![Mobile Responsiveness](assets/features-showcase6.png)
-<p align="center"><em>💻 Fully responsive design works seamlessly on all devices 📱</em></p>
+<p align="center"><em>💻 Responsive design</em></p>
+
+</td>
+<td width="33%">
 
 ![Export Capabilities](assets/features-showcase7.png)
-<p align="center"><em>📊 Export data in multiple formats for external analysis and reporting 📈</em></p>
+<p align="center"><em>📊 Data export</em></p>
+
+</td>
+<td width="33%">
+</td>
+</tr>
+</table>
+</div>
 
 <div align="center">
 <h2>🔧 What You Need To Run This System 🔧</h2>
@@ -257,11 +311,24 @@ php -S localhost:8000 -t public
 
 After installing dependencies with `composer install` and creating your `.env` file, simply run `php -S localhost:8000 -t public` from the project root directory. This command starts a development server on port 8000 and serves files from the public directory. You can then access the application by visiting `http://localhost:8000` in your browser.
 
-![PHP Built-in Server](assets/php-server0.png)
-<p align="center"><em>⚙️ Quick testing with PHP's built-in development server - terminal view 💻</em></p>
+<div align="center">
+<table>
+<tr>
+<td width="50%">
 
-![PHP Server Interface](assets/php-server1.png)
-<p align="center"><em>🌐 The application running in browser using PHP's built-in development server ⚡</em></p>
+![Terminal View](assets/php-server0.png)
+<p align="center"><em>⚙️ PHP server terminal view 💻</em></p>
+
+</td>
+<td width="50%">
+
+![Browser View](assets/php-server1.png)
+<p align="center"><em>🌐 PHP server browser view ⚡</em></p>
+
+</td>
+</tr>
+</table>
+</div>
 
 Keep in mind that this built-in server is only meant for development and testing purposes. It is single-threaded and does not have the security features or performance optimizations of production web servers like Apache or Nginx, so never use it for production deployments.
 
@@ -499,7 +566,5 @@ Keep your dependencies up to date because software updates often include securit
 <h3>⭐ Star this repository if you find it helpful! ⭐</h3>
 
 <p>Your star helps others discover this project and encourages continued development.</p>
-
-<hr style="height:4px;border-width:0;color:gold;background-color:gold">
 
 </div>
