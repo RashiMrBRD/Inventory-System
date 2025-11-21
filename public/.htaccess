@@ -4,6 +4,9 @@
 # Enable Rewrite Engine
 RewriteEngine On
 
+# Pretty URL for signed asset proxy
+RewriteRule ^asset$ asset.php [L,QSA]
+
 # Force HTTPS (uncomment when deployed to production with SSL)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
@@ -29,6 +32,9 @@ DirectoryIndex login.php
     
     # Referrer Policy
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Permissions Policy (disable unused browser features using supported directives)
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
     
     # Remove Server signature
     Header unset Server

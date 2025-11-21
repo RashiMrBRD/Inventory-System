@@ -14,7 +14,6 @@
  * - Automatic application to page elements
  * 
  * @author Inventory Management System
- * @version 0.2.4
  */
 
 (function(window) {
@@ -180,7 +179,7 @@
 
     /**
      * Apply currency abbreviation to specific elements
-     * @param {string} selector - CSS selector for target elements
+     * @param {string} selector - selector for target elements
      * @param {string} symbol - Currency symbol
      * @param {number} maxWidth - Max width before abbreviating
      */
@@ -205,7 +204,7 @@
 
     /**
      * Apply abbreviation to table cells
-     * @param {string} selector - CSS selector for table cells
+     * @param {string} selector - selector for table cells
      * @param {string} symbol - Currency symbol
      * @param {number} maxWidth - Max width before abbreviating
      */
@@ -215,7 +214,7 @@
 
     /**
      * Apply abbreviation to stat cards with aggressive abbreviation
-     * @param {string} selector - CSS selector for stat cards (default: '.stat-value')
+     * @param {string} selector - selector for stat cards (default: '.stat-value')
      * @param {string} symbol - Currency symbol
      */
     applyCurrencyAbbreviation(selector = '.stat-value', symbol) {

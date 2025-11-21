@@ -62,7 +62,7 @@ $profilePhoto = $currentUser['profile_photo'] ?? '';
       <div class="dropdown-menu" id="notification-menu" role="menu" style="width: 400px; max-height: 600px; overflow-y: auto; z-index: 9999; padding: 0;">
         <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
           <h3 style="font-weight: 600; font-size: 0.9375rem; margin: 0; letter-spacing: -0.01em;">Notifications</h3>
-          <a href="notifications.php" style="font-size: 0.8125rem; color: var(--color-primary); text-decoration: none; font-weight: 500;">View All</a>
+          <a href="notifications" style="font-size: 0.8125rem; color: var(--color-primary); text-decoration: none; font-weight: 500;">View All</a>
         </div>
         
         <!-- Notification Summary (will be populated by JavaScript) -->
@@ -97,7 +97,7 @@ $profilePhoto = $currentUser['profile_photo'] ?? '';
       </button>
 
       <div class="dropdown-menu" id="user-menu" role="menu">
-        <a href="profile.php" class="dropdown-item" role="menuitem">
+        <a href="profile" class="dropdown-item" role="menuitem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="8" r="5" stroke="currentColor" stroke-width="2"/>
             <path d="M20 21C20 16.5817 16.4183 13 12 13C7.58172 13 4 16.5817 4 21" stroke="currentColor" stroke-width="2"/>
@@ -105,7 +105,7 @@ $profilePhoto = $currentUser['profile_photo'] ?? '';
           Profile
         </a>
         
-        <a href="settings.php" class="dropdown-item" role="menuitem">
+        <a href="settings" class="dropdown-item" role="menuitem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
             <path d="M12 1v6m0 6v6M1 12h6m6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -115,7 +115,7 @@ $profilePhoto = $currentUser['profile_photo'] ?? '';
 
         <div class="dropdown-divider"></div>
 
-        <a href="logout.php" class="dropdown-item" role="menuitem">
+        <a href="logout" class="dropdown-item" role="menuitem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M9 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -222,7 +222,7 @@ $profilePhoto = $currentUser['profile_photo'] ?? '';
   
   // Load notifications (expose globally for other handlers)
   window.loadNotifications = function() {
-    fetch('<?php echo dirname($_SERVER['PHP_SELF']); ?>/api/get-notifications.php')
+    fetch('./api/get-notifications')
       .then(response => response.json())
       .then(data => {
         displayNotifications(data.notifications || []);
@@ -402,7 +402,7 @@ function markAsRead(index) {
   const notificationId = item.getAttribute('data-notification-id');
   if (!notificationId) return;
   
-  fetch('/api/notifications.php?action=mark-read', {
+  fetch('/api/notifications?action=mark-read', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ notification_id: notificationId })
@@ -434,7 +434,7 @@ function dismissNotification(index) {
   if (!notificationId) return;
   
   // Call API to dismiss
-  fetch('/api/notifications.php?action=dismiss', {
+  fetch('/api/notifications?action=dismiss', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({notification_id: notificationId})

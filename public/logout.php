@@ -11,5 +11,5 @@ use App\Controller\AuthController;
 $authController = new AuthController();
 $authController->logout();
 
-header("Location: login.php");
+header("Location: /login");
 exit();

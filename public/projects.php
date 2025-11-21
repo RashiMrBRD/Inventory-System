@@ -16,7 +16,7 @@ $user = $authController->getCurrentUser();
 // Ensure user data is valid
 if (!$user || !is_array($user)) {
     error_log('Projects: User data is null or invalid');
-    header('Location: login.php');
+    header('Location: /login');
     exit();
 }
 
@@ -1682,7 +1682,7 @@ document.getElementById('newProjectForm')?.addEventListener('submit', function(e
   data.time = collectTimeData();
   
   // Send to API
-  fetch('api/projects.php', {
+  fetch('api/projects', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -2046,9 +2046,9 @@ function handleProjectAction(action) {
   }
 }
 
-// View project details (Orders.php style modal)
+// View project details (Orders view-style modal)
 function viewProject(projectId) {
-  fetch(`api/projects.php?id=${projectId}`)
+  fetch(`api/projects?id=${projectId}`)
     .then(r => r.json())
     .then(result => {
       if (result.success) {

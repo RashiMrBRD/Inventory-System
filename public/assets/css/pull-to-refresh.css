@@ -1,32 +1,18 @@
 /**
- * Pull-to-Refresh Styles - Scroll-Driven Animation
- * Inspired by nerdy.dev + shadcn design principles
- * Uses scroll-snap and view-timeline for native feel
+ * Pull-to-refresh styles for mobile
+ * This controls overlay, wave, and motion during pull
  */
+
+:root {
+  --ptr-offset: 0px;
+  --ptr-header-opacity: 0;
+}
 
 /* Enable scroll snap on mobile when PTR is active */
 @media (max-width: 768px) {
   html {
     overscroll-behavior-y: contain;
     scroll-behavior: smooth;
-  }
-
-  html.ptr-active {
-    scroll-snap-type: y mandatory;
-  }
-
-/* Reveal PTR when active or loading */
-html.ptr-active #ptr-header,
-#ptr-header[loading-state="loading"],
-html.ptr-active #ptr-header[loading-state="loading"] {
-  opacity: 1;
-  transform: translateY(0);
-}
-  
-  /* Main content snaps to start */
-  html.ptr-active .content {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
   }
 }
 
@@ -42,47 +28,27 @@ html.ptr-active #ptr-header[loading-state="loading"] {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  z-index: 9998;
+  z-index: 20; /* below .app-header (z-index:30) so header sits over wave */
   pointer-events: none;
   padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
-  background: linear-gradient(180deg, 
-    hsl(0 0% 100%) 0%, 
-    hsl(0 0% 100% / 0.9) 70%,
-    hsl(0 0% 100% / 0) 100%);
-  opacity: 0;
-  transform: translateY(-60%);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  background: transparent;
+  opacity: var(--ptr-header-opacity);
+  transform: translateY(calc(-80px + var(--ptr-offset)));
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  position: fixed;
+  color: hsl(217 91% 60%);
 }
 
 body[data-theme="dark"] #ptr-header,
 body[data-resolved-theme="dark"] #ptr-header {
-  background: linear-gradient(180deg, 
-    hsl(240 10% 3.9%) 0%, 
-    hsl(240 10% 3.9% / 0.9) 70%,
-    hsl(240 10% 3.9% / 0) 100%);
+  background: transparent;
+  color: hsl(217 91% 70%);
 }
 
 @media (prefers-color-scheme: dark) {
   body[data-theme="system"] #ptr-header {
-    background: linear-gradient(180deg, 
-      hsl(240 10% 3.9%) 0%, 
-      hsl(240 10% 3.9% / 0.9) 70%,
-      hsl(240 10% 3.9% / 0) 100%);
-  }
-}
-
-/* Delayed snap point for PTR trigger */
-html.ptr-active #ptr-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  block-size: 10px;
-  animation: ptr-delayed-snap 2ms forwards;
-}
-
-@keyframes ptr-delayed-snap {
-  to { 
-    scroll-snap-align: start;
+    background: transparent;
+    color: hsl(217 91% 70%);
   }
 }
 
@@ -91,10 +57,10 @@ html.ptr-active #ptr-header::before {
   width: 32px;
   height: 32px;
   color: hsl(217 91% 60%);
-  transform: rotateZ(0deg);
-  animation: linear ptr-rotate-in;
-  animation-timeline: view();
-  animation-range: exit 0% exit 100%;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  z-index: 1;
+  display: none; /* hide arrow icon for this variant */
 }
 
 body[data-theme="dark"] #ptr-icon,
@@ -108,20 +74,12 @@ body[data-resolved-theme="dark"] #ptr-icon {
   }
 }
 
-@keyframes ptr-rotate-in {
-  to { 
-    transform: rotateZ(0.5turn);
-  }
-}
-
 /* PTR Text - Fades out on scroll */
 #ptr-text {
   font-size: 0.875rem;
   font-weight: 500;
   color: hsl(240 5.9% 64.9%);
-  animation: linear ptr-fade-out;
-  animation-timeline: view();
-  animation-range: exit -200% exit 100%;
+  z-index: 1;
 }
 
 body[data-theme="dark"] #ptr-text,
@@ -135,40 +93,46 @@ body[data-resolved-theme="dark"] #ptr-text {
   }
 }
 
-@keyframes ptr-fade-out {
-  to { 
-    opacity: 0;
-  }
-}
-
 /* Pulse Line Wave Animation for Loading State */
 #ptr-header[loading-state="loading"] #ptr-icon {
   display: none;
 }
 
+/* Loader container */
 #ptr-loader {
   display: none;
   width: 80px;
-  height: 32px;
+  height: 20px;
   position: relative;
+  gap: 6px;
+  align-items: flex-end;
 }
 
 #ptr-header[loading-state="loading"] #ptr-loader {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Pulse Line Waves */
-.ptr-wave {
-  position: absolute;
-  width: 4px;
-  height: 100%;
-  background: hsl(217 91% 60%);
+/* Soundwave bars */
+.ptr-bar {
+  width: 3px;
+  height: 8px;
   border-radius: 2px;
-  transform-origin: center;
-  animation: ptr-pulse-line 1.2s ease-in-out infinite;
+  background: currentColor;
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: ptr-bar-wave 1s ease-in-out infinite;
+  opacity: 0.9;
 }
+
+.ptr-bar:nth-child(1) { animation-delay: 0s; }
+.ptr-bar:nth-child(2) { animation-delay: 0.08s; }
+.ptr-bar:nth-child(3) { animation-delay: 0.16s; }
+.ptr-bar:nth-child(4) { animation-delay: 0.24s; }
+.ptr-bar:nth-child(5) { animation-delay: 0.32s; }
+.ptr-bar:nth-child(6) { animation-delay: 0.24s; }
+.ptr-bar:nth-child(7) { animation-delay: 0.16s; }
 
 body[data-theme="dark"] .ptr-wave,
 body[data-resolved-theme="dark"] .ptr-wave {
@@ -187,15 +151,48 @@ body[data-resolved-theme="dark"] .ptr-wave {
 .ptr-wave:nth-child(4) { left: 60%; animation-delay: 0.3s; }
 .ptr-wave:nth-child(5) { left: 80%; animation-delay: 0.4s; }
 
-@keyframes ptr-pulse-line {
+@keyframes ptr-bar-wave {
   0%, 100% {
-    transform: scaleY(0.3);
-    opacity: 0.5;
+    transform: scaleY(0.4);
+    opacity: 0.7;
   }
   50% {
-    transform: scaleY(1);
+    transform: scaleY(1.25);
     opacity: 1;
   }
+}
+
+/* Curvy wave at the bottom of the PTR header */
+#ptr-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#ptr-wave svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Global overlay tint */
+#ptr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 15; /* between content and app header */
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(180deg,
+    hsl(240 10% 3.9% / 0.55) 0%,
+    hsl(240 10% 3.9% / 0.25) 20%,
+    transparent 60%);
+  backdrop-filter: saturate(140%) blur(4px);
+  transition: opacity 0.2s ease;
 }
 
 /* Hide PTR on desktop */
@@ -209,9 +206,3 @@ body[data-resolved-theme="dark"] .ptr-wave {
   }
 }
 
-/* Polyfill support check */
-@supports not (animation-timeline: view()) {
-  #ptr-header {
-    display: none !important;
-  }
-}

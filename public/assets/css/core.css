@@ -1,11 +1,10 @@
 /**
- * Core CSS - Design System Foundation
- * Minimalist Design inspired by LedgerSMB
- * Version: 1.0
+ * App foundation styles
+ * This provides shared variables and rules
  */
 
 /* ===================================
-   CSS CUSTOM PROPERTIES (Design Tokens)
+   Style variables (tokens)
    =================================== */
 
 :root {
@@ -59,7 +58,7 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
   
-  /* Font Sizes - Minimalist Scale */
+  /* Font sizes */
   --text-xs: 0.75rem;      /* 12px */
   --text-sm: 0.875rem;     /* 14px */
   --text-base: 1rem;       /* 16px */

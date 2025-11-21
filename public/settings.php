@@ -20,7 +20,7 @@ $user = $authController->getCurrentUser();
 // Ensure user data is valid
 if (!$user || !is_array($user)) {
     error_log('Settings: User data is null or invalid');
-    header('Location: login.php');
+    header('Location: login');
     exit();
 }
 
@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Redirect to prevent form resubmission (POST-redirect-GET pattern)
-        header('Location: settings.php');
+        header('Location: settings');
         exit();
     } else
     if (isset($_POST['action']) && $_POST['action'] === 'update_currency') {
@@ -362,7 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Reload custom fonts if successful
                 if ($result['success']) {
-                    header('Location: settings.php?tab=regional&upload=success');
+                    header('Location: settings?tab=regional&upload=success');
                     exit;
                 }
             }
@@ -378,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = $result ? 'success' : 'danger';
             
             if ($result) {
-                header('Location: settings.php?tab=regional&delete=success');
+                header('Location: settings?tab=regional&delete=success');
                 exit;
             }
         }
@@ -553,13 +553,13 @@ ob_start();
       </div>
     </div>
     <div class="page-banner-actions">
-      <a href="inventory-list.php" class="btn btn-success">
+      <a href="inventory-list" class="btn btn-success">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
           <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
         View Inventory
       </a>
-      <a href="dashboard.php" class="btn" style="background: var(--color-primary); color: white; border: 1px solid var(--color-primary); transition: all 0.2s;" onmouseover="this.style.background='hsl(221 83% 48%)'; this.style.borderColor='hsl(221 83% 48%)'" onmouseout="this.style.background='var(--color-primary)'; this.style.borderColor='var(--color-primary)'">
+      <a href="dashboard" class="btn" style="background: var(--color-primary); color: white; border: 1px solid var(--color-primary); transition: all 0.2s;" onmouseover="this.style.background='hsl(221 83% 48%)'; this.style.borderColor='hsl(221 83% 48%)'" onmouseout="this.style.background='var(--color-primary)'; this.style.borderColor='var(--color-primary)'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
@@ -2550,7 +2550,7 @@ function testSmtpConnection() {
   formData.set('action', 'test_smtp');
   
   // Send AJAX request to test SMTP
-  fetch('settings.php', {
+  fetch('settings', {
     method: 'POST',
     body: formData
   })
@@ -3220,7 +3220,7 @@ function initSessionMap() {
 // Load and display sessions
 async function loadSessions() {
   try {
-    const response = await fetch('api/get-sessions.php?type=active');
+    const response = await fetch('api/get-sessions?type=active');
     const data = await response.json();
 
     if (data.success && data.sessions) {
@@ -3625,7 +3625,7 @@ async function terminateOtherSessions() {
   }
 
   try {
-    const response = await fetch('api/terminate-sessions.php', {
+    const response = await fetch('api/terminate-sessions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

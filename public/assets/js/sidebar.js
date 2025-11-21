@@ -1,7 +1,6 @@
 /**
- * Sidebar JavaScript
- * Handles sidebar collapse/expand and mobile interactions
- * Version: 1.0
+ * Sidebar script
+ * This handles collapse/expand and mobile behavior
  */
 
 (function() {

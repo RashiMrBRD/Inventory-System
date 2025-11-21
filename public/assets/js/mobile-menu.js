@@ -1,7 +1,6 @@
 /**
- * Mobile Menu System - Shadcn Inspired
- * Beautiful slide-in navigation for mobile devices
- * Version: 1.0.0
+ * Mobile menu script
+ * This controls the slide-in navigation on phones
  */
 
 (function() {

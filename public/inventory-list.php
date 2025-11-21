@@ -2622,7 +2622,7 @@ async function quickView(itemId) {
     document.getElementById('qv-reorder').textContent = item.reorder_point || 'N/A';
     
     // Update edit button link
-    document.getElementById('qv-edit-btn').href = `edit_item.php?id=${itemId}`;
+    document.getElementById('qv-edit-btn').href = `edit_item?id=${itemId}`;
     
     // Hide loading, show content
     loading.style.display = 'none';
@@ -2699,7 +2699,7 @@ document.addEventListener('keydown', function(e) {
 // ============================================
 function deleteItem(id, name) {
   if (confirm(`Delete "${name}"?\n\nThis action cannot be undone.`)) {
-    window.location.href = `delete_item.php?id=${id}`;
+    window.location.href = `delete_item?id=${id}`;
   }
 }
 

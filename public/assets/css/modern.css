@@ -1,9 +1,9 @@
 /**
- * Modern UI System - shadcn/ui inspired
- * Tailwind CSS utility classes for PHP application
+ * UI helpers
+ * These variables and utilities are used across the app
  */
 
-/* CSS Variables - shadcn/ui Design System */
+/* Variables used by the app */
 :root {
   /* Colors */
   --background: 0 0% 100%;
@@ -71,7 +71,7 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-/* Modern Utility Classes (Tailwind-style) */
+/* Utility classes */
 
 /* Spacing */
 .p-0 { padding: 0; }
@@ -234,7 +234,7 @@ body {
 .block { display: block; }
 .inline-block { display: inline-block; }
 
-/* Modern Card Component */
+/* Card */
 .modern-card {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
@@ -257,7 +257,7 @@ body {
   border-top: 1px solid hsl(var(--border));
 }
 
-/* Modern Button (matching shadcn) */
+/* Button */
 .btn-modern {
   display: inline-flex;
   align-items: center;
@@ -314,7 +314,7 @@ body {
   color: hsl(var(--accent-foreground));
 }
 
-/* Modern Badge */
+/* Badge */
 .badge-modern {
   display: inline-flex;
   align-items: center;
@@ -350,7 +350,7 @@ body {
   color: hsl(var(--destructive-foreground));
 }
 
-/* Modern Table */
+/* Table */
 .table-modern {
   width: 100%;
   caption-side: bottom;
@@ -390,7 +390,7 @@ body {
   white-space: nowrap;
 }
 
-/* Modern Tabs */
+/* Tabs */
 .tabs-modern {
   display: flex;
   flex-direction: column;

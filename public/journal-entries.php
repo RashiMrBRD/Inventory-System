@@ -11,7 +11,7 @@ require_once __DIR__ . '/init_timezone.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['flash_type'] = 'success';
     }
 
-    header('Location: journal-entries.php?' . http_build_query($_GET));
+    header('Location: journal-entries?' . http_build_query($_GET));
     exit;
 }
 
@@ -246,7 +246,7 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
 <div class="content-header">
   <div>
     <nav class="breadcrumb">
-      <a href="dashboard.php" class="breadcrumb-link">Dashboard</a>
+      <a href="dashboard" class="breadcrumb-link">Dashboard</a>
       <span class="breadcrumb-separator">/</span>
       <a href="#" class="breadcrumb-link">Accounting</a>
       <span class="breadcrumb-separator">/</span>
@@ -263,7 +263,7 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       Export
     </button>
-    <a href="journal-entry-form.php?new=1" class="btn btn-primary">
+    <a href="journal-entry-form?new=1" class="btn btn-primary">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       New Entry
     </a>
@@ -314,7 +314,7 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
       </svg>
       <p class="empty-state-title">No Journal Entries Found</p>
       <p class="empty-state-description">Create your first journal entry to record transactions.</p>
-      <a href="journal-entry-form.php?new=1" class="btn btn-primary">Create First Entry</a>
+      <a href="journal-entry-form?new=1" class="btn btn-primary">Create First Entry</a>
     </div>
   </div>
 </div>
@@ -353,14 +353,14 @@ unset($_SESSION['flash_message'], $_SESSION['flash_type']);
       ?>
       <tr>
         <td><input type="checkbox" class="entry-checkbox" value="<?php echo $entryId; ?>" onchange="updateBulkActions()"></td>
-        <td class="font-mono font-medium"><a href="journal-entry-detail.php?id=<?php echo $entryId; ?>" class="text-primary hover:underline"><?php echo htmlspecialchars($entry['entry_number']); ?></a></td>
+        <td class="font-mono font-medium"><a href="journal-entry-detail?id=<?php echo $entryId; ?>" class="text-primary hover:underline"><?php echo htmlspecialchars($entry['entry_number']); ?></a></td>
         <td><?php echo $entryDate; ?></td>
         <td><span class="badge badge-default"><?php echo htmlspecialchars(ucfirst($entry['entry_type'])); ?></span></td>
         <td class="col-description" title="<?php echo htmlspecialchars($entry['description']); ?>"><?php echo htmlspecialchars($entry['description']); ?></td>
         <td class="text-right font-mono"><?php echo formatMoney($entry['total_debit'], $currencySymbol); ?></td>
         <td class="text-right font-mono"><?php echo formatMoney($entry['total_credit'], $currencySymbol); ?></td>
         <td><?php if ($status === JournalEntry::STATUS_DRAFT): ?><span class="badge badge-warning">Draft</span><?php elseif ($status === JournalEntry::STATUS_POSTED): ?><span class="badge badge-success">Posted</span><?php elseif ($status === JournalEntry::STATUS_VOID): ?><span class="badge badge-danger">Void</span><?php endif; ?></td>
-        <td><div class="flex gap-1" style="flex-wrap: wrap;"><a href="journal-entry-detail.php?id=<?php echo $entryId; ?>" class="btn btn-ghost btn-sm" title="View"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" stroke-width="2"/><path d="M2 12C2 12 5 5 12 5C19 5 22 12 22 12C22 12 19 19 12 19C5 19 2 12 2 12Z" stroke="currentColor" stroke-width="2"/></svg></a><?php if ($status === JournalEntry::STATUS_DRAFT): ?><form method="POST" style="display: inline;"><input type="hidden" name="action" value="post"><input type="hidden" name="entry_id" value="<?php echo $entryId; ?>"><button type="submit" class="btn btn-ghost btn-sm text-success" title="Post" onclick="return confirm('Post this entry?')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></form><a href="journal-entry-form.php?copy=<?php echo $entryId; ?>" class="btn btn-ghost btn-sm" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 16H6C4.89543 16 4 15.1046 4 14V6C4 4.89543 4.89543 4 6 4H14C15.1046 4 16 4.89543 16 6V8M10 12H18C19.1046 12 20 12.8954 20 14V18C20 19.1046 19.1046 20 18 20H10C8.89543 20 8 19.1046 8 18V14C8 12.8954 8.89543 12 10 12Z" stroke="currentColor" stroke-width="2"/></svg></a><?php endif; ?><?php if ($status === JournalEntry::STATUS_POSTED): ?><button class="btn btn-ghost btn-sm text-danger" title="Void" onclick="voidEntry('<?php echo $entryId; ?>')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><button class="btn btn-ghost btn-sm" title="Reverse" onclick="reverseEntry('<?php echo $entryId; ?>')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 13L21 7M3 7L12 3L21 7" stroke="currentColor" stroke-width="2"/></svg></button><?php endif; ?><button class="btn btn-ghost btn-sm" title="More" onclick="showEntryMenu('<?php echo $entryId; ?>', event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" stroke-width="2"/><path d="M12 6C12.5523 6 13 5.55228 13 5C13 4.44772 12.5523 4 12 4C11.4477 4 11 4.44772 11 5C11 5.55228 11.4477 6 12 6Z" stroke="currentColor" stroke-width="2"/><path d="M12 20C12.5523 20 13 19.5523 13 19C13 18.4477 12.5523 18 12 18C11.4477 18 11 18.4477 11 19C11 19.5523 11.4477 20 12 20Z" stroke="currentColor" stroke-width="2"/></svg></button></div></td>
+        <td><div class="flex gap-1" style="flex-wrap: wrap;"><a href="journal-entry-detail?id=<?php echo $entryId; ?>" class="btn btn-ghost btn-sm" title="View"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" stroke-width="2"/><path d="M2 12C2 12 5 5 12 5C19 5 22 12 22 12C22 12 19 19 12 19C5 19 2 12 2 12Z" stroke="currentColor" stroke-width="2"/></svg></a><?php if ($status === JournalEntry::STATUS_DRAFT): ?><form method="POST" style="display: inline;"><input type="hidden" name="action" value="post"><input type="hidden" name="entry_id" value="<?php echo $entryId; ?>"><button type="submit" class="btn btn-ghost btn-sm text-success" title="Post" onclick="return confirm('Post this entry?')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></form><a href="journal-entry-form?copy=<?php echo $entryId; ?>" class="btn btn-ghost btn-sm" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 16H6C4.89543 16 4 15.1046 4 14V6C4 4.89543 4.89543 4 6 4H14C15.1046 4 16 4.89543 16 6V8M10 12H18C19.1046 12 20 12.8954 20 14V18C20 19.1046 19.1046 20 18 20H10C8.89543 20 8 19.1046 8 18V14C8 12.8954 8.89543 12 10 12Z" stroke="currentColor" stroke-width="2"/></svg></a><?php endif; ?><?php if ($status === JournalEntry::STATUS_POSTED): ?><button class="btn btn-ghost btn-sm text-danger" title="Void" onclick="voidEntry('<?php echo $entryId; ?>')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><button class="btn btn-ghost btn-sm" title="Reverse" onclick="reverseEntry('<?php echo $entryId; ?>')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 13L21 7M3 7L12 3L21 7" stroke="currentColor" stroke-width="2"/></svg></button><?php endif; ?><button class="btn btn-ghost btn-sm" title="More" onclick="showEntryMenu('<?php echo $entryId; ?>', event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" stroke-width="2"/><path d="M12 6C12.5523 6 13 5.55228 13 5C13 4.44772 12.5523 4 12 4C11.4477 4 11 4.44772 11 5C11 5.55228 11.4477 6 12 6Z" stroke="currentColor" stroke-width="2"/><path d="M12 20C12.5523 20 13 19.5523 13 19C13 18.4477 12.5523 18 12 18C11.4477 18 11 18.4477 11 19C11 19.5523 11.4477 20 12 20Z" stroke="currentColor" stroke-width="2"/></svg></button></div></td>
       </tr>
       <?php endforeach; ?>
     </tbody>
@@ -797,7 +797,7 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  window.location.href = 'journal-entries.php';
+  window.location.href = 'journal-entries';
 }
 
 // Go to specific page
@@ -950,7 +950,7 @@ document.getElementById('void-backdrop').addEventListener('click', closeVoidModa
 // ========== REVERSE ENTRY ==========
 function reverseEntry(entryId) {
   if (confirm('Create a reversing entry? This will create a new entry with opposite debits/credits.')) {
-    window.location.href = `journal-entry-form.php?reverse=${entryId}`;
+    window.location.href = `journal-entry-form?reverse=${entryId}`;
   }
 }
 
@@ -961,7 +961,7 @@ function exportData() {
   
   // Build URL with current filters
   const params = new URLSearchParams(<?php echo json_encode($_GET); ?>);
-  window.location.href = 'api/export-journal-entries.php?' + params.toString();
+  window.location.href = 'api/export-journal-entries?' + params.toString();
   
   // Show success after a delay (file download will start)
   setTimeout(() => {
@@ -981,7 +981,7 @@ function showEntryMenu(entryId, event) {
   const menu = document.createElement('div');
   menu.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;border-radius:8px;padding:0.5rem;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;min-width:180px;';
   menu.innerHTML = `
-    <button onclick="window.location.href='journal-entry-form.php?edit=${entryId}'" style="display:block;width:100%;text-align:left;padding:0.5rem;border:none;background:none;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+    <button onclick="window.location.href='journal-entry-form?edit=${entryId}'" style="display:block;width:100%;text-align:left;padding:0.5rem;border:none;background:none;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
       ✏️ Edit Entry
     </button>
     <button onclick="duplicateEntry('${entryId}')" style="display:block;width:100%;text-align:left;padding:0.5rem;border:none;background:none;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
@@ -1070,7 +1070,7 @@ function viewAuditTrail(entryId) {
   `;
   
   // Fetch actual audit data from database
-  fetch(`api/get-audit-trail.php?entry_id=${entryId}`)
+  fetch(`api/get-audit-trail?entry_id=${entryId}`)
     .then(response => response.json())
     .then(result => {
       if (!result.success) {
@@ -1285,7 +1285,7 @@ function printEntry(entryId) {
   printContainer.style.display = 'block';
   
   // Fetch entry data for printing
-  fetch(`api/get-journal-entry-print.php?entry_id=${entryId}`)
+  fetch(`api/get-journal-entry-print?entry_id=${entryId}`)
     .then(response => response.json())
     .then(result => {
       if (!result.success) {
@@ -1445,7 +1445,7 @@ document.addEventListener('keydown', function(e) {
   // Ctrl/Cmd + N = New Entry
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
     e.preventDefault();
-    window.location.href = 'journal-entry-form.php?new=1';
+    window.location.href = 'journal-entry-form?new=1';
   }
   
   // Ctrl/Cmd + E = Export

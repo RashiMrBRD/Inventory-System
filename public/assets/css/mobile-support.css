@@ -1,7 +1,6 @@
 /**
- * Mobile Support Styles
- * Comprehensive mobile responsive design for all application pages
- * Following Shadcn design principles
+ * Mobile support styles
+ * This improves responsiveness across pages
  */
 
 /* ============================================
@@ -941,7 +940,7 @@
     grid-column: 1 / -1 !important;
   }
   
-  /* Compact card sizing (shadcn pattern) */
+  /* Compact card sizing */
   .card {
     width: 100% !important;
     max-width: 100% !important;

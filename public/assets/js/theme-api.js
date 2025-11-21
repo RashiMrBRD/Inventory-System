@@ -262,7 +262,7 @@
     }
 
     /**
-     * Get CSS variables for current theme
+     * Get style variables for the current theme
      */
     getCSSVariables() {
       const colors = this.getColors();
@@ -285,7 +285,7 @@
     }
 
     /**
-     * Inject CSS variables into document
+     * Apply style variables to the document
      */
     injectCSSVariables() {
       const vars = this.getCSSVariables();
@@ -304,12 +304,25 @@
         document.body.setAttribute('data-resolved-theme', theme);
       }
     }
+
+    /**
+     * Persist theme preference to localStorage
+     */
+    persistPreference() {
+      try {
+        if (window.localStorage) {
+          window.localStorage.setItem('app_theme_preference', this.preference || 'system');
+        }
+      } catch (err) {
+        // Silently fail if localStorage is not available
+      }
+    }
   }
 
   // Create global instance
   window.ThemeAPI = new ThemeAPI();
 
-  // Inject CSS variables on load
+  // Apply style variables on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       window.ThemeAPI.injectCSSVariables();

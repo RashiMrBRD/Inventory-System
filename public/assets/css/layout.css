@@ -1,7 +1,6 @@
 /**
- * Layout CSS - App Structure & Grid System
- * Minimalist Design System
- * Version: 1.0
+ * App layout structure and grid
+ * This groups layout rules used across pages
  */
 
 /* ===================================
@@ -616,7 +615,7 @@
 }
 
 /* ===================================
-   RESPONSIVE DESIGN
+   RESPONSIVE RULES
    =================================== */
 
 /* Tablet */

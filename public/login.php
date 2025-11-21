@@ -13,7 +13,7 @@ $error = '';
 
 // If already logged in, redirect to dashboard
 if ($authController->isLoggedIn()) {
-    header("Location: dashboard.php");
+    header("Location: /dashboard");
     exit();
 }
 
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = $authController->login($username, $password);
     
     if ($result['success']) {
-        header("Location: dashboard.php");
+        header("Location: /dashboard");
         exit();
     } else {
         $error = $result['message'];

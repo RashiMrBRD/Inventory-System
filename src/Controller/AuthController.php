@@ -432,7 +432,7 @@ class AuthController
      * 
      * @param string $redirectUrl
      */
-    public function requireLogin(string $redirectUrl = '/login.php'): void
+    public function requireLogin(string $redirectUrl = '/login'): void
     {
         if (!$this->isLoggedIn()) {
             header("Location: $redirectUrl");

@@ -16,7 +16,7 @@ $user = $authController->getCurrentUser();
 // Ensure user data is valid
 if (!$user || !is_array($user)) {
     error_log('Shipping: User data is null or invalid');
-    header('Location: login.php');
+    header('Location: login');
     exit();
 }
 
@@ -262,7 +262,7 @@ ob_start();
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5V19M5 12H19" stroke-linecap="round"/></svg>
         Create Shipment
       </button>
-      <a href="dashboard.php" style="padding: 0.625rem 1.25rem; background: rgba(255,255,255,0.2); border-radius: 8px; color: white; text-decoration: none; font-weight: 500; backdrop-filter: blur(10px); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+      <a href="dashboard" style="padding: 0.625rem 1.25rem; background: rgba(255,255,255,0.2); border-radius: 8px; color: white; text-decoration: none; font-weight: 500; backdrop-filter: blur(10px); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
         ← Dashboard
       </a>
     </div>
@@ -1391,7 +1391,7 @@ document.getElementById('newShipmentForm')?.addEventListener('submit', async fun
   submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"/></svg> Creating...';
   
   try {
-    const response = await fetch('/api/shipments.php', {
+    const response = await fetch('/api/shipments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1509,7 +1509,7 @@ async function refreshShipmentsTable(showToast = false) {
   }
   
   try {
-    const response = await fetch('/api/shipments.php');
+    const response = await fetch('/api/shipments');
     const result = await response.json();
     
     if (result.success && result.data) {
@@ -1949,7 +1949,7 @@ function printShipmentLabel(shipmentId) {
       customerName = row.querySelector('td:nth-child(3)')?.textContent || '';
     }
     
-    const url = 'api/shipment_pdf.php?id=' + encodeURIComponent(shipmentId);
+    const url = 'api/shipment_pdf?id=' + encodeURIComponent(shipmentId);
     console.log('📄 Opening PDF viewer for shipment ' + shipmentId);
     
     // Set iframe source and open modal
@@ -2122,7 +2122,7 @@ function emailShipmentNotification(shipmentId) {
           </ol>
         </div>
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
-          <button onclick="window.location.href='/settings.php'" class="btn btn-primary" style="padding: 0.625rem 1.25rem; background: hsl(221 83% 53%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Go to Settings</button>
+              <button onclick="window.location.href='/settings'" class="btn btn-primary" style="padding: 0.625rem 1.25rem; background: hsl(221 83% 53%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Go to Settings</button>
           <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" class="btn btn-ghost" style="padding: 0.625rem 1.25rem; background: hsl(214 20% 92%); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
         </div>
       </div>
@@ -2189,7 +2189,7 @@ async function deleteShipment(button, shipmentId) {
   row.style.opacity = '0.5';
   
   try {
-    const response = await fetch(`/api/shipments.php?id=${shipmentId}`, {
+    const response = await fetch(`/api/shipments?id=${shipmentId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
@@ -2328,7 +2328,7 @@ function batchPrintLabels() {
         
         // Open each PDF in new tab with delay to prevent popup blocker
         setTimeout(() => {
-          const url = 'api/shipment_pdf.php?id=' + encodeURIComponent(shipmentId);
+          const url = 'api/shipment_pdf?id=' + encodeURIComponent(shipmentId);
           window.open(url, `_blank_shipment_${shipmentId}`);
           count++;
           
@@ -2385,7 +2385,7 @@ async function batchUpdateShipmentStatus() {
   Toast.info('🔄 Updating database...');
   
   try {
-    const response = await fetch('/api/shipments.php', {
+    const response = await fetch('/api/shipments', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
@@ -2553,7 +2553,7 @@ async function batchDeleteShipments() {
   Toast.info('🔄 Deleting from database...');
   
   try {
-    const response = await fetch('/api/shipments.php', {
+    const response = await fetch('/api/shipments', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
@@ -2614,7 +2614,7 @@ async function batchMarkAsDelivered() {
   Toast.info('🔄 Updating database...');
   
   try {
-    const response = await fetch('/api/shipments.php', {
+    const response = await fetch('/api/shipments', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2660,7 +2660,7 @@ async function batchMarkAsInTransit() {
   Toast.info('🔄 Updating database...');
   
   try {
-    const response = await fetch('/api/shipments.php', {
+    const response = await fetch('/api/shipments', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2782,8 +2782,8 @@ function updateShipmentStatistics() {
 // Database Viewer
 async function showDatabaseViewer() {
   const tables = [
-    { name: 'shipments', description: 'All shipment records', endpoint: 'api/shipments.php' },
-    { name: 'orders', description: 'Order records', endpoint: 'api/orders.php' },
+    { name: 'shipments', description: 'All shipment records', endpoint: 'api/shipments' },
+    { name: 'orders', description: 'Order records', endpoint: 'api/orders' },
     { name: 'customers', description: 'Customer data', endpoint: null },
     { name: 'products', description: 'Product inventory', endpoint: null },
     { name: 'users', description: 'User accounts', endpoint: null }

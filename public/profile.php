@@ -33,11 +33,11 @@ if (!$user || !is_array($user)) {
         if (!$user || !is_array($user)) {
             error_log('Profile: Failed to reload user, clearing session');
             session_destroy();
-            header('Location: login.php');
+            header('Location: /login');
             exit();
         }
     } else {
-        header('Location: login.php');
+        header('Location: /login');
         exit();
     }
 }

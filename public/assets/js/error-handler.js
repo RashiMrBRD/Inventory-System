@@ -11,10 +11,18 @@
     'google-analytics.com',
     'ERR_BLOCKED_BY_CLIENT',
     'ERR_BLOCKED_BY_RESPONSE',
+    'ERR_NAME_NOT_RESOLVED',
     'favicon.ico',
     'analytics',
     'gtag',
-    'doubleclick'
+    'doubleclick',
+    'ThemeAPI not available',
+    'experimental warning',
+    'Permissions-Policy',
+    'browsing-topics',
+    'interest-cohort',
+    'measurement_id',
+    'api_secret'
   ];
 
   // Store original console.error

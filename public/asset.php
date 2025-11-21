@@ -20,6 +20,23 @@ try {
     if (is_array($appConfig) && isset($appConfig['assets']['signing_key'])) {
         $signingKey = (string)$appConfig['assets']['signing_key'];
     }
+
+// Comment stripping helpers (safe, minimal)
+if (!function_exists('strip_css_comments')) {
+    function strip_css_comments(string $css): string {
+        return preg_replace('!/\*.*?\*/!s', '', $css);
+    }
+}
+if (!function_exists('strip_js_block_comments')) {
+    function strip_js_block_comments(string $js): string {
+        return preg_replace('!/\*.*?\*/!s', '', $js);
+    }
+}
+if (!function_exists('strip_html_comments')) {
+    function strip_html_comments(string $html): string {
+        return preg_replace('/<!--(?!\[if).*?-->/s', '', $html);
+    }
+}
 } catch (Throwable $e) {
     // ignore
 }
@@ -108,7 +125,7 @@ function build_proxy_url(string $path, string $key): string {
     }
     $sig = sign_token($key, $path, $exp, $nonce);
     $prefix = base_prefix();
-    $proxy = $prefix . '/asset.php?d=' . rawurlencode(b64url_encode_str($path)) . '&e=' . $exp . '&n=' . rawurlencode($nonce) . '&s=' . $sig;
+    $proxy = $prefix . '/asset?d=' . rawurlencode(b64url_encode_str($path)) . '&e=' . $exp . '&n=' . rawurlencode($nonce) . '&s=' . $sig;
     return $proxy;
 }
 function rewrite_css_urls(string $css, string $cssRelPath, string $key): string {
@@ -202,8 +219,34 @@ if ($ext === 'css') {
         echo 'Unable to read file';
         exit;
     }
+    // Proxy URLs then strip comments
     $css = rewrite_css_urls($css, $relPath, $signingKey);
+    $css = strip_css_comments($css);
     echo $css;
+    exit;
+}
+if ($ext === 'js' || $ext === 'mjs') {
+    $js = @file_get_contents($full);
+    if ($js === false) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo 'Unable to read file';
+        exit;
+    }
+    $js = strip_js_block_comments($js);
+    echo $js;
+    exit;
+}
+if ($ext === 'html' || $ext === 'htm') {
+    $html = @file_get_contents($full);
+    if ($html === false) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo 'Unable to read file';
+        exit;
+    }
+    $html = strip_html_comments($html);
+    echo $html;
     exit;
 }
 
