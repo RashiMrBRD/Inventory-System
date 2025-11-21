@@ -21,6 +21,23 @@ Managing inventory is something that every business needs, but there is often a 
 The system handles everything from basic item tracking to advanced features like barcode scanning, automated low stock alerts, and role-based access control. Because it is built with security in mind from the ground up, you can be confident that your business data stays protected. There is also a full RESTful API included, which means that you can integrate this system with other tools your business uses, from accounting software to e-commerce platforms.
 
 <div align="center">
+<h2>Software Specifications</h2>
+</div>
+
+This application is a web-based inventory and financial tracking system built for distributors that need real-time visibility, BIR-ready reporting, and reliable inventory control. The summary below highlights the core technical specifications so that you can quickly see what the system expects from the environment and what it provides in return.
+
+| Area | Specification | Details |
+|------|---------------|---------|
+| Runtime environment | PHP 8.3+ with Composer | Composer configuration allows PHP 7.4 or newer, but the project is designed and tested against PHP 8.3 for better performance and security. |
+| Web server | Apache 2.4 or Nginx | Production deployments should point the document root to the `public/` directory and enable URL rewriting for clean routes. |
+| Database | MongoDB 7.0+ | Uses the official `mongodb/mongodb` PHP driver via Composer and stores users, inventory, journal entries, notifications, and related financial data. |
+| Application architecture | MVC with REST API | Controllers, models, and services live under `src/` with PSR-4 autoloading, while `/api/v1` exposes JSON endpoints for authentication, inventory operations, and statistics. |
+| Authentication and sessions | Session-based login with roles | Passwords are hashed with bcrypt, sessions include timeout protection, and role-based access control limits what each user can see and change. |
+| Configuration | `.env` environment file | Key settings include `APP_ENV`, `APP_DEBUG`, MongoDB host, port, database name, credentials, and `SESSION_LIFETIME`, which together control how the system behaves in development and production. |
+| Logging and runtime files | `var/` directory | Application logs, cache, and session files are written under `var/` and must be writable by the web server user in production while remaining non-world-writable. |
+| Containerization | Docker Compose 3.8 | Default Docker setup includes a web container (PHP + Apache), a MongoDB 7.0 container, and a MongoDB Express admin UI, using ports 8082 for the web interface, 8081 for MongoDB Express, and 27017 for MongoDB itself. |
+
+<div align="center">
 <table>
 <tr>
 <td width="50%">
