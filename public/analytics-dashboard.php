@@ -21,6 +21,35 @@ use App\Helper\NotificationHelper;
 $authController = new AuthController();
 $authController->requireLogin();
 $user = $authController->getCurrentUser();
+
+$defaultHiddenSidebarItems = [
+    'projects',
+    'bir-compliance',
+    'fda-compliance',
+    'notifications',
+    'chart-of-accounts',
+    'journal-entries',
+    'financial-reports',
+    'conversations',
+    'system-alerts',
+];
+
+$sidebarHiddenItems = $defaultHiddenSidebarItems;
+if ($user && isset($user['sidebar_hidden_items']) && is_array($user['sidebar_hidden_items'])) {
+    $sidebarHiddenItems = $user['sidebar_hidden_items'];
+}
+$showProjectsWidgets = !in_array('projects', $sidebarHiddenItems, true);
+
+// BIR widgets visibility based on sidebar settings
+$showBirWidgets = !in_array('bir-compliance', $sidebarHiddenItems, true);
+
+// FDA widgets visibility based on sidebar settings
+$showFdaWidgets = !in_array('fda-compliance', $sidebarHiddenItems, true);
+$hasComplianceCharts = $showBirWidgets || $showFdaWidgets;
+
+// Notifications widgets visibility based on sidebar settings
+$showNotificationsWidgets = !in_array('notifications', $sidebarHiddenItems, true);
+
 $userId = $user['id'] ?? 'admin';
 
 // ============================================
@@ -307,10 +336,18 @@ try {
 $projectModel = new Project();
 $shipmentModel = new Shipment();
 
+// Initialize operations analytics defaults to avoid undefined variables
+$projects = [];
+$projectsByStatus = ['active' => 0, 'completed' => 0, 'on_hold' => 0];
+$totalBudget = $totalSpent = 0;
+$totalProjects = 0;
+$shipmentsByStatus = [];
+
 try {
     $projects = $projectModel->getAll();
     $projectsByStatus = ['active' => 0, 'completed' => 0, 'on_hold' => 0];
     $totalBudget = $totalSpent = 0;
+    $totalProjects = count($projects);
     foreach ($projects as $proj) {
         $status = $proj['status'] ?? 'active';
         if (!isset($projectsByStatus[$status])) $projectsByStatus[$status] = 0;
@@ -328,7 +365,11 @@ try {
         $shipmentsByStatus[$status]++;
     }
 } catch (Exception $e) {
-    $projectsByStatus = $shipmentsByStatus = [];
+    $projects = [];
+    $projectsByStatus = ['active' => 0, 'completed' => 0, 'on_hold' => 0];
+    $totalBudget = $totalSpent = 0;
+    $totalProjects = 0;
+    $shipmentsByStatus = [];
     $budgetUtilization = 0;
 }
 
@@ -780,12 +821,14 @@ ob_start();
       <canvas id="sparkBudgetUse" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Project spend</div>
     </div>
+    <?php if ($showBirWidgets): ?>
     <div class="kpi-card">
       <div class="kpi-label">Compliance</div>
       <div class="kpi-value" style="color: <?php echo $complianceRate >= 90 ? 'var(--color-success)' : 'var(--color-warning)'; ?>;"><?php echo $complianceRate; ?>%</div>
       <canvas id="sparkCompliance" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">BIR forms</div>
     </div>
+    <?php endif; ?>
     
     <!-- NEW: Stock Turnover Rate (Xero Feature) -->
     <div class="kpi-card">
@@ -806,6 +849,7 @@ ob_start();
 </div>
 
 <!-- Projects Overview KPIs (New Section) -->
+<?php if ($showProjectsWidgets): ?>
 <div class="analytics-section">
   <div class="analytics-section-header">
     <h2 class="analytics-section-title">🚀 Projects Overview</h2>
@@ -857,6 +901,7 @@ ob_start();
     </div>
   </div>
 </div>
+<?php endif; ?>
 
 <!-- System Health KPIs (Ultra Compact) -->
 <div class="analytics-section">
@@ -864,18 +909,22 @@ ob_start();
     <h2 class="analytics-section-title">🔔 System & Alerts</h2>
   </div>
   <div class="kpi-grid">
+    <?php if ($showNotificationsWidgets): ?>
     <div class="kpi-card">
       <div class="kpi-label">Active Alerts</div>
       <div class="kpi-value" style="color: var(--color-warning);"><?php echo number_format($notificationSummary['unread']); ?></div>
       <canvas id="sparkAlerts" class="kpi-sparkline"></canvas>
       <div class="kpi-meta"><span class="badge badge-warning" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;"><?php echo $notificationSummary['high_priority']; ?> urgent</span></div>
     </div>
+    <?php endif; ?>
+    <?php if ($showFdaWidgets): ?>
     <div class="kpi-card">
       <div class="kpi-label">FDA Expiring</div>
       <div class="kpi-value" style="color: var(--color-danger);"><?php echo number_format($expiryDistribution['0-30 days'] ?? 0); ?></div>
       <canvas id="sparkFDAExpiring" class="kpi-sparkline"></canvas>
       <div class="kpi-meta">Next 30 days</div>
     </div>
+    <?php endif; ?>
     <div class="kpi-card">
       <div class="kpi-label">Avg Project Value</div>
       <div class="kpi-value" style="color: var(--color-info);"><?php echo $totalProjects > 0 ? CurrencyHelper::format($totalBudget / $totalProjects) : CurrencyHelper::format(0); ?></div>
@@ -941,6 +990,7 @@ ob_start();
   </div>
 </div>
 
+<?php if ($hasComplianceCharts): ?>
 <!-- Compliance Charts (Compact) -->
 <div class="analytics-section">
   <div class="analytics-section-header">
@@ -948,6 +998,7 @@ ob_start();
   </div>
   <div class="grid-analytics-2">
     <!-- BIR Compliance Status -->
+    <?php if ($showBirWidgets): ?>
     <div class="chart-card">
       <div class="chart-card-header">
         <div>
@@ -957,8 +1008,10 @@ ob_start();
       </div>
       <canvas id="birChart" class="chart-canvas-compact"></canvas>
     </div>
+    <?php endif; ?>
     
     <!-- FDA Product Expiry Timeline -->
+    <?php if ($showFdaWidgets): ?>
     <div class="chart-card">
       <div class="chart-card-header">
         <div>
@@ -968,8 +1021,10 @@ ob_start();
       </div>
       <canvas id="expiryChart" class="chart-canvas-compact"></canvas>
     </div>
+    <?php endif; ?>
   </div>
 </div>
+<?php endif; ?>
 
 <!-- Inventory Trend (Compact) -->
 <div class="analytics-section">
@@ -990,9 +1045,12 @@ ob_start();
 <!-- Projects & Logistics (Compact) -->
 <div class="analytics-section">
   <div class="analytics-section-header">
-    <h2 class="analytics-section-title">🚀 Projects & Logistics</h2>
+    <h2 class="analytics-section-title">
+      <?php echo $showProjectsWidgets ? '🚀 Projects & Logistics' : '🚚 Logistics'; ?>
+    </h2>
   </div>
   <div class="grid-analytics-2">
+    <?php if ($showProjectsWidgets): ?>
     <!-- Projects by Status -->
     <div class="chart-card">
       <div class="chart-card-header">
@@ -1003,6 +1061,7 @@ ob_start();
       </div>
       <canvas id="projectsChart" class="chart-canvas-compact"></canvas>
     </div>
+    <?php endif; ?>
     
     <!-- Shipments by Status -->
     <div class="chart-card">
@@ -1203,6 +1262,7 @@ new Chart(document.getElementById('stockLevelChart'), {
   }
 });
 
+<?php if ($showBirWidgets): ?>
 // BIR Compliance Chart (Doughnut)
 const birData = <?php echo json_encode($birByStatus); ?>;
 new Chart(document.getElementById('birChart'), {
@@ -1224,8 +1284,10 @@ new Chart(document.getElementById('birChart'), {
     }
   }
 });
+<?php endif; ?>
 
 // FDA Expiry Chart (Bar)
+<?php if ($showFdaWidgets): ?>
 const expiryData = <?php echo json_encode($expiryDistribution); ?>;
 new Chart(document.getElementById('expiryChart'), {
   type: 'bar',
@@ -1250,6 +1312,7 @@ new Chart(document.getElementById('expiryChart'), {
     }
   }
 });
+<?php endif; ?>
 
 // Inventory Trend Chart (Line)
 const inventoryTrendLabels = <?php echo json_encode($inventoryTrendLabels); ?>;
@@ -1368,6 +1431,7 @@ new Chart(inventoryCtx, {
 });
 
 // Projects Chart (Doughnut) - Shadcn Styled
+<?php if ($showProjectsWidgets): ?>
 const projectsData = <?php echo json_encode($projectsByStatus); ?>;
 new Chart(document.getElementById('projectsChart'), {
   type: 'doughnut',
@@ -1432,6 +1496,7 @@ new Chart(document.getElementById('projectsChart'), {
     }
   }
 });
+<?php endif; ?>
 
 // Shipments Chart (Bar)
 const shipmentsData = <?php echo json_encode($shipmentsByStatus); ?>;
@@ -1517,6 +1582,16 @@ function createSparkline(canvasId, data, color, isPositive = true) {
   });
 }
 
+// Helper: build a flat series from a single metric value
+function makeFlatSeries(value, points = 10) {
+  const v = isNaN(value) ? 0 : Number(value);
+  const data = [];
+  for (let i = 0; i < points; i++) {
+    data.push(v);
+  }
+  return data;
+}
+
 // Color mapping - matches CSS variables to HSL values
 const colorMap = {
   'var(--color-success)': 'hsl(142 71% 45%)',
@@ -1527,157 +1602,121 @@ const colorMap = {
   'var(--color-purple)': 'hsl(280 65% 60%)'
 };
 
-// Initialize sparklines with sample trend data
+// Initialize sparklines using real metrics (no hard-coded sample trend data)
 // Revenue sparkline - GREEN (success)
 const revenueTrendData = <?php echo json_encode(array_slice($revenueData, -10)); ?>;
-createSparkline('sparkRevenue', revenueTrendData.length > 0 ? revenueTrendData : [50, 60, 55, 75, 80, 70, 90, 85, 95, 100], colorMap['var(--color-success)']);
+createSparkline(
+  'sparkRevenue',
+  Array.isArray(revenueTrendData) && revenueTrendData.length > 0
+    ? revenueTrendData
+    : makeFlatSeries(0),
+  colorMap['var(--color-success)']
+);
 
 // Inventory sparkline - BLUE (primary)
 const inventorySparkData = <?php echo json_encode(array_slice($inventoryTrendData, -10)); ?>;
-createSparkline('sparkInventory', inventorySparkData.length > 0 ? inventorySparkData : [20, 22, 25, 30, 28, 35, 40, 45, 50, <?php echo $totalItems; ?>], colorMap['var(--color-primary)']);
+createSparkline(
+  'sparkInventory',
+  Array.isArray(inventorySparkData) && inventorySparkData.length > 0
+    ? inventorySparkData
+    : makeFlatSeries(0),
+  colorMap['var(--color-primary)']
+);
 
 // Projects sparkline - BLUE (primary)
-createSparkline('sparkProjects', [1, 2, 3, 3, 4, 5, 6, 6, 7, <?php echo $totalProjects; ?>], colorMap['var(--color-primary)']);
+createSparkline(
+  'sparkProjects',
+  makeFlatSeries(<?php echo $totalProjects; ?>),
+  colorMap['var(--color-primary)']
+);
 
 // Budget sparkline - INFO (light blue)
-const budgetData = [
-  <?php echo $totalBudget * 0.1; ?>,
-  <?php echo $totalBudget * 0.2; ?>,
-  <?php echo $totalBudget * 0.35; ?>,
-  <?php echo $totalBudget * 0.5; ?>,
-  <?php echo $totalBudget * 0.65; ?>,
-  <?php echo $totalBudget * 0.75; ?>,
-  <?php echo $totalBudget * 0.85; ?>,
-  <?php echo $totalBudget * 0.92; ?>,
-  <?php echo $totalBudget * 0.98; ?>,
-  <?php echo $totalBudget; ?>
-];
-createSparkline('sparkBudget', budgetData, colorMap['var(--color-info)']);
+const budgetValue = <?php echo $totalBudget; ?>;
+createSparkline('sparkBudget', makeFlatSeries(budgetValue), colorMap['var(--color-info)']);
 
 // Collection Rate sparkline - GREEN (success)
-createSparkline('sparkCollection', [60, 65, 68, 70, 72, 74, 75, 76, 77, <?php echo $totalRevenue > 0 ? round(($paidRevenue/$totalRevenue)*100, 1) : 0; ?>], colorMap['var(--color-success)']);
+const collectionRateValue = <?php echo $totalRevenue > 0 ? round(($paidRevenue/$totalRevenue)*100, 1) : 0; ?>;
+createSparkline('sparkCollection', makeFlatSeries(collectionRateValue), colorMap['var(--color-success)']);
 
 // Outstanding sparkline - YELLOW (warning)
 const outstanding = <?php echo $outstandingRevenue; ?>;
-createSparkline('sparkOutstanding', [
-  outstanding * 1.8, outstanding * 1.6, outstanding * 1.5, outstanding * 1.4,
-  outstanding * 1.3, outstanding * 1.2, outstanding * 1.15, outstanding * 1.1,
-  outstanding * 1.05, outstanding
-], colorMap['var(--color-warning)']);
+createSparkline('sparkOutstanding', makeFlatSeries(outstanding), colorMap['var(--color-warning)']);
 
 // Conversion sparkline - BLUE (primary)
-createSparkline('sparkConversion', [25, 28, 30, 29, 31, 32, 30, 31, 32, <?php echo $conversionRate; ?>], colorMap['var(--color-primary)']);
+const conversionValue = <?php echo $conversionRate; ?>;
+createSparkline('sparkConversion', makeFlatSeries(conversionValue), colorMap['var(--color-primary)']);
 
 // Average Invoice sparkline - INFO (light blue)
 const avgInvoice = <?php echo $invoiceCount > 0 ? ($totalRevenue / $invoiceCount) : 0; ?>;
-createSparkline('sparkAvgInvoice', [
-  avgInvoice * 0.85, avgInvoice * 0.88, avgInvoice * 0.90, avgInvoice * 0.92,
-  avgInvoice * 0.94, avgInvoice * 0.96, avgInvoice * 0.97, avgInvoice * 0.98,
-  avgInvoice * 0.99, avgInvoice
-], colorMap['var(--color-info)']);
+createSparkline('sparkAvgInvoice', makeFlatSeries(avgInvoice), colorMap['var(--color-info)']);
 
 // Inventory Value sparkline - PURPLE
 const invValue = <?php echo $inventoryValue; ?>;
-createSparkline('sparkInventoryValue', [
-  invValue * 0.70, invValue * 0.75, invValue * 0.80, invValue * 0.84,
-  invValue * 0.88, invValue * 0.91, invValue * 0.94, invValue * 0.96,
-  invValue * 0.98, invValue
-], colorMap['var(--color-purple)']);
+createSparkline('sparkInventoryValue', makeFlatSeries(invValue), colorMap['var(--color-purple)']);
 
 // Stock Health sparkline - DYNAMIC (warning/success based on stock level)
 const stockHealth = <?php echo $totalItems > 0 ? round((($totalItems - $lowStockItems - $outOfStockItems) / $totalItems) * 100, 1) : 0; ?>;
-createSparkline('sparkStockHealth', [85, 87, 88, 90, 91, 92, 90, 89, 90, stockHealth], 
-  colorMap['<?php echo $lowStockItems > 0 ? "var(--color-warning)" : "var(--color-success)"; ?>']);
+createSparkline(
+  'sparkStockHealth',
+  makeFlatSeries(stockHealth),
+  colorMap['<?php echo $lowStockItems > 0 ? "var(--color-warning)" : "var(--color-success)"; ?>']
+);
 
 // Budget Use sparkline - BLUE (primary)
 const budgetUse = <?php echo $budgetUtilization; ?>;
-createSparkline('sparkBudgetUse', [
-  Math.max(0, budgetUse - 15), Math.max(0, budgetUse - 12), Math.max(0, budgetUse - 10),
-  Math.max(0, budgetUse - 8), Math.max(0, budgetUse - 6), Math.max(0, budgetUse - 5),
-  Math.max(0, budgetUse - 4), Math.max(0, budgetUse - 2), Math.max(0, budgetUse - 1), budgetUse
-], colorMap['var(--color-primary)']);
+createSparkline('sparkBudgetUse', makeFlatSeries(budgetUse), colorMap['var(--color-primary)']);
 
 // Compliance sparkline - DYNAMIC (success/warning based on compliance rate)
 const compliance = <?php echo $complianceRate; ?>;
-createSparkline('sparkCompliance', [
-  Math.max(0, compliance - 5), Math.max(0, compliance - 3), Math.max(0, compliance - 2),
-  Math.max(0, compliance - 1), compliance, compliance, Math.min(100, compliance + 1),
-  compliance, Math.max(0, compliance - 1), compliance
-], colorMap['<?php echo $complianceRate >= 90 ? "var(--color-success)" : "var(--color-warning)"; ?>']);
+createSparkline(
+  'sparkCompliance',
+  makeFlatSeries(compliance),
+  colorMap['<?php echo $complianceRate >= 90 ? "var(--color-success)" : "var(--color-warning)"; ?>']
+);
 
 // Turnover sparkline - INFO (light blue)
 const turnover = <?php echo $totalItems > 0 ? round(($invoiceCount / $totalItems) * 100, 1) : 0; ?>;
-createSparkline('sparkTurnover', [8, 9, 10, 11, 10, 11, 12, 11, 12, turnover], colorMap['var(--color-info)']);
+createSparkline('sparkTurnover', makeFlatSeries(turnover), colorMap['var(--color-info)']);
 
 // Orders sparkline - GREEN (success)
 const totalOrders = <?php echo array_sum($ordersByType); ?>;
-createSparkline('sparkOrders', [
-  Math.max(0, totalOrders - 3), Math.max(0, totalOrders - 2), Math.max(0, totalOrders - 1),
-  totalOrders, Math.max(0, totalOrders - 1), totalOrders, Math.max(0, totalOrders + 1),
-  totalOrders, Math.max(0, totalOrders - 1), totalOrders
-], colorMap['var(--color-success)']);
+createSparkline('sparkOrders', makeFlatSeries(totalOrders), colorMap['var(--color-success)']);
 
 // Active Projects sparkline - GREEN (success)
-createSparkline('sparkActiveProjects', [1, 2, 2, 3, 3, 4, 4, 4, 4, <?php echo $projectsByStatus['active'] ?? 0; ?>], colorMap['var(--color-success)']);
+const activeProjects = <?php echo $projectsByStatus['active'] ?? 0; ?>;
+createSparkline('sparkActiveProjects', makeFlatSeries(activeProjects), colorMap['var(--color-success)']);
 
 // Budget Spent sparkline - DYNAMIC (success/warning based on utilization)
-const budgetSpent = [
-  <?php echo $totalSpent * 0.2; ?>,
-  <?php echo $totalSpent * 0.35; ?>,
-  <?php echo $totalSpent * 0.5; ?>,
-  <?php echo $totalSpent * 0.62; ?>,
-  <?php echo $totalSpent * 0.73; ?>,
-  <?php echo $totalSpent * 0.82; ?>,
-  <?php echo $totalSpent * 0.89; ?>,
-  <?php echo $totalSpent * 0.94; ?>,
-  <?php echo $totalSpent * 0.97; ?>,
-  <?php echo $totalSpent; ?>
-];
-createSparkline('sparkBudgetSpent', budgetSpent, 
-  colorMap['<?php echo $budgetUtilization > 90 ? "var(--color-warning)" : "var(--color-success)"; ?>']);
+const spentValue = <?php echo $totalSpent; ?>;
+createSparkline(
+  'sparkBudgetSpent',
+  makeFlatSeries(spentValue),
+  colorMap['<?php echo $budgetUtilization > 90 ? "var(--color-warning)" : "var(--color-success)"; ?>']
+);
 
 // Completed Projects sparkline - GREEN (success)
-createSparkline('sparkCompleted', [0, 0, 1, 1, 2, 2, 3, 3, 3, <?php echo $projectsByStatus['completed'] ?? 0; ?>], colorMap['var(--color-success)']);
+const completedProjects = <?php echo $projectsByStatus['completed'] ?? 0; ?>;
+createSparkline('sparkCompleted', makeFlatSeries(completedProjects), colorMap['var(--color-success)']);
 
 // On Hold Projects sparkline - YELLOW (warning)
 const onHold = <?php echo $projectsByStatus['on_hold'] ?? 0; ?>;
-createSparkline('sparkOnHold', [
-  Math.max(0, onHold + 2), Math.max(0, onHold + 2), Math.max(0, onHold + 1),
-  Math.max(0, onHold + 1), onHold, onHold, Math.max(0, onHold - 1),
-  onHold, onHold, onHold
-], colorMap['var(--color-warning)']);
+createSparkline('sparkOnHold', makeFlatSeries(onHold), colorMap['var(--color-warning)']);
 
 // Active Alerts sparkline - YELLOW (warning)
 const alerts = <?php echo $notificationSummary['unread']; ?>;
-createSparkline('sparkAlerts', [
-  Math.max(0, alerts - 100), Math.max(0, alerts - 80), Math.max(0, alerts - 90),
-  Math.max(0, alerts - 70), Math.max(0, alerts - 85), Math.max(0, alerts - 60),
-  Math.max(0, alerts - 75), Math.max(0, alerts - 50), Math.max(0, alerts - 40), alerts
-], colorMap['var(--color-warning)']);
+createSparkline('sparkAlerts', makeFlatSeries(alerts), colorMap['var(--color-warning)']);
 
 // FDA Expiring sparkline - RED (danger)
 const fdaExpiring = <?php echo $expiryDistribution['0-30 days'] ?? 0; ?>;
-createSparkline('sparkFDAExpiring', [
-  Math.max(0, fdaExpiring + 5), Math.max(0, fdaExpiring + 4), Math.max(0, fdaExpiring + 3),
-  Math.max(0, fdaExpiring + 2), Math.max(0, fdaExpiring + 1), fdaExpiring,
-  fdaExpiring, Math.max(0, fdaExpiring - 1), Math.max(0, fdaExpiring - 1), fdaExpiring
-], colorMap['var(--color-danger)']);
+createSparkline('sparkFDAExpiring', makeFlatSeries(fdaExpiring), colorMap['var(--color-danger)']);
 
 // Avg Project Value sparkline - INFO (light blue)
 const avgProjValue = <?php echo $totalProjects > 0 ? ($totalBudget / $totalProjects) : 0; ?>;
-createSparkline('sparkAvgProjectValue', [
-  avgProjValue * 0.92, avgProjValue * 0.94, avgProjValue * 0.95, avgProjValue * 0.96,
-  avgProjValue * 0.97, avgProjValue * 0.98, avgProjValue * 0.99, avgProjValue * 1.0,
-  avgProjValue * 1.01, avgProjValue
-], colorMap['var(--color-info)']);
+createSparkline('sparkAvgProjectValue', makeFlatSeries(avgProjValue), colorMap['var(--color-info)']);
 
 // In Transit sparkline - BLUE (primary)
 const inTransit = <?php echo $shipmentsByStatus['in_transit'] ?? 0; ?>;
-createSparkline('sparkInTransit', [
-  Math.max(0, inTransit - 2), Math.max(0, inTransit - 1), inTransit,
-  Math.max(0, inTransit + 1), Math.max(0, inTransit - 1), inTransit,
-  Math.max(0, inTransit + 2), Math.max(0, inTransit + 1), inTransit, inTransit
-], colorMap['var(--color-primary)']);
+createSparkline('sparkInTransit', makeFlatSeries(inTransit), colorMap['var(--color-primary)']);
 
 // ============================================
 // ANALYTICS AJAX (NO PAGE REFRESH)

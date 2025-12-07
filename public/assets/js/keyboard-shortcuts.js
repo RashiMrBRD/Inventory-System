@@ -28,38 +28,73 @@
 
   // Menu navigation order with first-letter shortcuts
   const menuItems = [
-    { name: 'Dashboard', url: 'dashboard.php', key: 'd' },
-    { name: 'Analytics', url: 'analytics-dashboard.php', key: 'y' },
-    { name: 'Inventory', url: 'inventory-list.php', key: 'i' },
-    // { name: 'Add Item', url: 'add_item.php' },
-    { name: 'Quotations', url: 'quotations.php', key: 'q' },
-    { name: 'Invoicing', url: 'invoicing.php', key: 'v' },
-    { name: 'Orders', url: 'orders.php', key: 'o' },
-    { name: 'Projects', url: 'projects.php', key: 'p' },
-    { name: 'Shipping', url: 'shipping.php', key: 'h' },
-    { name: 'BIR Compliance', url: 'bir-compliance.php', key: 'b' },
-    { name: 'FDA Compliance', url: 'fda-compliance.php', key: 'f' },
-    { name: 'Notifications', url: 'notifications.php', key: 'n' },
-    { name: 'Chart of Accounts', url: 'chart-of-accounts.php', key: 't' },
-    { name: 'Journal Entries', url: 'journal-entries.php', key: 'j' },
-    { name: 'Financial Reports', url: 'financial-reports.php', key: 'l' },
-    { name: 'Settings', url: 'settings.php', key: 'x' }
+    { name: 'Dashboard', url: 'dashboard', key: 'd' },
+    { name: 'Analytics', url: 'analytics-dashboard', key: 'y' },
+    { name: 'Inventory', url: 'inventory-list', key: 'i' },
+    // { name: 'Add Item', url: 'add_item' },
+    { name: 'Quotations', url: 'quotations', key: 'q' },
+    { name: 'Invoicing', url: 'invoicing', key: 'v' },
+    { name: 'Orders', url: 'orders', key: 'o' },
+    { name: 'Projects', url: 'projects', key: 'p' },
+    { name: 'Shipping', url: 'shipping', key: 'h' },
+    { name: 'BIR Compliance', url: 'bir-compliance', key: 'b' },
+    { name: 'FDA Compliance', url: 'fda-compliance', key: 'f' },
+    { name: 'Notifications', url: 'notifications', key: 'n' },
+    { name: 'Chart of Accounts', url: 'chart-of-accounts', key: 't' },
+    { name: 'Journal Entries', url: 'journal-entries', key: 'j' },
+    { name: 'Financial Reports', url: 'financial-reports', key: 'l' },
+    { name: 'Settings', url: 'settings', key: 'x' }
   ];
 
-  // Get current page
-  function getCurrentPage() {
-    const path = window.location.pathname;
-    const filename = path.split('/').pop();
-    return filename || 'dashboard.php';
+  // Normalized current page key (without .php), e.g., "dashboard", "inventory-list"
+  function getCurrentPageKey() {
+    const path = window.location.pathname || '';
+    const segments = path.split('/').filter(Boolean);
+    let base = segments.pop() || '';
+    base = base.replace(/\.php$/i, '');
+    return base || 'dashboard';
   }
 
-  // Find current menu index
+  // Sidebar DOM helpers for ArrowUp/ArrowDown navigation
+  function getSidebarLinks() {
+    const sidebar = document.querySelector('.sidebar-nav');
+    if (!sidebar) return [];
+    return Array.from(sidebar.querySelectorAll('.sidebar-link'));
+  }
+
+  function getCurrentSidebarIndex() {
+    const links = getSidebarLinks();
+    if (!links.length) return -1;
+    const currentKey = getCurrentPageKey();
+    return links.findIndex(link => {
+      const href = (link.getAttribute('href') || '').split('?')[0];
+      const hrefBase = href.replace(/^\//, '').replace(/\.php$/i, '');
+      return hrefBase === currentKey;
+    });
+  }
+
+  function navigateToSidebarIndex(targetIndex) {
+    const links = getSidebarLinks();
+    if (targetIndex >= 0 && targetIndex < links.length) {
+      const href = links[targetIndex].getAttribute('href');
+      if (href) {
+        window.location.href = href;
+      }
+    }
+  }
+
+  // Get current page (normalized key)
+  function getCurrentPage() {
+    return getCurrentPageKey();
+  }
+
+  // Find current menu index (used for some legacy behaviors)
   function getCurrentMenuIndex() {
     const currentPage = getCurrentPage();
     return menuItems.findIndex(item => item.url === currentPage);
   }
 
-  // Navigate to menu item
+  // Navigate to menu item by index
   function navigateToMenuItem(index) {
     if (index >= 0 && index < menuItems.length) {
       window.location.href = menuItems[index].url;
@@ -917,9 +952,12 @@
           return;
         }
         event.preventDefault();
-        const currentIndexUp = getCurrentMenuIndex();
-        if (currentIndexUp > 0) {
-          navigateToMenuItem(currentIndexUp - 1);
+        {
+          const linksUp = getSidebarLinks();
+          if (!linksUp.length) break;
+          const currentIndexUp = getCurrentSidebarIndex();
+          const targetIndexUp = currentIndexUp > 0 ? currentIndexUp - 1 : 0;
+          navigateToSidebarIndex(targetIndexUp);
         }
         break;
 
@@ -929,9 +967,19 @@
           return;
         }
         event.preventDefault();
-        const currentIndexDown = getCurrentMenuIndex();
-        if (currentIndexDown < menuItems.length - 1) {
-          navigateToMenuItem(currentIndexDown + 1);
+        {
+          const linksDown = getSidebarLinks();
+          if (!linksDown.length) break;
+          const currentIndexDown = getCurrentSidebarIndex();
+          let targetIndexDown;
+          if (currentIndexDown === -1) {
+            targetIndexDown = 0;
+          } else if (currentIndexDown < linksDown.length - 1) {
+            targetIndexDown = currentIndexDown + 1;
+          } else {
+            targetIndexDown = linksDown.length - 1;
+          }
+          navigateToSidebarIndex(targetIndexDown);
         }
         break;
 

@@ -41,6 +41,17 @@ function formatMoney($amount, $symbol) {
 
 try {
     switch ($action) {
+        case 'search':
+            // Dedicated search action
+            $searchQuery = $_GET['search'] ?? '';
+            if (!empty($searchQuery)) {
+                $entries = $journalEntryModel->search($searchQuery);
+                echo json_encode(['success' => true, 'data' => $entries]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Search query required']);
+            }
+            break;
+            
         case 'get_entries':
             // Get filter parameters
             $typeFilter = $_GET['type'] ?? 'all';

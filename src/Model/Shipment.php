@@ -19,13 +19,39 @@ class Shipment
     public function getAll(array $filter = [], array $options = []): array
     {
         $options = array_merge([
-            'sort' => ['date' => -1],
+            'sort' => ['createdAt' => -1],
             'limit' => 500
         ], $options);
         $cursor = $this->collection->find($filter, $options);
         $out = [];
         foreach ($cursor as $doc) { $out[] = (array)$doc; }
         return $out;
+    }
+
+    /**
+     * Search shipments by tracking number, customer, or status
+     * This method searches shipments by tracking number, customer name, or status
+     * 
+     * @param string $query
+     * @return array
+     */
+    public function search(string $query): array
+    {
+        $regex = new \MongoDB\BSON\Regex($query, 'i');
+        
+        $items = $this->collection->find([
+            '$or' => [
+                ['shipment_number' => $regex],
+                ['tracking_number' => $regex],
+                ['customer_name' => $regex],
+                ['destination_address' => $regex],
+                ['status' => $regex]
+            ]
+        ])->toArray();
+        
+        return array_map(function($item) {
+            return (array)$item;
+        }, $items);
     }
 
     public function create(array $data): array

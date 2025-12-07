@@ -28,8 +28,16 @@ $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail'
 
 // Real quotations from database
 $quotationModel = new Quotation();
+$searchQuery = $_GET['search'] ?? '';
 try {
-    $quotations = $quotationModel->getAll();
+    if (!empty($searchQuery)) {
+        // Use search method if there's a search query
+        $quotations = $quotationModel->search($searchQuery);
+    } else {
+        // Get all quotations if no search query
+        $quotations = $quotationModel->getAll();
+    }
+    
     // Convert _id ObjectId to string 'id' for easier access
     foreach ($quotations as &$quote) {
         if (isset($quote['_id'])) {
@@ -154,7 +162,7 @@ ob_start();
         <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
         <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <input type="search" class="search-input" placeholder="Search quotations..." id="quote-search">
+      <input type="search" class="search-input" placeholder="Search quotations..." id="quote-search" value="<?= htmlspecialchars($searchQuery) ?>">
     </div>
   </div>
   <div class="toolbar-right">
@@ -555,7 +563,7 @@ ob_start();
 </div>
 
 <!-- Additional Features Section -->
-<div id="advancedCapabilities" style="background: linear-gradient(135deg, hsl(210 20% 98%) 0%, white 100%); border: 1px solid hsl(214 20% 90%); border-radius: 12px; padding: 1.5rem; margin: 2rem 0 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+<div id="advancedCapabilities" style="background: linear-gradient(135deg, hsl(210 20% 98%) 0%, white 100%); border: 1px solid hsl(214 20% 90%); border-radius: 12px; padding: 1.5rem; margin: 2rem 0 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: none;">
   <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;">
     <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #7194A5 0%, hsl(215 25% 65%) 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(113,148,165,0.25);">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -3718,6 +3726,18 @@ window.addEventListener('load', function() {
     ]
   });
 });
+
+// Developer-only helper to reveal the Advanced Capabilities section from the browser console
+window.showAdvancedCapabilities = function() {
+  const section = document.getElementById('advancedCapabilities');
+  if (!section) {
+    console.warn('Advanced Capabilities section not found');
+    return;
+  }
+  section.style.display = '';
+  console.log('Advanced Capabilities section is now visible');
+};
+
 </script>
 
 <?php

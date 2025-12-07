@@ -5,7 +5,17 @@
  */
 
 // Get user info from session
-$username = isset($_SESSION['username']) ? $_SESSION['username'] : 'Guest';
+$rawFullName = isset($_SESSION['full_name']) ? trim((string)$_SESSION['full_name']) : '';
+$rawUsername = isset($_SESSION['username']) ? trim((string)$_SESSION['username']) : '';
+
+if ($rawFullName !== '') {
+    $username = $rawFullName;
+} elseif ($rawUsername !== '') {
+    $username = $rawUsername;
+} else {
+    $username = 'User';
+}
+
 $userInitial = strtoupper(substr($username, 0, 1));
 
 // Get profile photo from session or database

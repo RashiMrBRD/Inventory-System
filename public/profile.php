@@ -4,11 +4,7 @@
  * Manage user account, profile photo, password, and personal information
  */
 
-// Prevent caching for reverse proxy compatibility
-header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
-
+// Prevent caching for reverse proxy compatibility (now handled globally in layout.php)
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
@@ -737,8 +733,10 @@ ob_start();
 
 // ========== EXPERIMENTAL FEATURE WARNING ==========
 // To remove this warning system, delete the following 2 lines and the features/experimental-warning folder
-require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
-renderExperimentalWarning('User Profile Management');
+if (false) {
+    require_once __DIR__ . '/features/experimental-warning/experimental-warning.php';
+    renderExperimentalWarning('User Profile Management');
+}
 // System auto-detects page and shows contextual warning with natural language
 // ===================================================
 ?>

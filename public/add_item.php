@@ -116,7 +116,7 @@ ob_start();
         <form method="POST" id="itemForm">
           <!-- BASIC INFO TAB -->
           <div class="tab-content active" id="tab-basic" style="padding: 2rem;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               <!-- Barcode -->
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">
@@ -124,7 +124,7 @@ ob_start();
                 </label>
                 <div style="display: flex; gap: 0.5rem;">
                   <input type="text" id="barcode" name="barcode" class="form-input" placeholder="Enter barcode" required autofocus style="flex: 1;">
-                  <button type="button" onclick="scanBarcode()" style="padding: 0.625rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer;" title="Scan barcode">
+                  <button type="button" id="barcode-scan-btn" style="padding: 0.625rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer;" title="Scan barcode">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" stroke-width="2"/></svg>
                   </button>
                 </div>
@@ -1017,6 +1017,52 @@ document.addEventListener('DOMContentLoaded', function() {
   const optionalCount = document.getElementById('optionalCount');
   const formStatusBadge = document.getElementById('formStatusBadge');
   const submitBtn = document.getElementById('submitBtn');
+  const barcodeScanBtn = document.getElementById('barcode-scan-btn');
+  if (barcodeScanBtn) {
+    let barcodePressTimer = null;
+    let barcodeLongPressTriggered = false;
+    const barcodeLongPressThreshold = 600;
+    function startBarcodePress() {
+      barcodeLongPressTriggered = false;
+      barcodePressTimer = window.setTimeout(function() {
+        barcodeLongPressTriggered = true;
+        scanBarcode();
+      }, barcodeLongPressThreshold);
+    }
+    function endBarcodePress() {
+      if (barcodePressTimer !== null) {
+        clearTimeout(barcodePressTimer);
+        barcodePressTimer = null;
+        if (!barcodeLongPressTriggered) {
+          if (typeof openBarcodeScanner === 'function') {
+            openBarcodeScanner();
+          } else {
+            scanBarcode();
+          }
+        }
+      }
+    }
+    barcodeScanBtn.addEventListener('mousedown', function(e) {
+      if (e.button !== 0) return;
+      startBarcodePress();
+    });
+    barcodeScanBtn.addEventListener('mouseup', function(e) {
+      if (e.button !== 0) return;
+      endBarcodePress();
+    });
+    barcodeScanBtn.addEventListener('mouseleave', function() {
+      endBarcodePress();
+    });
+    barcodeScanBtn.addEventListener('touchstart', function() {
+      startBarcodePress();
+    }, { passive: true });
+    barcodeScanBtn.addEventListener('touchend', function() {
+      endBarcodePress();
+    });
+    barcodeScanBtn.addEventListener('touchcancel', function() {
+      endBarcodePress();
+    });
+  }
   
   function updateProgress() {
     // Count filled required fields

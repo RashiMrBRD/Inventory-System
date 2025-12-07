@@ -22,6 +22,22 @@ class User
     }
 
     /**
+     * Check if there is at least one user in the collection
+     *
+     * @return bool
+     */
+    public function hasAnyUser(): bool
+    {
+        try {
+            $user = $this->collection->findOne([]);
+            return $user !== null;
+        } catch (\Exception $e) {
+            // Fail closed: assume users exist to avoid exposing setup unintentionally
+            return true;
+        }
+    }
+
+    /**
      * Find a user by username
      * 
      * @param string $username

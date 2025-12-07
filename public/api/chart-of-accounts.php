@@ -53,6 +53,17 @@ function formatMoney($amount, $symbol) {
 
 try {
     switch ($action) {
+        case 'search':
+            // Dedicated search action
+            $searchQuery = $_GET['search'] ?? '';
+            if (!empty($searchQuery)) {
+                $accounts = $chartOfAccountsModel->search($searchQuery);
+                echo json_encode(['success' => true, 'data' => $accounts]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Search query required']);
+            }
+            break;
+            
         case 'get_accounts':
             // Get filter parameters
             $viewMode = $_GET['view'] ?? 'grouped';

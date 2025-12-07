@@ -513,6 +513,31 @@ class JournalEntry
     }
 
     /**
+     * Search journal entries by entry number, description, or amount
+     * This method searches journal entries by entry number, description, or amount
+     * 
+     * @param string $query
+     * @return array
+     */
+    public function search(string $query): array
+    {
+        $regex = new \MongoDB\BSON\Regex($query, 'i');
+        
+        $items = $this->collection->find([
+            '$or' => [
+                ['entry_number' => $regex],
+                ['description' => $regex],
+                ['reference_number' => $regex],
+                ['notes' => $regex]
+            ]
+        ])->toArray();
+        
+        return array_map(function($item) {
+            return (array)$item;
+        }, $items);
+    }
+
+    /**
      * Get entries by date range
      * 
      * @param string $startDate Start date (Y-m-d)

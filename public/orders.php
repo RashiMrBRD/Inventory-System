@@ -18,10 +18,10 @@ $user = $authController->getCurrentUser();
 $appConfig = require __DIR__ . '/../config/app.php';
 $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
 
-// Load orders from database
+// Load active orders from database (excluding 100% completed ones)
 $orderModel = new Order();
 try {
-    $orders = $orderModel->getAll();
+    $orders = $orderModel->getActiveOrders();
     foreach ($orders as &$order) {
         if (isset($order['_id'])) {
             $order['id'] = (string)$order['_id'];
@@ -46,6 +46,59 @@ $cancelledCount = count(array_filter($orders, fn($o) => ($o['status'] ?? '') ===
 $salesValue = array_sum(array_map(fn($o) => (float)($o['total'] ?? 0), $salesOrders));
 $purchaseValue = array_sum(array_map(fn($o) => (float)($o['total'] ?? 0), $purchaseOrders));
 $totalValue = array_sum(array_map(fn($o) => (float)($o['total'] ?? 0), $orders));
+
+// API handler for convert to invoice
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'convert_to_invoice') {
+    try {
+        header('Content-Type: application/json');
+        $orderId = $_POST['order_id'] ?? '';
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'error' => 'Order ID missing']);
+            exit;
+        }
+        
+        error_log("DEBUG: Starting conversion for order ID: $orderId");
+        
+        $invoiceId = $orderModel->convertToInvoice($orderId);
+        
+        if ($invoiceId) {
+            error_log("DEBUG: Conversion successful, invoice ID: $invoiceId");
+            
+            // Get the created invoice to return the invoice number
+            $invoiceModel = new \App\Model\Invoice();
+            $invoice = $invoiceModel->findById($invoiceId);
+            $invoiceNumber = $invoice['invoice_number'] ?? 'Unknown';
+            
+            error_log("DEBUG: Retrieved invoice number: $invoiceNumber");
+            
+            echo json_encode([
+                'success' => true, 
+                'invoice_id' => $invoiceId,
+                'invoice_number' => $invoiceNumber
+            ]);
+        } else {
+            error_log("DEBUG: Conversion failed for order ID: $orderId");
+            echo json_encode(['success' => false, 'error' => 'Failed to convert order to invoice']);
+        }
+    } catch (Exception $e) {
+        error_log("ERROR: Convert to invoice exception: " . $e->getMessage());
+        error_log("ERROR: Stack trace: " . $e->getTraceAsString());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Server error: ' . $e->getMessage()
+        ]);
+    } catch (Error $e) {
+        error_log("ERROR: Convert to invoice fatal error: " . $e->getMessage());
+        error_log("ERROR: Stack trace: " . $e->getTraceAsString());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Fatal error: ' . $e->getMessage()
+        ]);
+    }
+    exit;
+}
 
 $pageTitle = 'Orders';
 ob_start();
@@ -258,6 +311,12 @@ label[data-required="true"]::after {
       <option value="processing">Processing</option>
       <option value="shipped">Shipped</option>
     </select>
+    <button class="btn btn-ghost btn-icon" onclick="refreshOrdersData()" title="Refresh Orders">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
     <button class="btn btn-ghost btn-icon" onclick="showExportMenu()" title="Export">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -412,12 +471,6 @@ label[data-required="true"]::after {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
                 <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="recordPayment('<?php echo $order['id']; ?>')" title="Record Payment">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="5" width="20" height="14" rx="2"/>
-                <path d="M2 10h20"/>
               </svg>
             </button>
             <button class="btn btn-ghost btn-sm" onclick="printOrder('<?php echo $order['id']; ?>')" title="Print/PDF">
@@ -594,10 +647,6 @@ label[data-required="true"]::after {
       <button type="button" onclick="emailOrderFromView()" class="btn btn-ghost" <?php if (!$smtpConfigured): ?>disabled style="opacity: 0.5; cursor: not-allowed;"<?php endif; ?>>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
         Email<?php if (!$smtpConfigured): ?> <span style="font-size: 0.75rem;">(SMTP not configured)</span><?php endif; ?>
-      </button>
-      <button type="button" onclick="recordPaymentFromView()" class="btn btn-ghost" style="background: hsl(143 85% 96%); color: hsl(140 61% 13%); border: 1px solid hsl(143 60% 80%);">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-        Record Payment
       </button>
       <button type="button" onclick="closeViewOrderModal()" class="btn btn-primary">Close</button>
     </div>
@@ -1176,7 +1225,7 @@ function createOrderRow(order) {
   tr.setAttribute('data-order-id', order.id);
   
   // Calculate payment percentage
-  const paid = parseFloat(order.amount_paid || 0);
+  const paid = parseFloat(order.paid || 0);
   const total = parseFloat(order.total || 0);
   const percentage = total > 0 ? (paid / total) * 100 : 0;
   const statusColor = percentage >= 100 ? 'hsl(140 61% 13%)' : (percentage > 0 ? 'hsl(25 95% 16%)' : 'hsl(215 16% 47%)');
@@ -1228,12 +1277,6 @@ function createOrderRow(order) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
             <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-        <button class="btn btn-ghost btn-sm" onclick="recordPayment('${order.id}')" title="Record Payment">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="5" width="20" height="14" rx="2"/>
-            <path d="M2 10h20"/>
           </svg>
         </button>
         <button class="btn btn-ghost btn-sm" onclick="printOrder('${order.id}')" title="Print/PDF">
@@ -1372,6 +1415,12 @@ function applyFilters() {
     // Status filter
     if (statusFilter !== 'all' && order.status !== statusFilter) return false;
     
+    // Hide 100% paid orders
+    const paid = parseFloat(order.paid || 0);
+    const total = parseFloat(order.total || 0);
+    const paymentPercentage = total > 0 ? (paid / total) * 100 : 0;
+    if (paymentPercentage >= 100) return false;
+    
     // Search filter
     if (searchQuery) {
       const searchableText = [
@@ -1410,7 +1459,95 @@ document.addEventListener('DOMContentLoaded', function() {
   if (ordersData.length > 0) {
     renderTable();
   }
+  
+  // Start real-time updates for payment progress
+  startPaymentUpdates();
 });
+
+// Real-time payment updates
+function startPaymentUpdates() {
+  // Check for updates every 30 seconds
+  setInterval(async () => {
+    try {
+      console.log('🔄 Checking for payment updates...');
+      
+      // Fetch current orders data
+      const response = await fetch('/api/orders.php?action=get_active_orders');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the original data with fresh data
+        const updatedOrders = data.orders || [];
+        
+        // Check for payment changes
+        let hasChanges = false;
+        updatedOrders.forEach(updatedOrder => {
+          const existingOrder = originalOrdersData.find(o => o.id === updatedOrder.id);
+          if (existingOrder) {
+            const oldPaid = parseFloat(existingOrder.paid || 0);
+            const newPaid = parseFloat(updatedOrder.paid || 0);
+            const oldTotal = parseFloat(existingOrder.total || 0);
+            const newTotal = parseFloat(updatedOrder.total || 0);
+            
+            if (oldPaid !== newPaid || oldTotal !== newTotal) {
+              hasChanges = true;
+              console.log(`💰 Payment updated for order ${updatedOrder.id}: ${oldPaid}→${newPaid}/${newTotal}`);
+              
+              // Update the original data
+              Object.assign(existingOrder, updatedOrder);
+            }
+          }
+        });
+        
+        // If there are changes, refresh the table
+        if (hasChanges) {
+          console.log('🔄 Refreshing orders table due to payment updates...');
+          applyFilters();
+          
+          // Show notification about updates
+          const updatedCount = updatedOrders.filter(order => {
+            const existingOrder = originalOrdersData.find(o => o.id === order.id);
+            if (existingOrder) {
+              const oldPaid = parseFloat(existingOrder.paid || 0);
+              const newPaid = parseFloat(order.paid || 0);
+              return oldPaid !== newPaid;
+            }
+            return false;
+          }).length;
+          
+          if (updatedCount > 0) {
+            Toast.info(`Payment progress updated for ${updatedCount} order${updatedCount === 1 ? '' : 's'}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking payment updates:', error);
+    }
+  }, 30000); // 30 seconds
+}
+
+// Manual refresh function
+function refreshOrdersData() {
+  console.log('🔄 Manually refreshing orders data...');
+  
+  fetch('/api/orders.php?action=get_active_orders')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update original data
+        originalOrdersData.length = 0; // Clear array
+        originalOrdersData.push(...(data.orders || []));
+        
+        // Refresh table
+        applyFilters();
+        Toast.success('Orders data refreshed');
+      }
+    })
+    .catch(error => {
+      console.error('Error refreshing orders:', error);
+      Toast.error('Failed to refresh orders data');
+    });
+}
 
 function showNewOrderModal() {
   const modal = document.getElementById('newOrderModal');
@@ -2244,201 +2381,6 @@ function emailOrderFromView() {
   emailOrder(orderId);
 }
 
-function recordPaymentFromView() {
-  const orderId = document.getElementById('viewOrderModal').getAttribute('data-order-id');
-  recordPayment(orderId);
-}
-
-async function recordPayment(orderId) {
-  // Show loading modal
-  const loadingModal = document.createElement('div');
-  loadingModal.id = 'paymentLoadingModal';
-  loadingModal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); pointer-events: auto;';
-  loadingModal.innerHTML = `
-    <div style="background: white; border-radius: 12px; padding: 3rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center;">
-      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="hsl(140 61% 50%)" stroke-width="2" style="animation: spin 1s linear infinite; margin: 0 auto;">
-        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
-        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
-      </svg>
-      <p style="margin-top: 1rem; color: hsl(215 16% 47%); font-weight: 600;">Loading order details...</p>
-    </div>
-  `;
-  document.body.appendChild(loadingModal);
-  
-  try {
-    // Fetch order data to get balance
-    const response = await fetch(`api/orders.php?id=${orderId}`);
-    const result = await response.json();
-    
-    if (!result.success || !result.data) {
-      loadingModal.remove();
-      Toast.error('Failed to load order details');
-      return;
-    }
-    
-    const order = result.data;
-    const total = parseFloat(order.total || 0);
-    const paid = parseFloat(order.amount_paid || 0);
-    const balanceDue = (total - paid).toFixed(2);
-    const orderNumber = order.order_number || orderId;
-    
-    // Remove loading modal
-    loadingModal.remove();
-    
-    // Create payment modal
-    const modal = document.createElement('div');
-    modal.id = 'paymentModal';
-    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); pointer-events: auto; animation: fadeIn 0.2s ease;';
-    
-    modal.innerHTML = `
-      <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 520px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); pointer-events: auto; animation: slideUp 0.3s ease;">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-          <div style="width: 48px; height: 48px; background: linear-gradient(135deg, hsl(143 85% 96%) 0%, hsl(143 75% 92%) 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid hsl(143 70% 85%);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(140 61% 13%)" stroke-width="2.5">
-              <rect x="2" y="5" width="20" height="14" rx="2"/>
-              <path d="M2 10h20"/>
-            </svg>
-          </div>
-          <div style="flex: 1;">
-            <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: hsl(222 47% 17%); letter-spacing: -0.02em;">Record Payment</h3>
-            <p style="font-size: 0.875rem; color: hsl(215 16% 47%); margin: 0.25rem 0 0; font-family: monospace; font-weight: 500;">${orderNumber}</p>
-          </div>
-        </div>
-        
-        <!-- Balance Due Info -->
-        <div style="background: linear-gradient(135deg, hsl(0 86% 97%) 0%, hsl(0 80% 95%) 100%); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid hsl(0 74% 85%);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <span style="font-size: 0.75rem; font-weight: 700; color: hsl(0 74% 30%); text-transform: uppercase; letter-spacing: 0.05em;">Total Amount</span>
-            <span style="font-size: 1rem; font-weight: 700; font-family: monospace; color: hsl(0 74% 24%);">${ORDER_CURRENCY_SYMBOL}${total.toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid hsl(0 74% 85%);">
-            <span style="font-size: 0.75rem; font-weight: 700; color: hsl(140 61% 30%); text-transform: uppercase; letter-spacing: 0.05em;">Amount Paid</span>
-            <span style="font-size: 1rem; font-weight: 700; font-family: monospace; color: hsl(140 61% 20%);">${ORDER_CURRENCY_SYMBOL}${paid.toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 0.875rem; font-weight: 800; color: hsl(0 74% 24%); text-transform: uppercase; letter-spacing: 0.05em;">Balance Due</span>
-            <span style="font-size: 1.5rem; font-weight: 800; font-family: monospace; color: hsl(0 74% 42%);">${ORDER_CURRENCY_SYMBOL}${balanceDue}</span>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 1rem;">
-          <label style="display: block; font-size: 0.875rem; font-weight: 600; color: hsl(222 47% 17%); margin-bottom: 0.5rem;">Payment Amount</label>
-          <div style="position: relative;">
-            <input type="number" id="paymentAmount" placeholder="0.00" value="${balanceDue}" step="0.01" min="0" style="width: 100%; padding: 0.875rem 4.5rem 0.875rem 0.875rem; border: 2px solid hsl(143 60% 80%); border-radius: 8px; font-size: 1.125rem; font-family: monospace; font-weight: 700; background: hsl(143 85% 98%); color: hsl(140 61% 13%); transition: all 0.2s;" onfocus="this.style.borderColor='hsl(140 61% 50%)'; this.style.background='white'" onblur="this.style.borderColor='hsl(143 60% 80%)'; this.style.background='hsl(143 85% 98%)'">
-            <button type="button" onclick="document.getElementById('paymentAmount').value='${balanceDue}'" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); padding: 0.5rem 0.875rem; background: hsl(143 85% 96%); color: hsl(140 61% 13%); border: 1.5px solid hsl(143 60% 80%); border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em;" onmouseover="this.style.background='hsl(140 61% 50%)'; this.style.color='white'; this.style.borderColor='hsl(140 61% 50%)'" onmouseout="this.style.background='hsl(143 85% 96%)'; this.style.color='hsl(140 61% 13%)'; this.style.borderColor='hsl(143 60% 80%)'">Full</button>
-          </div>
-        </div>
-      
-      <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: hsl(222 47% 17%); margin-bottom: 0.5rem;">Payment Date</label>
-        <input type="date" id="paymentDate" value="${new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 0.75rem; border: 1.5px solid hsl(214 20% 88%); border-radius: 8px;">
-      </div>
-      
-      <div style="margin-bottom: 1.5rem;">
-        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: hsl(222 47% 17%); margin-bottom: 0.5rem;">Payment Method</label>
-        <select id="paymentMethod" style="width: 100%; padding: 0.75rem; border: 1.5px solid hsl(214 20% 88%); border-radius: 8px;">
-          <option value="cash">Cash</option>
-          <option value="check">Check</option>
-          <option value="bank_transfer">Bank Transfer</option>
-          <option value="credit_card">Credit Card</option>
-          <option value="paypal">PayPal</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      
-        <div style="display: flex; gap: 0.75rem;">
-          <button type="button" onclick="document.getElementById('paymentModal').remove()" style="flex: 1; padding: 0.875rem 1.25rem; background: white; border: 2px solid hsl(214 20% 85%); border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.875rem; color: hsl(222 47% 17%); transition: all 0.2s;" onmouseover="this.style.borderColor='hsl(214 20% 70%)'; this.style.background='hsl(240 5% 98%)'" onmouseout="this.style.borderColor='hsl(214 20% 85%)'; this.style.background='white'">Cancel</button>
-          <button type="button" onclick="savePayment('${orderId}')" style="flex: 1; padding: 0.875rem 1.25rem; background: linear-gradient(135deg, hsl(140 61% 50%), hsl(140 61% 40%)); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.875rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(72, 187, 120, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(72, 187, 120, 0.3)'">
-            <span style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
-              Record Payment
-            </span>
-          </button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Focus on amount input
-    setTimeout(() => {
-      const amountInput = document.getElementById('paymentAmount');
-      if (amountInput) {
-        amountInput.focus();
-        amountInput.select();
-      }
-    }, 100);
-    
-    // Close on clicking outside
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
-    });
-    
-  } catch (error) {
-    loadingModal.remove();
-    console.error('Error loading order:', error);
-    Toast.error('Failed to load order details. Please try again.');
-  }
-}
-
-async function savePayment(orderId) {
-  const amount = document.getElementById('paymentAmount').value;
-  const date = document.getElementById('paymentDate').value;
-  const method = document.getElementById('paymentMethod').value;
-  
-  if (!amount || parseFloat(amount) <= 0) {
-    Toast.error('Please enter a valid payment amount');
-    return;
-  }
-  
-  // Show loading
-  const saveBtn = event.target;
-  const originalText = saveBtn.textContent;
-  saveBtn.disabled = true;
-  saveBtn.textContent = 'Recording...';
-  
-  try {
-    const response = await fetch('api/orders.php', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        id: orderId,
-        action: 'record_payment',
-        payment: {
-          amount: parseFloat(amount),
-          date: date,
-          method: method
-        }
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      Toast.success(`Payment of ${ORDER_CURRENCY_SYMBOL}${parseFloat(amount).toFixed(2)} recorded successfully`);
-      document.getElementById('paymentModal').remove();
-      
-      // Reload page to show updated payment status
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } else {
-      Toast.error(result.message || 'Failed to record payment');
-      saveBtn.disabled = false;
-      saveBtn.textContent = originalText;
-    }
-  } catch (error) {
-    console.error('Payment recording error:', error);
-    Toast.error('Network error. Please try again.');
-    saveBtn.disabled = false;
-    saveBtn.textContent = originalText;
-  }
-}
-
 function printOrder(orderId) {
   // Open PDF in modal viewer
   try {
@@ -2737,8 +2679,25 @@ function handleOrderAction(action) {
     case 'invoice':
       console.log('📄 Converting to invoice:', currentOrderId);
       if (confirm('Convert this order to an invoice?\n\nThis will create a new invoice based on this order.')) {
-        Toast.info('Convert to invoice feature coming soon!');
-        // TODO: Implement conversion via API
+        fetch('orders.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ action: 'convert_to_invoice', order_id: currentOrderId })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const invoiceNumber = data.invoice_number || 'Unknown';
+            Toast.success(`Order converted to invoice successfully!\n📄 Invoice #: ${invoiceNumber}`);
+            setTimeout(() => { window.location.href = 'invoicing.php'; }, 800);
+          } else {
+            Toast.error('Failed to convert order to invoice: ' + (data.error || 'Unknown error'));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          Toast.error('An error occurred while converting to invoice.');
+        });
       }
       break;
       

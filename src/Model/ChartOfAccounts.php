@@ -93,6 +93,31 @@ class ChartOfAccounts
     }
 
     /**
+     * Search accounts by name, code, or type
+     * This method searches accounts by account name, account code, or account type
+     * 
+     * @param string $query
+     * @return array
+     */
+    public function search(string $query): array
+    {
+        $regex = new \MongoDB\BSON\Regex($query, 'i');
+        
+        $items = $this->collection->find([
+            '$or' => [
+                ['account_name' => $regex],
+                ['account_code' => $regex],
+                ['account_type' => $regex],
+                ['account_subtype' => $regex]
+            ]
+        ])->toArray();
+        
+        return array_map(function($item) {
+            return (array)$item;
+        }, $items);
+    }
+
+    /**
      * Get accounts by type
      * 
      * @param string $type Account type

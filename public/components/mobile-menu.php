@@ -9,7 +9,17 @@
 $currentPage = basename($_SERVER['PHP_SELF']);
 
 // Get user info
-$username = isset($_SESSION['username']) ? $_SESSION['username'] : 'Guest';
+$rawFullName = isset($_SESSION['full_name']) ? trim((string)$_SESSION['full_name']) : '';
+$rawUsername = isset($_SESSION['username']) ? trim((string)$_SESSION['username']) : '';
+
+if ($rawFullName !== '') {
+    $username = $rawFullName;
+} elseif ($rawUsername !== '') {
+    $username = $rawUsername;
+} else {
+    $username = 'User';
+}
+
 $userInitial = strtoupper(substr($username, 0, 1));
 $userEmail = isset($_SESSION['email']) ? $_SESSION['email'] : '';
 

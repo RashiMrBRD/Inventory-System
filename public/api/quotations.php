@@ -277,7 +277,25 @@ try {
             break;
             
         case 'GET':
-            if ($action === 'list') {
+            if ($action === 'search') {
+                $searchQuery = $_GET['search'] ?? '';
+                if (!empty($searchQuery)) {
+                    $quotations = $quotationModel->search($searchQuery);
+                    // Convert _id to id string
+                    foreach ($quotations as &$quote) {
+                        if (isset($quote['_id'])) {
+                            $quote['id'] = (string)$quote['_id'];
+                        }
+                    }
+                    unset($quote);
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $quotations
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Search query required']);
+                }
+            } elseif ($action === 'list') {
                 $quotations = $quotationModel->getAll();
                 // Convert _id to id string
                 foreach ($quotations as &$quote) {

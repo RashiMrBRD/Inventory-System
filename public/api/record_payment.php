@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Model\Invoice;
+use App\Model\Order;
 use App\Helper\CurrencyHelper;
 
 // Authenticate
@@ -114,6 +115,22 @@ try {
     $success = $invoiceModel->update($invoiceId, $updateData);
     
     if ($success) {
+        // If this invoice is linked to an order, update the order's payment status
+        $orderUpdated = false;
+        if (isset($invoice['order_id']) && $invoice['order_id']) {
+            try {
+                $orderModel = new Order();
+                $orderUpdated = $orderModel->updatePayment($invoice['order_id'], $paymentAmount);
+                
+                if ($orderUpdated) {
+                    error_log("DEBUG: Updated payment for related order: " . $invoice['order_id']);
+                }
+            } catch (\Exception $e) {
+                error_log("ERROR: Failed to update related order payment: " . $e->getMessage());
+                // Don't fail the payment recording if order update fails
+            }
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => 'Payment recorded successfully',
@@ -121,7 +138,8 @@ try {
             'payment_amount' => $paymentAmount,
             'total_paid' => $newPaidAmount,
             'balance' => $newBalance,
-            'status' => $newStatus
+            'status' => $newStatus,
+            'order_updated' => $orderUpdated
         ]);
     } else {
         http_response_code(500);

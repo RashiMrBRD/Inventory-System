@@ -697,6 +697,241 @@
   transform: translateY(-50%);
   color: var(--text-muted);
   pointer-events: none;
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mindblowing search icon animations */
+.search-wrapper:focus-within .search-icon {
+  color: #3b82f6;
+  animation: searchIconPulse 2s ease-in-out infinite;
+}
+
+.search-wrapper:focus-within .search-icon::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  animation: searchIconGlow 2s ease-in-out infinite;
+  z-index: -1;
+}
+
+.search-wrapper:focus-within .search-icon::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  animation: searchIconRing 2s ease-in-out infinite;
+  z-index: -2;
+}
+
+.search-wrapper:hover .search-icon {
+  color: #64748b;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.search-input:focus + .search-icon {
+  color: #3b82f6;
+  transform: translateY(-50%) scale(1.05);
+}
+
+/* Search icon pulse animation */
+@keyframes searchIconPulse {
+  0%, 100% {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-50%) scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+/* Search icon glow animation */
+@keyframes searchIconGlow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Search icon ring animation */
+@keyframes searchIconRing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.2;
+    border-color: rgba(59, 130, 246, 0.1);
+  }
+}
+
+/* Search input focus enhancement */
+.search-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 20px rgba(59, 130, 246, 0.05) !important;
+  outline: none;
+  color: #1f2937 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Search wrapper focus enhancement */
+.search-wrapper:focus-within {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+}
+
+/* Typing animation for search icon */
+.search-wrapper.typing .search-icon {
+  animation: searchIconTyping 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes searchIconTyping {
+  0% {
+    transform: translateY(-50%) rotate(-5deg) scale(1);
+  }
+  100% {
+    transform: translateY(-50%) rotate(5deg) scale(1.1);
+  }
+}
+
+/* Success animation */
+.search-wrapper.success .search-icon {
+  color: #10b981;
+  animation: searchIconSuccess 0.6s ease-out;
+}
+
+@keyframes searchIconSuccess {
+  0% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.3);
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* Loading animation */
+.search-wrapper.loading .search-icon {
+  animation: searchIconLoading 1s linear infinite;
+}
+
+@keyframes searchIconLoading {
+  0% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+/* Click animation */
+.search-wrapper.clicked .search-icon {
+  animation: searchIconClick 0.3s ease-out;
+}
+
+.search-wrapper.clicked {
+  transform: scale(0.98);
+}
+
+@keyframes searchIconClick {
+  0% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(0.9);
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* Enhanced hover effects */
+.search-wrapper {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.search-wrapper:hover {
+  transform: translateY(-2px);
+}
+
+.search-wrapper:hover .search-input {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus ripple effect */
+.search-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.5rem;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.search-wrapper:focus-within::before {
+  opacity: 1;
+  animation: rippleEffect 0.6s ease-out;
+}
+
+@keyframes rippleEffect {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Micro-interactions */
+.search-wrapper:not(.loading):not(.success):not(.typing) .search-icon {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-wrapper:not(.loading):not(.success):not(.typing):hover .search-icon {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+}
+
+/* Enhanced input focus */
+.search-input {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-input::placeholder {
+  transition: opacity 0.2s ease;
+}
+
+.search-input:focus::placeholder {
+  opacity: 0.7;
 }
 
 /* ===================================

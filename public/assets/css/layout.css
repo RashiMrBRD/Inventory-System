@@ -29,7 +29,7 @@
   background-color: var(--bg-primary);
   border-right: var(--border-width) solid var(--border-color);
   transition: width var(--transition-base), transform var(--transition-base);
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
 }
 
@@ -67,6 +67,36 @@
 
 .sidebar-nav {
   padding: var(--space-4) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-height));
+}
+
+.sidebar-nav-bottom {
+  margin-top: auto;
+  position: relative;
+}
+
+.sidebar-nav-top {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.sidebar-nav-top::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.sidebar-nav-bottom::before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 24px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--bg-primary));
 }
 
 .sidebar-section {
@@ -216,6 +246,30 @@
 .notification-menu .dropdown-menu {
   right: 0;
   left: auto;
+}
+
+/* Hide scrollbar for notification dropdown - shadcn style */
+.notification-menu .dropdown-menu {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.notification-menu .dropdown-menu::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  background: transparent;
+}
+
+.notification-menu .dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notification-menu .dropdown-menu::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.notification-menu .dropdown-menu::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .app-title {
@@ -537,6 +591,8 @@
   background-color: rgba(0, 0, 0, 0.5);
   opacity: 0;
   visibility: hidden;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: all var(--transition-base);
 }
 

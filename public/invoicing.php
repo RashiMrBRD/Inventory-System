@@ -27,12 +27,20 @@ $financialAlerts = $notificationSummary['by_type']['financial'] ?? 0;
 
 // Real invoices from database with pagination
 $invoiceModel = new Invoice();
+$searchQuery = $_GET['search'] ?? '';
 try {
-    // Load first page (6 items) for initial display
-    $paginatedResult = $invoiceModel->getPaginated(1, 6);
-    $invoices = $paginatedResult['items'];
-    $totalInvoices = $paginatedResult['total'];
-    $totalPages = $paginatedResult['totalPages'];
+    if (!empty($searchQuery)) {
+        // Use search method if there's a search query
+        $invoices = $invoiceModel->search($searchQuery);
+        $totalInvoices = count($invoices);
+        $totalPages = 1;
+    } else {
+        // Load first page (6 items) for initial display
+        $paginatedResult = $invoiceModel->getPaginated(1, 6);
+        $invoices = $paginatedResult['items'];
+        $totalInvoices = $paginatedResult['total'];
+        $totalPages = $paginatedResult['totalPages'];
+    }
     
     $totals = $invoiceModel->totals();
     $totalRevenue = $totals['total'];
@@ -52,10 +60,13 @@ try {
         }
     }
 } catch (\Exception $e) {
+    error_log('Error loading invoices: ' . $e->getMessage());
     $invoices = [];
     $totalInvoices = 0;
     $totalPages = 0;
-    $totalRevenue = 0; $totalPaid = 0; $totalOutstanding = 0;
+    $totalRevenue = 0;
+    $totalPaid = 0;
+    $totalOutstanding = 0;
     $overdueCount = 0;
 }
 
@@ -169,7 +180,7 @@ ob_start();
           <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
           <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <input type="search" id="invoice-search" placeholder="Search invoices..." style="width: 100%; padding: 0.625rem 0.875rem 0.625rem 2.75rem; border: 1.5px solid hsl(214 20% 88%); border-radius: 8px; font-size: 0.875rem; transition: all 0.2s; background: hsl(214 20% 98%);" onfocus="this.style.borderColor='#7194A5'; this.style.boxShadow='0 0 0 3px rgba(113,148,165,0.1)'; this.style.background='white'" onblur="this.style.borderColor='hsl(214 20% 88%)'; this.style.boxShadow='none'; this.style.background='hsl(214 20% 98%)'">
+        <input type="search" id="invoice-search" placeholder="Search invoices..." value="<?= htmlspecialchars($searchQuery) ?>" style="width: 100%; padding: 0.625rem 0.875rem 0.625rem 2.75rem; border: 1.5px solid hsl(214 20% 88%); border-radius: 8px; font-size: 0.875rem; transition: all 0.2s; background: hsl(214 20% 98%);" onfocus="this.style.borderColor='#7194A5'; this.style.boxShadow='0 0 0 3px rgba(113,148,165,0.1)'; this.style.background='white'" onblur="this.style.borderColor='hsl(214 20% 88%)'; this.style.boxShadow='none'; this.style.background='hsl(214 20% 98%)'">
       </div>
       
       <!-- Status Filter -->
@@ -1677,10 +1688,12 @@ function generateInvoiceNumber() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
   
-  const invoiceNumber = `INV-${year}${month}${day}-${random}`;
+  // For frontend, we'll use a random number since we can't count existing invoices
+  // The backend will override this with the correct sequential number
+  const random = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+  
+  const invoiceNumber = `INV-${year}${month}-${random}`;
   document.getElementById('invoiceNumberInput').value = invoiceNumber;
   
   // Add animation effect
@@ -1744,7 +1757,7 @@ function attemptCloseInvoiceModal() {
   let hasTextInput = false;
   textInputs.forEach(input => {
     // Skip auto-generated invoice/reference numbers that match the pattern
-    const isInvoiceNumber = input.name === 'invoice_number' && /^INV-\d{8}-\d{3}$/.test(input.value);
+    const isInvoiceNumber = input.name === 'invoice_number' && /^INV-\d{6}-\d{3}$/.test(input.value);
     const isReferenceNumber = input.name === 'reference' && /^REF-\d{6}-\d{4}$/.test(input.value);
     
     // Skip date fields that have default values

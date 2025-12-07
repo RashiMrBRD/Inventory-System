@@ -50,6 +50,48 @@ class Quotation
         return $out;
     }
 
+    /**
+     * Search quotations by quote number, customer, or status
+     * This method searches quotations by quote number, customer name, or status
+     * 
+     * @param string $query
+     * @return array
+     */
+    public function search(string $query): array
+    {
+        $regex = new \MongoDB\BSON\Regex($query, 'i');
+        
+        $items = $this->collection->find([
+            '$or' => [
+                ['quote_number' => $regex],
+                ['customer_name' => $regex],
+                ['customer_email' => $regex],
+                ['status' => $regex]
+            ]
+        ])->toArray();
+        
+        $out = [];
+        foreach ($items as $doc) {
+            $doc = (array)$doc;
+            // Convert MongoDB UTCDateTime objects to ISO string format
+            if (isset($doc['date']) && $doc['date'] instanceof UTCDateTime) {
+                $doc['date'] = $doc['date']->toDateTime()->format('Y-m-d');
+            }
+            if (isset($doc['created_at']) && $doc['created_at'] instanceof UTCDateTime) {
+                $doc['created_at'] = $doc['created_at']->toDateTime()->format('Y-m-d H:i:s');
+            }
+            if (isset($doc['updated_at']) && $doc['updated_at'] instanceof UTCDateTime) {
+                $doc['updated_at'] = $doc['updated_at']->toDateTime()->format('Y-m-d H:i:s');
+            }
+            if (isset($doc['valid_until']) && $doc['valid_until'] instanceof UTCDateTime) {
+                $doc['valid_until'] = $doc['valid_until']->toDateTime()->format('Y-m-d');
+            }
+            $out[] = $doc;
+        }
+        
+        return $out;
+    }
+
     public function findById(string $id): ?array
     {
         try {
@@ -171,19 +213,59 @@ class Quotation
         try {
             $quote = $this->findById($id);
             if (!$quote) return null;
-            
-            // Update quote status
-            $this->updateStatus($id, 'converted');
-            
-            // Return order data
-            return [
-                'quote_id' => $id,
+
+            // Create a Sales order based on the quotation so it appears in orders.php
+            $orderModel = new Order();
+
+            $orderNumber = 'ORD-' . date('Ymd') . '-' . str_pad((string)rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $items = $quote['items'] ?? [];
+
+            // Use quotation financials when available
+            $subtotal = isset($quote['subtotal']) ? (float)$quote['subtotal'] : 0;
+            $tax = isset($quote['tax']) ? (float)$quote['tax'] : 0;
+            $total = isset($quote['total']) ? (float)$quote['total'] : ($subtotal + $tax);
+
+            $discountPercent = isset($quote['discount_percent']) ? (float)$quote['discount_percent'] : 0;
+            $discountAmount = isset($quote['discount_amount']) ? (float)$quote['discount_amount'] : 0;
+            $taxRate = isset($quote['tax_rate']) ? (float)$quote['tax_rate'] : 0;
+
+            $orderData = [
+                'order_number' => $orderNumber,
+                'type' => 'Sales',
                 'customer' => $quote['customer'] ?? '',
-                'items' => $quote['items'] ?? [],
-                'subtotal' => $quote['subtotal'] ?? 0,
-                'tax' => $quote['tax'] ?? 0,
-                'total' => $quote['total'] ?? 0,
-                'notes' => $quote['notes'] ?? ''
+                'date' => $quote['date'] ?? date('Y-m-d'),
+                'status' => 'pending',
+                'items' => $items,
+                'subtotal' => $subtotal,
+                'tax_rate' => $taxRate,
+                'tax' => $tax,
+                'discount_percent' => $discountPercent,
+                'discount_amount' => $discountAmount,
+                'total' => $total,
+                'payment_terms' => $quote['payment_terms'] ?? 'Net 30',
+                'reference' => $quote['quote_number'] ?? '',
+                'notes' => $quote['notes'] ?? '',
+                'email' => $quote['customer_email'] ?? '',
+                'phone' => $quote['customer_phone'] ?? '',
+                'company' => $quote['customer_company'] ?? '',
+                'currency' => $quote['currency'] ?? null,
+                'quote_id' => $id,
+            ];
+
+            $orderId = $orderModel->create($orderData);
+            if (!$orderId) {
+                return null;
+            }
+
+            // Best-effort: mark quotation as converted after order is created
+            $this->updateStatus($id, 'converted');
+
+            return [
+                'order_id' => $orderId,
+                'order_number' => $orderNumber,
+                'type' => 'Sales',
+                'customer' => $orderData['customer'],
+                'total' => $total,
             ];
         } catch (\Exception $e) {
             return null;

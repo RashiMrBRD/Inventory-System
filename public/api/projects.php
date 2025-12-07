@@ -36,6 +36,15 @@ try {
                     http_response_code(404);
                     echo json_encode(['success' => false, 'message' => 'Project not found']);
                 }
+            } elseif (isset($_GET['search'])) {
+                // Search projects
+                $searchQuery = $_GET['search'] ?? '';
+                if (!empty($searchQuery)) {
+                    $projects = $projectModel->search($searchQuery);
+                    echo json_encode(['success' => true, 'data' => $projects]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Search query required']);
+                }
             } elseif (isset($_GET['summary']) || isset($_GET['stats'])) {
                 // Support both 'summary' (new, not blocked) and 'stats' (old, for compatibility)
                 $stats = $projectModel->getStats();

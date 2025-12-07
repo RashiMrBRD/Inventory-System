@@ -840,6 +840,11 @@ ob_start();
                 <h4 style="font-size: 0.9375rem; font-weight: 600; color: #111827; margin: 0 0 1rem 0;">Additional Options</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                   <div>
+                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">Value of Goods (<?php echo CurrencyHelper::symbol(); ?>) <span style="color: #dc2626;">*</span></label>
+                    <input type="number" name="value_of_goods" min="0" step="0.01" placeholder="0.00" required style="width: 100%; padding: 0.625rem 0.875rem; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 0.875rem;">
+                    <p style="margin: 0.25rem 0 0; font-size: 0.75rem; color: #6b7280;">Required for customs declarations and BIR RAMSAY 307 form</p>
+                  </div>
+                  <div>
                     <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">Customer Email</label>
                     <input type="email" name="customer_email" placeholder="customer@example.com" style="width: 100%; padding: 0.625rem 0.875rem; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 0.875rem;">
                   </div>
@@ -2290,7 +2295,11 @@ function quickStatusChange(button, currentStatus) {
   statusCell.className = 'badge ' + nextStatus.class;
   statusCell.textContent = nextStatus.label;
   
-  Toast.success(`Status updated to ${nextStatus.label}`);
+  const message = nextStatus.label === 'Delivered' 
+    ? `Status updated to ${nextStatus.label}\n📦 Related inventory items removed from stock`
+    : `Status updated to ${nextStatus.label}`;
+  
+  Toast.success(message);
   
   // Update statistics
   updateShipmentStatistics();
@@ -2636,7 +2645,7 @@ async function batchMarkAsDelivered() {
           statusCell.textContent = 'Delivered';
         }
       });
-      Toast.success(`✅ ${result.updated_count} shipments marked as Delivered in database`);
+      Toast.success(`✅ ${result.updated_count} shipments marked as Delivered\n📦 Related inventory items removed from stock`);
       updateShipmentStatistics();
       clearShipmentSelection();
     } else {

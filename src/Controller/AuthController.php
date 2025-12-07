@@ -25,6 +25,115 @@ class AuthController
         }
     }
 
+    public function hasAnyUser(): bool
+    {
+        return $this->userModel->hasAnyUser();
+    }
+
+    public function createInitialAdmin(array $data): array
+    {
+        try {
+            if ($this->userModel->hasAnyUser()) {
+                return [
+                    'success' => false,
+                    'message' => 'An account already exists. Please sign in.'
+                ];
+            }
+
+            $username = trim($data['username'] ?? '');
+            $password = $data['password'] ?? '';
+            $confirmPassword = $data['confirm_password'] ?? '';
+            $email = trim($data['email'] ?? '');
+            $fullName = trim($data['full_name'] ?? '');
+
+            if ($username === '' || $password === '') {
+                return [
+                    'success' => false,
+                    'message' => 'Username and password are required'
+                ];
+            }
+
+            if ($password !== $confirmPassword) {
+                return [
+                    'success' => false,
+                    'message' => 'Password and confirmation do not match'
+                ];
+            }
+
+            if (strlen($password) < 6) {
+                return [
+                    'success' => false,
+                    'message' => 'Password must be at least 6 characters'
+                ];
+            }
+
+            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return [
+                    'success' => false,
+                    'message' => 'Please enter a valid email address'
+                ];
+            }
+
+            $userData = [
+                'username' => $username,
+                'password' => $password,
+                'email' => $email,
+                'full_name' => $fullName !== '' ? $fullName : $username,
+                'access_level' => 'admin',
+                'role' => 'admin'
+            ];
+
+            $id = $this->userModel->create($userData);
+            if (!$id) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create admin account'
+                ];
+            }
+
+            $user = $this->userModel->findById($id);
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'Admin account created but could not be loaded'
+                ];
+            }
+
+            $_SESSION['user_id'] = (string)$user['_id'];
+            $_SESSION['username'] = $user['username'];
+
+            $fullNameSession = isset($user['full_name']) ? trim((string)$user['full_name']) : '';
+            if ($fullNameSession === '') {
+                $fullNameSession = $user['username'];
+            }
+            $_SESSION['full_name'] = $fullNameSession;
+
+            $_SESSION['access_level'] = $user['access_level'] ?? 'admin';
+            $_SESSION['last_activity'] = time();
+
+            $this->sessionService->createSession(
+                (string)$user['_id'],
+                $user['username']
+            );
+
+            return [
+                'success' => true,
+                'message' => 'Admin account created',
+                'user' => [
+                    'id' => $_SESSION['user_id'],
+                    'username' => $_SESSION['username'],
+                    'full_name' => $_SESSION['full_name'],
+                    'access_level' => $_SESSION['access_level']
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
     /**
      * Login a user
      * This method validates credentials and creates a session
@@ -47,7 +156,13 @@ class AuthController
         if ($user) {
             $_SESSION['user_id'] = (string)$user['_id'];
             $_SESSION['username'] = $user['username'];
-            $_SESSION['full_name'] = $user['full_name'] ?? $user['username'];
+
+            $fullName = isset($user['full_name']) ? trim((string)$user['full_name']) : '';
+            if ($fullName === '') {
+                $fullName = $user['username'];
+            }
+            $_SESSION['full_name'] = $fullName;
+
             $_SESSION['access_level'] = $user['access_level'] ?? 'user';
             $_SESSION['last_activity'] = time();
 

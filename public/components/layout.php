@@ -12,9 +12,46 @@
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use App\Helper\SessionHelper;
+use App\Controller\AuthController;
 
 // Ensure session is started
 SessionHelper::start();
+
+// Enforce authentication and valid user session for all layout-based pages
+$auth = new AuthController();
+if (!$auth->checkSessionTimeout()) {
+    header('Location: /login');
+    exit;
+}
+if (!$auth->isLoggedIn()) {
+    header('Location: /login');
+    exit;
+}
+$currentUser = $auth->getCurrentUser();
+if (!$currentUser) {
+    $auth->logout();
+    header('Location: /login');
+    exit;
+}
+
+// Normalize core session fields from current user to avoid implicit guest state
+if (empty($_SESSION['username']) && !empty($currentUser['username'])) {
+    $_SESSION['username'] = $currentUser['username'];
+}
+if (empty($_SESSION['full_name'])) {
+    $normalizedName = '';
+    if (!empty($currentUser['full_name'])) {
+        $normalizedName = $currentUser['full_name'];
+    } elseif (!empty($currentUser['username'])) {
+        $normalizedName = $currentUser['username'];
+    }
+    if ($normalizedName !== '') {
+        $_SESSION['full_name'] = $normalizedName;
+    }
+}
+if (empty($_SESSION['access_level']) && !empty($currentUser['access_level'])) {
+    $_SESSION['access_level'] = $currentUser['access_level'];
+}
 
 // Default values
 $pageTitle = $pageTitle ?? 'Inventory Management';
@@ -221,6 +258,9 @@ if (!function_exists('asset_url')) {
   
   <!-- Toast Notification System -->
   <script src="<?php echo asset_url('assets/js/toast.js'); ?>"></script>
+  
+  <!-- Universal Search Fix -->
+  <script src="<?php echo asset_url('assets/js/search-fix.js'); ?>"></script>
   
   <!-- Number Format API -->
   <script src="<?php echo asset_url('assets/js/number-format.js'); ?>"></script>

@@ -30,8 +30,37 @@ use App\Helper\CurrencyHelper;
 $authController = new AuthController();
 $user = $authController->getCurrentUser();
 
+// Sidebar visibility preferences (match sidebar.php/settings.php)
+$defaultHiddenSidebarItems = [
+    'projects',
+    'bir-compliance',
+    'fda-compliance',
+    'notifications',
+    'chart-of-accounts',
+    'journal-entries',
+    'financial-reports',
+    'conversations',
+    'system-alerts',
+];
+
+$sidebarHiddenItems = $defaultHiddenSidebarItems;
+if ($user && isset($user['sidebar_hidden_items']) && is_array($user['sidebar_hidden_items'])) {
+    $sidebarHiddenItems = $user['sidebar_hidden_items'];
+}
+$showProjectsWidgets = !in_array('projects', $sidebarHiddenItems, true);
+
 // Initialize user ID
 $userId = $user['id'] ?? 'admin';
+ 
+// BIR widgets visibility based on sidebar settings
+$showBirWidgets = !in_array('bir-compliance', $sidebarHiddenItems, true);
+
+// FDA widgets visibility based on sidebar settings
+$showFdaWidgets = !in_array('fda-compliance', $sidebarHiddenItems, true);
+
+// Notifications widgets visibility based on sidebar settings
+$showNotificationsWidgets = !in_array('notifications', $sidebarHiddenItems, true);
+$hasComplianceWidgets = $showBirWidgets || $showFdaWidgets || $showNotificationsWidgets;
 
 // ============================================
 // TIME RANGE FILTER (Dashboard)
@@ -1151,6 +1180,7 @@ renderExperimentalWarning('Dashboard - Welcome');
     </div>
 
     <!-- Active Projects Card -->
+    <?php if ($showProjectsWidgets): ?>
     <div class="financial-card">
       <div class="financial-card-header">
         <div>
@@ -1199,6 +1229,7 @@ renderExperimentalWarning('Dashboard - Welcome');
         </div>
       </div>
     </div>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -1543,6 +1574,8 @@ renderExperimentalWarning('Dashboard - Welcome');
   </div>
 </div>
 
+<?php $hasComplianceWidgets = $showBirWidgets || $showFdaWidgets || $showNotificationsWidgets; ?>
+<?php if ($hasComplianceWidgets): ?>
 <!-- Compliance (Compact) -->
 <div class="dashboard-section">
   <div class="dashboard-section-header" style="margin-bottom: 0.625rem;">
@@ -1554,6 +1587,7 @@ renderExperimentalWarning('Dashboard - Welcome');
   </div>
   
   <div class="dashboard-stats-grid">
+    <?php if ($showBirWidgets): ?>
     <!-- BIR Forms Card -->
     <div class="dashboard-stat-card">
       <div class="dashboard-stat-header">
@@ -1570,7 +1604,9 @@ renderExperimentalWarning('Dashboard - Welcome');
       </div>
       <a href="bir-compliance.php" style="font-size: 0.6875rem; color: var(--color-primary); text-decoration: none; margin-top: 0.375rem; display: inline-block;">Manage →</a>
     </div>
+    <?php endif; ?>
 
+    <?php if ($showFdaWidgets): ?>
     <!-- FDA Products Card -->
     <div class="dashboard-stat-card">
       <div class="dashboard-stat-header">
@@ -1590,7 +1626,7 @@ renderExperimentalWarning('Dashboard - Welcome');
         <div class="dashboard-stat-icon" style="background: <?php echo $totalExpiringProducts > 0 ? 'hsl(0 86% 97%)' : 'hsl(143 85% 96%)'; ?>; color: <?php echo $totalExpiringProducts > 0 ? 'hsl(0 74% 24%)' : 'hsl(140 61% 13%)'; ?>;">⏰</div>
       </div>
       <div class="dashboard-stat-label">Expiring Soon</div>
-      <div class="dashboard-stat-value" style="color: <?php echo $totalExpiringProducts > 0 ? 'var(--color-danger)' : 'inherit'; ?>;"><?php echo number_format($totalExpiringProducts); ?></div>
+      <div class="dashboard-stat-value" style="color: <?php echo $totalExpiringProducts > 0 ? 'var(--color-danger)' : 'inherit'; ?>; "><?php echo number_format($totalExpiringProducts); ?></div>
       <div style="font-size: 0.6875rem;">
         <?php if ($totalExpiringProducts > 0): ?>
           <span style="color: var(--color-danger); font-weight: 600;">30 days</span>
@@ -1599,7 +1635,9 @@ renderExperimentalWarning('Dashboard - Welcome');
         <?php endif; ?>
       </div>
     </div>
+    <?php endif; ?>
 
+    <?php if ($showNotificationsWidgets): ?>
     <!-- System Notifications Card -->
     <div class="dashboard-stat-card">
       <div class="dashboard-stat-header">
@@ -1609,15 +1647,17 @@ renderExperimentalWarning('Dashboard - Welcome');
       <div class="dashboard-stat-value"><?php echo number_format($notificationSummary['unread']); ?></div>
       <div style="font-size: 0.6875rem;">
         <?php if ($notificationSummary['high_priority'] > 0): ?>
-          <span style="color: var(--color-danger); font-weight: 600;"><?php echo $notificationSummary['high_priority']; ?> urgent</span>
+          <span style="color: var(--color-danger); font-weight: 600; "><?php echo $notificationSummary['high_priority']; ?> urgent</span>
         <?php else: ?>
           <span style="color: var(--text-secondary);">None urgent</span>
         <?php endif; ?>
       </div>
       <a href="notifications.php" style="font-size: 0.6875rem; color: var(--color-primary); text-decoration: none; margin-top: 0.375rem; display: inline-block;">View →</a>
     </div>
+    <?php endif; ?>
   </div>
 </div>
+<?php endif; ?>
 
 
 <!-- Performance Metrics (Compact) -->
@@ -1846,7 +1886,7 @@ renderExperimentalWarning('Dashboard - Welcome');
 </div>
 
 <!-- Recent Notifications Widget -->
-<?php if (!empty($recentNotifications)): ?>
+<?php if ($showNotificationsWidgets && !empty($recentNotifications)): ?>
 <div class="dashboard-section">
   <div class="dashboard-section-header">
     <h2 class="dashboard-section-title">

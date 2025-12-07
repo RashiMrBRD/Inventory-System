@@ -233,7 +233,6 @@ if ($ext === 'js' || $ext === 'mjs') {
         echo 'Unable to read file';
         exit;
     }
-    $js = strip_js_block_comments($js);
     echo $js;
     exit;
 }

@@ -13,9 +13,16 @@ class SessionService
 
     public function __construct()
     {
-        $client = new Client("mongodb://localhost:27017");
-        $this->db = $client->selectDatabase('inventory_system');
-        $this->sessionsCollection = $this->db->selectCollection('user_sessions');
+        // Reuse the central DatabaseService configuration so this works in all environments
+        $dbService = DatabaseService::getInstance();
+        $this->db = $dbService->getDatabase();
+
+        // Allow collection name to be overridden by config if present
+        $collectionName = method_exists($dbService, 'getCollectionName')
+            ? $dbService->getCollectionName('user_sessions')
+            : 'user_sessions';
+
+        $this->sessionsCollection = $this->db->selectCollection($collectionName);
         
         // Create indexes for better performance
         $this->createIndexes();

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use App\Controller\AuthController;
 use App\Service\CurrencyService;
 use App\Service\FontService;
+use App\Model\User;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -109,6 +110,93 @@ $currentTheme = $user['theme'] ?? $_SESSION['theme'] ?? 'light';
 if (isset($user['theme'])) {
     $_SESSION['theme'] = $user['theme'];
 }
+
+// Sidebar visibility preferences
+$defaultHiddenSidebarItems = [
+    'projects',
+    'bir-compliance',
+    'fda-compliance',
+    'notifications',
+    'chart-of-accounts',
+    'journal-entries',
+    'financial-reports',
+    'conversations',
+    'system-alerts',
+];
+
+$sidebarHiddenItems = $defaultHiddenSidebarItems;
+if (isset($user['sidebar_hidden_items']) && is_array($user['sidebar_hidden_items'])) {
+    $sidebarHiddenItems = $user['sidebar_hidden_items'];
+}
+
+// Determine if user has customized sidebar visibility (non-default state)
+$hasCustomSidebarChanges = false;
+$currentHidden = $sidebarHiddenItems;
+$defaultHidden = $defaultHiddenSidebarItems;
+sort($currentHidden);
+sort($defaultHidden);
+if ($currentHidden !== $defaultHidden) {
+    $hasCustomSidebarChanges = true;
+}
+
+// Sidebar configuration (keys must match sidebar.php checks)
+$sidebarItemsConfig = [
+    'main' => [
+        'label' => 'Main',
+        'items' => [
+            ['key' => 'dashboard', 'label' => 'Dashboard', 'description' => 'Overview home page'],
+            ['key' => 'analytics', 'label' => 'Analytics', 'description' => 'Trends and KPIs'],
+            ['key' => 'inventory-list', 'label' => 'Inventory', 'description' => 'All inventory items'],
+            ['key' => 'add_item', 'label' => 'Add Item', 'description' => 'Create new inventory item'],
+        ],
+    ],
+    'sales' => [
+        'label' => 'Sales & Operations',
+        'items' => [
+            ['key' => 'quotations', 'label' => 'Quotations', 'description' => 'Customer quotations'],
+            ['key' => 'invoicing', 'label' => 'Invoicing', 'description' => 'Invoices and billing'],
+            ['key' => 'orders', 'label' => 'Orders', 'description' => 'Sales orders'],
+            ['key' => 'projects', 'label' => 'Projects', 'description' => 'Project-based work'],
+            ['key' => 'shipping', 'label' => 'Shipping', 'description' => 'Shipments and logistics'],
+        ],
+    ],
+    'compliance' => [
+        'label' => 'Compliance',
+        'items' => [
+            ['key' => 'bir-compliance', 'label' => 'BIR Compliance', 'description' => 'Tax requirements'],
+            ['key' => 'fda-compliance', 'label' => 'FDA Compliance', 'description' => 'Product registrations'],
+            ['key' => 'notifications', 'label' => 'Notifications', 'description' => 'Compliance alerts'],
+        ],
+    ],
+    'accounting' => [
+        'label' => 'Accounting',
+        'items' => [
+            ['key' => 'chart-of-accounts', 'label' => 'Chart of Accounts', 'description' => 'Account structure'],
+            ['key' => 'journal-entries', 'label' => 'Journal Entries', 'description' => 'Manual postings'],
+            ['key' => 'financial-reports', 'label' => 'Financial Reports', 'description' => 'Statements and analysis'],
+        ],
+    ],
+    'collaboration' => [
+        'label' => 'Collaboration',
+        'items' => [
+            ['key' => 'conversations', 'label' => 'Conversations', 'description' => 'Team messages'],
+            ['key' => 'system-alerts', 'label' => 'System Alerts', 'description' => 'System-wide alerts'],
+        ],
+    ],
+    'documentations' => [
+        'label' => 'Documentations',
+        'items' => [
+            ['key' => 'docs', 'label' => 'Documentations', 'description' => 'Help and guides'],
+        ],
+    ],
+    'settings' => [
+        'label' => 'Settings',
+        'items' => [
+            ['key' => 'settings', 'label' => 'Settings', 'description' => 'This settings page'],
+            ['key' => 'logout', 'label' => 'Logout', 'description' => 'Sign out of the application'],
+        ],
+    ],
+];
 
 // Initialize FontService (works with or without database)
 $fontService = new FontService();
@@ -382,6 +470,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'update_sidebar') {
+        // Update sidebar visibility preferences
+        $selected = isset($_POST['sidebar_items']) && is_array($_POST['sidebar_items'])
+            ? array_map('strval', $_POST['sidebar_items'])
+            : [];
+
+        $allKeys = [];
+        foreach ($sidebarItemsConfig as $section) {
+            foreach ($section['items'] as $item) {
+                $allKeys[] = $item['key'];
+            }
+        }
+
+        $selected = array_values(array_intersect($selected, $allKeys));
+        $hidden = array_values(array_diff($allKeys, $selected));
+
+        try {
+            if (isset($user['_id'])) {
+                $userModel = new User();
+                $userModel->updateUser((string)$user['_id'], ['sidebar_hidden_items' => $hidden]);
+                $sidebarHiddenItems = $hidden;
+                $_SESSION['flash_message'] = 'Sidebar updated successfully';
+                $_SESSION['flash_type'] = 'success';
+            }
+        } catch (\Throwable $e) {
+            $_SESSION['flash_message'] = 'Failed to update sidebar settings';
+            $_SESSION['flash_type'] = 'error';
+        }
+
+        $_SESSION['active_settings_tab'] = 'tab-application';
+
+        // Redirect to prevent form resubmission
+        header('Location: settings.php');
+        exit();
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'reset_sidebar') {
+        // Reset sidebar visibility to default settings
+        try {
+            if (isset($user['_id'])) {
+                $userModel = new User();
+                $userModel->updateUser((string)$user['_id'], ['sidebar_hidden_items' => $defaultHiddenSidebarItems]);
+                $sidebarHiddenItems = $defaultHiddenSidebarItems;
+                $_SESSION['flash_message'] = 'Sidebar has been reset to default visibility.';
+                $_SESSION['flash_type'] = 'success';
+            }
+        } catch (\Throwable $e) {
+            $_SESSION['flash_message'] = 'Failed to reset sidebar settings';
+            $_SESSION['flash_type'] = 'error';
+        }
+
+        $_SESSION['active_settings_tab'] = 'tab-application';
+
+        // Redirect to prevent form resubmission
+        header('Location: settings.php');
+        exit();
     } elseif (isset($_POST['action']) && $_POST['action'] === 'update_theme') {
         $selectedTheme = $_POST['theme'] ?? 'light';
         $allowedThemes = ['light', 'dark', 'system'];
@@ -1277,6 +1419,74 @@ ob_start();
           Save Display Settings
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Sidebar & Navigation -->
+  <div class="card" style="height: fit-content;">
+    <div class="card-header">
+      <h3 class="card-title">Sidebar & Navigation</h3>
+      <p class="card-description">Choose which links appear in your sidebar</p>
+    </div>
+    <div class="card-content">
+      <form method="POST">
+        <input type="hidden" name="action" value="update_sidebar">
+
+        <?php foreach ($sidebarItemsConfig as $sectionKey => $section): ?>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <div style="font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">
+            <?php echo htmlspecialchars($section['label']); ?>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <?php foreach ($section['items'] as $item):
+              $key = $item['key'];
+              $visible = !in_array($key, $sidebarHiddenItems, true);
+            ?>
+            <label style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+              <div>
+                <span class="form-label" style="margin: 0; display: block;">
+                  <?php echo htmlspecialchars($item['label']); ?>
+                </span>
+                <?php if (!empty($item['description'])): ?>
+                <span class="form-helper"><?php echo htmlspecialchars($item['description']); ?></span>
+                <?php endif; ?>
+              </div>
+              <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; margin-left: 0.75rem;">
+                <input
+                  type="checkbox"
+                  name="sidebar_items[]"
+                  value="<?php echo htmlspecialchars($key); ?>"
+                  <?php echo $visible ? 'checked' : ''; ?>
+                  style="opacity: 0; width: 0; height: 0;"
+                >
+                <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: <?php echo $visible ? 'var(--color-primary)' : '#ccc'; ?>; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endforeach; ?>
+
+        <button type="submit" class="btn btn-primary w-full" style="margin-top: 0.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Save Sidebar Settings
+        </button>
+      </form>
+
+      <?php if ($hasCustomSidebarChanges): ?>
+      <form method="POST" style="margin-top: 0.5rem;">
+        <input type="hidden" name="action" value="reset_sidebar">
+        <button type="submit" class="btn w-full" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M4 4V10H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 10C4.53043 8.23821 5.7375 6.73821 7.4 5.90873C9.06249 5.07925 10.9958 4.99419 12.7261 5.67591C14.4564 6.35764 15.8364 7.74459 16.5114 9.47764C17.1864 11.2107 17.0998 13.1454 16.2676 14.8068C15.4354 16.4681 13.9333 17.6715 12.17 18.2C10.4066 18.7285 8.54568 18.5428 6.9 17.68C5.63458 17.0106 4.57497 16.0039 3.85 14.77" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Reset Sidebar to Defaults
+        </button>
+      </form>
+      <?php endif; ?>
     </div>
   </div>
 

@@ -6,7 +6,7 @@
 
 return [
     'app_name' => 'Inventory Management System',
-    'app_version' => '0.3.2',
+    'app_version' => '0.3.7',
     'environment' => getenv('APP_ENV') ?: 'development',
     'debug' => getenv('APP_DEBUG') === 'true',
     'timezone' => 'UTC',

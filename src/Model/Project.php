@@ -29,6 +29,31 @@ class Project
         return $out;
     }
 
+    /**
+     * Search projects by name, client, or description
+     * This method searches projects by name, client, description, or status
+     * 
+     * @param string $query
+     * @return array
+     */
+    public function search(string $query): array
+    {
+        $regex = new \MongoDB\BSON\Regex($query, 'i');
+        
+        $items = $this->collection->find([
+            '$or' => [
+                ['name' => $regex],
+                ['client' => $regex],
+                ['description' => $regex],
+                ['status' => $regex]
+            ]
+        ])->toArray();
+        
+        return array_map(function($item) {
+            return (array)$item;
+        }, $items);
+    }
+
     public function getById(string $id): ?array
     {
         try {
