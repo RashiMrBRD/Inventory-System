@@ -6,7 +6,7 @@
 
 return [
     'app_name' => 'Inventory Management System',
-    'app_version' => '0.3.7',
+    'app_version' => '0.4.1',
     'environment' => getenv('APP_ENV') ?: 'development',
     'debug' => getenv('APP_DEBUG') === 'true',
     'timezone' => 'UTC',
@@ -47,7 +47,8 @@ return [
             'demo.rashlink.eu.org',
             'localhost',
             '192.168.123.10'
-        ]
+        ],
+        'allow_registration' => true // Allow new user registration
     ],
     
     'mail' => [
