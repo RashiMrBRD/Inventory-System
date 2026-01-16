@@ -56,10 +56,19 @@
   }
 
   // Sidebar DOM helpers for ArrowUp/ArrowDown navigation
+  function isSidebarLinkNavigable(link) {
+    const href = (link.getAttribute('href') || '').split('?')[0];
+    if (!href) return false;
+    const normalized = href.replace(/^\//, '').replace(/\.php$/i, '');
+    if (!normalized) return false;
+    if (normalized === 'logout') return false;
+    return true;
+  }
+
   function getSidebarLinks() {
     const sidebar = document.querySelector('.sidebar-nav');
     if (!sidebar) return [];
-    return Array.from(sidebar.querySelectorAll('.sidebar-link'));
+    return Array.from(sidebar.querySelectorAll('.sidebar-link')).filter(isSidebarLinkNavigable);
   }
 
   function getCurrentSidebarIndex() {
@@ -76,11 +85,86 @@
   function navigateToSidebarIndex(targetIndex) {
     const links = getSidebarLinks();
     if (targetIndex >= 0 && targetIndex < links.length) {
-      const href = links[targetIndex].getAttribute('href');
+      const targetLink = links[targetIndex];
+      const href = targetLink.getAttribute('href');
       if (href) {
+        // Apply active state immediately for perceived instant switch
+        links.forEach(link => link.classList.toggle('active', link === targetLink));
+        showPageLoading(targetLink);
         window.location.href = href;
       }
     }
+  }
+
+  // Lightweight page loading overlay (content-only shimmer/blur)
+  function ensurePageLoadingOverlay() {
+    const content = document.querySelector('main.content');
+    let overlay = document.getElementById('page-loading-overlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'page-loading-overlay';
+    overlay.innerHTML = `
+      <div class="page-loading-shimmer">
+        <div class="page-loading-line line-1"></div>
+        <div class="page-loading-line line-2"></div>
+        <div class="page-loading-line line-3"></div>
+        <div class="page-loading-line line-4"></div>
+      </div>
+    `;
+    if (content) {
+      content.appendChild(overlay);
+    } else {
+      document.body.appendChild(overlay);
+    }
+    return overlay;
+  }
+
+  function showPageLoading(targetLink) {
+    const overlay = ensurePageLoadingOverlay();
+    document.body.classList.add('page-loading');
+    overlay.classList.add('visible');
+    if (targetLink) {
+      const links = getSidebarLinks();
+      links.forEach(link => link.classList.toggle('active', link === targetLink));
+    }
+  }
+
+  function hidePageLoading() {
+    const overlay = ensurePageLoadingOverlay();
+    document.body.classList.remove('page-loading');
+    overlay.classList.remove('visible');
+  }
+
+  function attachSidebarLoadingHandlers() {
+    const links = getSidebarLinks();
+    links.forEach(link => {
+      link.addEventListener('click', function(event) {
+        // Allow default new-tab behaviors
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        const href = link.getAttribute('href');
+        if (!href) return;
+        event.preventDefault();
+        showPageLoading(link);
+        // Navigate after a tiny delay to allow paint of active highlight
+        setTimeout(() => { window.location.href = href; }, 10);
+      });
+    });
+  }
+
+  function scrollActiveSidebarLinkIntoView() {
+    const sidebarTop = document.querySelector('.sidebar-nav-top');
+    if (!sidebarTop) return;
+    const activeLink = sidebarTop.querySelector('.sidebar-link.active');
+    if (!activeLink) return;
+
+    const containerHeight = sidebarTop.clientHeight;
+    const linkOffsetTop = activeLink.offsetTop;
+    const linkHeight = activeLink.offsetHeight;
+    const targetScrollTop = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+    sidebarTop.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: 'auto'
+    });
   }
 
   // Get current page (normalized key)
@@ -102,21 +186,24 @@
   }
 
   // Detect if any application modal is open (visible)
+  function isElementRendered(el) {
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      return false;
+    }
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 || rect.height > 0;
+  }
+
   function isAnyModalOpen() {
     const modals = Array.from(document.querySelectorAll('[id*="Modal"], [role="dialog"], .modal'));
-    return modals.some(m => {
-      const style = window.getComputedStyle(m);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    });
+    return modals.some(m => isElementRendered(m));
   }
 
   // Return the first open modal element (if any)
   function getOpenModalElement() {
     const modals = Array.from(document.querySelectorAll('[id*="Modal"], [role="dialog"], .modal'));
-    return modals.find(m => {
-      const style = window.getComputedStyle(m);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    }) || null;
+    return modals.find(m => isElementRendered(m)) || null;
   }
 
   // Handle tab switching (settings page, modal windows, etc.)
@@ -139,7 +226,8 @@
         { btnSel: '.project-tab-btn',  contentSel: '.project-tab-content',  idPrefix: 'project-tab-' },
         { btnSel: '.shipment-tab-btn', contentSel: '.shipment-tab-content', idPrefix: 'shipment-tab-' },
         { btnSel: '.invoice-tab-btn',  contentSel: '.invoice-tab-content',  idPrefix: 'invoice-tab-' },
-        { btnSel: '.quote-tab-btn',    contentSel: '.quote-tab-content',    idPrefix: 'quote-tab-' }
+        { btnSel: '.quote-tab-btn',    contentSel: '.quote-tab-content',    idPrefix: 'quote-tab-' },
+        { btnSel: '.qv-tab',           contentSel: '.qv-tab-content',       idPrefix: 'qv-tab-' }
       ];
 
       for (const cfg of modalTabConfigs) {
@@ -956,7 +1044,8 @@
           const linksUp = getSidebarLinks();
           if (!linksUp.length) break;
           const currentIndexUp = getCurrentSidebarIndex();
-          const targetIndexUp = currentIndexUp > 0 ? currentIndexUp - 1 : 0;
+          const lastIndex = linksUp.length - 1;
+          const targetIndexUp = currentIndexUp > 0 ? currentIndexUp - 1 : lastIndex;
           navigateToSidebarIndex(targetIndexUp);
         }
         break;
@@ -971,14 +1060,9 @@
           const linksDown = getSidebarLinks();
           if (!linksDown.length) break;
           const currentIndexDown = getCurrentSidebarIndex();
-          let targetIndexDown;
-          if (currentIndexDown === -1) {
-            targetIndexDown = 0;
-          } else if (currentIndexDown < linksDown.length - 1) {
-            targetIndexDown = currentIndexDown + 1;
-          } else {
-            targetIndexDown = linksDown.length - 1;
-          }
+          const targetIndexDown = currentIndexDown === -1
+            ? 0
+            : (currentIndexDown + 1) % linksDown.length;
           navigateToSidebarIndex(targetIndexDown);
         }
         break;
@@ -1002,6 +1086,9 @@
   function init() {
     // Use capture phase so we can intercept and block arrow keys before page-specific listeners
     document.addEventListener('keydown', handleKeyboardShortcut, true);
+    attachSidebarLoadingHandlers();
+    scrollActiveSidebarLinkIntoView();
+    hidePageLoading(); // Clear any stale overlay after initial render
     console.log('⌨️ Keyboard shortcuts enabled: ←→ Pagination | ↑↓ Menu Navigation');
     console.log('📖 Press Shift+/ (?) or W to view all shortcuts');
   }

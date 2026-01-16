@@ -43,7 +43,7 @@ function renderExperimentalWarning($pageName, $options = []) {
     
     // Default options with more natural language
     $defaults = [
-        'title' => $isWelcome ? ' Welcome to the System (DEMO)' : '⚠️ Experimental Feature Detected',
+        'title' => $isWelcome ? 'Inventory & Project Management Demo' : '⚠️ Experimental Feature Detected',
         'description' => 'This feature is currently in experimental status and is not yet ready for production use.',
         'details' => 'Because this feature is still under development, you may encounter unexpected behavior, incomplete functionality, or bugs that could affect your experience.',
         'recommendation' => 'If you have any suggestions or ideas on how we can improve this feature, please contact the administrator for more information.',
@@ -96,13 +96,15 @@ function renderExperimentalWarning($pageName, $options = []) {
             }
         }
     ?>
+    <?php static $debugLoggerInjected = false; ?>
+    <?php if (!$debugLoggerInjected): ?>
+    <script src="<?php echo asset_proxy_url('assets/js/debug-logger.js'); ?>" defer></script>
+    <?php $debugLoggerInjected = true; ?>
+    <?php endif; ?>
     <link rel="stylesheet" href="<?php echo asset_proxy_url('features/experimental-warning/experimental-warning.css'); ?>">
-    <script src="<?php echo asset_proxy_url('features/experimental-warning/experimental-warning.js'); ?>"></script>
+    <script src="<?php echo asset_proxy_url('features/experimental-warning/experimental-warning.js'); ?>" defer></script>
     <?php if ($config['autoInit']): ?>
-    <script>
-        // Auto-initialize experimental warning modal with page detection
-        initExperimentalWarning(<?php echo $jsConfig; ?>);
-    </script>
+    <script src="<?php echo asset_proxy_url('features/experimental-warning/experimental-warning-init.js'); ?>&config=<?php echo urlencode(base64_encode($jsConfig)); ?>" defer></script>
     <?php endif; ?>
     <!-- End Experimental Warning System -->
     <?php
@@ -168,9 +170,9 @@ function getExperimentalPages() {
             'pageFile' => 'dashboard.php',
             'isWelcome' => true,
             'appInfo' => getAppInfo(),
-            'description' => 'Welcome to the Inventory Management System! We are excited to have you here. This powerful tool is designed to help you efficiently manage your inventory, track stock levels, monitor sales, and gain valuable insights into your business operations.',
-            'details' => 'This system was carefully developed by a dedicated team of students who are passionate about creating innovative solutions for real-world business challenges. Our goal is to provide you with an intuitive, reliable, and feature-rich platform that simplifies inventory management, so you can focus on growing your business while we handle the complexity of tracking and organizing your products.',
-            'recommendation' => 'As you explore the system, you will discover various features designed to streamline your workflow, including real-time inventory tracking, comprehensive reporting, barcode scanning capabilities, and much more. If you have any questions, encounter any issues, or have suggestions for improvements, please do not hesitate to reach out to our team. We are here to support you and continuously improve this system based on your feedback and needs.'
+            'description' => 'This demo application helps you manage inventory and track projects in one place. It is designed to support day-to-day operations like monitoring stock levels, reviewing activity, and organizing work timelines.',
+            'details' => 'Use the navigation to access key modules such as inventory tracking (items, stock levels, and updates), project monitoring (status, start/end dates, calendar views), and dashboards/reports for quick summaries. The interface and data may be simplified for demonstration purposes.',
+            'recommendation' => 'To get started, review the dashboard summary, then visit the Inventory section to explore stock information and the Projects section to view timelines and schedules. If anything looks incorrect or you have improvement ideas, please share feedback so we can refine the workflow.'
         ]
     ];
 }

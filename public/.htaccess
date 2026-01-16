@@ -16,8 +16,14 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.php -f
 RewriteRule ^([^\.]+)$ $1.php [NC,L]
 
-# Set default page to login.php if not logged in
-DirectoryIndex login.php
+# Set default page to index.php (front controller)
+DirectoryIndex index.php
+
+# Route unknown paths through the front controller dispatcher
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/index\.php$
+RewriteRule ^ index.php [L,QSA]
 
 # Security Headers
 <IfModule mod_headers.c>
@@ -34,7 +40,7 @@ DirectoryIndex login.php
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
     # Permissions Policy (disable unused browser features using supported directives)
-    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(self)"
     
     # Remove Server signature
     Header unset Server

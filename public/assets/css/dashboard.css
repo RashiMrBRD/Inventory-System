@@ -1,0 +1,712 @@
+/* Dashboard Stats Grid - Ultra Compact */
+.dashboard-stats-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+  gap: 0.75rem; 
+  margin-bottom: 1rem; 
+}
+
+.dashboard-stat-card { 
+  background: var(--bg-primary); 
+  padding: 0.875rem; 
+  border-radius: var(--radius-md); 
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-stat-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.dashboard-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.dashboard-stat-card:hover::before {
+  opacity: 1;
+}
+
+.dashboard-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+}
+
+/* Range Indicator Badge */
+.range-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: hsl(214 95% 93%);
+  color: hsl(222 47% 17%);
+  border: 1px solid hsl(214 95% 80%);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.range-indicator-badge:hover {
+  background: hsl(214 95% 88%);
+  border-color: hsl(214 95% 70%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.range-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.range-label {
+  line-height: 1;
+  white-space: nowrap;
+  justify-content: center;
+  font-size: 1rem;
+  background: var(--bg-secondary);
+}
+
+.dashboard-stat-label { 
+  font-size: 0.75rem; 
+  color: var(--text-secondary); 
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.dashboard-stat-value { 
+  font-size: 1.5rem; 
+  font-weight: 700; 
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1;
+  margin-bottom: 0.375rem;
+}
+
+.dashboard-stat-change {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.dashboard-stat-change.positive { color: var(--color-success); }
+.dashboard-stat-change.negative { color: var(--color-danger); }
+
+.dashboard-section {
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.dashboard-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-section-icon {
+  font-size: 1.5rem;
+}
+
+/* Financial Cards Grid - Compact */
+.financial-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.financial-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  position: relative;
+}
+
+.financial-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.financial-card-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.financial-card-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.financial-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.375rem;
+}
+
+.financial-card-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Quick Action Cards - Compact */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+
+.quick-action-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.quick-action-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.quick-action-icon {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+}
+
+.quick-action-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* Widget Containers - Compact */
+.dashboard-widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-widgets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Chart Container - Compact */
+.chart-container {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.chart-filters {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ===================================
+   ADVANCED VISUALIZATIONS
+   =================================== */
+
+/* Progress Bars */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 100px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 100px;
+  transition: width 0.6s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-bar-fill.success { background: linear-gradient(90deg, var(--color-success), hsl(143 70% 50%)); }
+.progress-bar-fill.warning { background: linear-gradient(90deg, var(--color-warning), hsl(48 90% 60%)); }
+.progress-bar-fill.danger { background: linear-gradient(90deg, var(--color-danger), hsl(0 80% 60%)); }
+.progress-bar-fill.primary { background: linear-gradient(90deg, var(--color-primary), hsl(221 83% 60%)); }
+
+/* Trend Indicators */
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.trend-indicator.up {
+  color: var(--color-success);
+  background: hsl(143 85% 96%);
+}
+
+.trend-indicator.down {
+  color: var(--color-danger);
+  background: hsl(0 86% 97%);
+}
+
+.trend-indicator.neutral {
+  color: var(--text-secondary);
+}
+
+.trend-arrow {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Mini Chart Bars */
+.mini-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 40px;
+  padding: 4px 0;
+}
+
+.mini-chart-bar {
+  flex: 1;
+  background: var(--color-primary);
+  border-radius: 2px 2px 0 0;
+  min-height: 4px;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.mini-chart-bar:hover {
+  opacity: 1;
+  background: var(--color-success);
+}
+
+/* Donut Chart (CSS-only) */
+.donut-chart {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--color-success) 0deg,
+    var(--color-success) calc(var(--percentage, 70) * 3.6deg),
+    var(--bg-secondary) calc(var(--percentage, 70) * 3.6deg),
+    var(--bg-secondary) 360deg
+  );
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-chart::before {
+  content: '';
+  width: 80px;
+  height: 80px;
+  background: var(--bg-primary);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.donut-chart-value {
+  position: relative;
+  z-index: 1;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Metric Cards - Ultra Compact */
+.metric-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.875rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.375rem;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.metric-comparison {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+  font-size: 0.75rem;
+}
+
+/* Stat Grid - Compact */
+.stat-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 0.625rem 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.stat-item-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 0.125rem;
+  line-height: 1;
+}
+
+.stat-item-label {
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+/* Account Balance Widget */
+.account-balance-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.account-balance-item:last-child {
+  border-bottom: none;
+}
+
+.account-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.account-balance {
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+/* Cash Flow Visual - Compact */
+.cash-flow-bar {
+  display: flex;
+  height: 48px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin: 0.75rem 0;
+}
+
+.cash-flow-in {
+  background: linear-gradient(180deg, var(--color-success), hsl(143 70% 45%));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.cash-flow-out {
+  background: linear-gradient(180deg, var(--color-danger), hsl(0 70% 55%));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.cash-flow-in:hover,
+.cash-flow-out:hover {
+  filter: brightness(1.1);
+}
+
+/* Aging Chart - Compact */
+.aging-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.aging-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.aging-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  min-width: 70px;
+  color: var(--text-secondary);
+}
+
+.aging-bar-container {
+  flex: 1;
+  height: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.aging-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), hsl(221 83% 60%));
+  display: flex;
+  align-items: center;
+  padding: 0 0.375rem;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  transition: width 0.5s ease;
+}
+
+.aging-amount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: monospace;
+  min-width: 85px;
+  text-align: right;
+}
+
+/* Expense Breakdown - Compact */
+.expense-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.expense-item:hover {
+  background: var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.expense-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.expense-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-category {
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-bottom: 0.125rem;
+  line-height: 1.2;
+}
+
+.expense-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.expense-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+.expense-amount {
+  font-weight: 700;
+  font-family: monospace;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+/* Ultra Dense Grid Classes (shadcn inspired) */
+.grid-ultra-dense {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.625rem;
+}
+
+.grid-compact-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.grid-compact-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.grid-compact-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.grid-compact-6 {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .grid-compact-6 { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .stat-grid-3 { grid-template-columns: 1fr; }
+  .grid-compact-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-compact-6 { grid-template-columns: repeat(3, 1fr); }
+  .dashboard-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .quick-actions-grid { grid-template-columns: repeat(3, 1fr); }
+  .mini-chart { height: 30px; }
+  .donut-chart { width: 90px; height: 90px; }
+  .donut-chart::before { width: 60px; height: 60px; }
+}
+
+@media (max-width: 480px) {
+  .grid-compact-6 { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-stats-grid { grid-template-columns: 1fr; }
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+}

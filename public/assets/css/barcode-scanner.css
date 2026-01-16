@@ -1,0 +1,13 @@
+.barcode-scanner-modal #scanner-reader video {
+  border-radius: var(--radius-lg);
+  max-width: 100%;
+}
+
+.barcode-scanner-modal #scanner-modal {
+  max-width: 600px;
+}
+
+.barcode-scanner-modal #scanner-barcode {
+  max-width: 100%;
+  height: auto;
+}

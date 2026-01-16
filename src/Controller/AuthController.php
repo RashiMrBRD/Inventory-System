@@ -134,6 +134,12 @@ class AuthController
         }
     }
 
+    public function register(array $data): array
+    {
+        $registerController = new RegisterController($this->userModel, $this->sessionService);
+        return $registerController->register($data);
+    }
+
     /**
      * Login a user
      * This method validates credentials and creates a session

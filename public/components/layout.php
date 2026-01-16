@@ -58,6 +58,8 @@ $pageTitle = $pageTitle ?? 'Inventory Management';
 $pageContent = $pageContent ?? '';
 $additionalCSS = $additionalCSS ?? [];
 $additionalJS = $additionalJS ?? [];
+$dashboardScriptConfig = $dashboardScriptConfig ?? null;
+$loadDashboardJS = $loadDashboardJS ?? false;
 
 if (!function_exists('asset_url')) {
     function asset_url(string $path): string
@@ -153,11 +155,26 @@ if (!function_exists('asset_url')) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="<?php echo asset_url('assets/js/debug-logger.js'); ?>"></script>
+  <script src="<?php echo asset_url('assets/js/theme-sync.js'); ?>"></script>
+  <script src="<?php echo asset_url('assets/js/navbar-interactions.js'); ?>"></script>
+  <script src="<?php echo asset_url('assets/js/vendor/jsbarcode.min.js'); ?>"></script>
+  <script src="<?php echo asset_url('assets/js/vendor/html5-qrcode.min.js'); ?>"></script>
+  <script src="<?php echo asset_url('assets/js/barcode-scanner.js'); ?>"></script>
+  <?php if ($dashboardScriptConfig): ?>
+  <script>
+    window.DASHBOARD_CONFIG = <?php echo json_encode($dashboardScriptConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+  </script>
+  <?php endif; ?>
+  <?php if ($loadDashboardJS): ?>
+  <script src="<?php echo asset_url('assets/js/dashboard.js'); ?>"></script>
+  <?php endif; ?>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Professional Inventory Management System">
+  <meta name="description" content="Inventory Management System">
+  <link rel="stylesheet" href="<?php echo asset_url('assets/css/dashboard.css'); ?>">
   <title><?php echo htmlspecialchars($pageTitle); ?> - Inventory System</title>
-  
+
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='3' y='3' width='18' height='18' rx='2' fill='%232563eb'/></svg>">
   
@@ -196,30 +213,6 @@ if (!function_exists('asset_url')) {
   <?php endforeach; ?>
 </head>
 <body data-font="<?php echo htmlspecialchars($_SESSION['font_family'] ?? 'system'); ?>" data-theme="<?php echo htmlspecialchars($_SESSION['theme'] ?? 'light'); ?>" data-resolved-theme="<?php echo htmlspecialchars($_SESSION['theme'] ?? 'light'); ?>">
-  <script>
-    (function () {
-      var storageKey = 'app_theme_preference';
-      var sessionTheme = document.body.getAttribute('data-theme') || 'light';
-      var resolved = sessionTheme;
-
-      if (sessionTheme === 'system' && window.matchMedia) {
-        resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-
-      document.body.setAttribute('data-resolved-theme', resolved);
-
-      try {
-        if (window.localStorage) {
-          var storedTheme = window.localStorage.getItem(storageKey);
-          if (storedTheme !== sessionTheme) {
-            window.localStorage.setItem(storageKey, sessionTheme);
-          }
-        }
-      } catch (err) {
-        console.warn('Unable to sync theme preference', err);
-      }
-    })();
-  </script>
   <!-- Mobile Menu -->
   <?php include __DIR__ . '/mobile-menu.php'; ?>
 
@@ -249,7 +242,7 @@ if (!function_exists('asset_url')) {
   
   <!-- Theme API (Load early for theme-dependent components) -->
   <script src="<?php echo asset_url('assets/js/theme-api.js'); ?>"></script>
-  
+
   <!-- Core JavaScript -->
   <script src="<?php echo asset_url('assets/js/sidebar.js'); ?>"></script>
   

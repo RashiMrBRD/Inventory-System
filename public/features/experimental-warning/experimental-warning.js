@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-(function() {
+ (function() {
   'use strict';
 
   /**
@@ -35,16 +35,16 @@
       // Log theme initialization for debugging
       if (this.theme) {
         const currentTheme = this.theme.currentTheme || document.body.getAttribute('data-theme') || 'unknown';
-        console.log('Experimental Warning: Initialized with theme:', currentTheme);
+        verbose('Experimental Warning: Initialized with theme:', currentTheme);
       } else {
-        console.warn('Experimental Warning: ThemeAPI not available, using default colors');
+        verbose('Experimental Warning: ThemeAPI not available, using default colors');
       }
       
       // Listen for theme changes
       if (this.theme) {
         this.theme.onChange(() => {
           this.currentColors = this.getThemeColors();
-          console.log('Experimental Warning: Theme changed, updating modal colors');
+          verbose('Experimental Warning: Theme changed, updating modal colors');
           if (this.isOpen) {
             this.updateModalColors();
           }
@@ -573,9 +573,15 @@
   window.ExperimentalWarning = ExperimentalWarning;
   window.initExperimentalWarning = initExperimentalWarning;
 
+  const verbose = (...args) => {
+    if (typeof window.debugLog === 'function') {
+      window.debugLog(...args);
+    }
+  };
+
   // Console command to force show any modal (bypasses sessionStorage/localStorage)
   window.forceShowModal = function() {
-    console.log('%c🚀 Force showing modal...', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    verbose('%c🚀 Force showing modal...', 'color: #22c55e; font-weight: bold; font-size: 14px;');
     
     // Clear sessionStorage for welcome modal
     sessionStorage.removeItem(CONFIG.welcomeStorageKey);
@@ -583,7 +589,7 @@
     // Clear localStorage for experimental warnings
     localStorage.removeItem(CONFIG.storageKey);
     
-    console.log('%c✅ Storage cleared. Reloading page...', 'color: #3b82f6; font-weight: bold;');
+    verbose('%c✅ Storage cleared. Reloading page...', 'color: #3b82f6; font-weight: bold;');
     
     // Reload the page to trigger modal
     setTimeout(() => {
@@ -592,16 +598,16 @@
   };
 
   // Console helper to show command info
-  console.log(
+  verbose(
     '%c💡 Modal Control Commands Available:', 
     'color: #a855f7; font-weight: bold; font-size: 16px; margin-top: 10px;'
   );
-  console.log(
+  verbose(
     '%cforceShowModal()%c - Force show welcome/warning modal on current page',
     'color: #22c55e; font-weight: bold; background: #000; padding: 2px 6px; border-radius: 3px;',
     'color: #64748b;'
   );
-  console.log(
+  verbose(
     '%cExample: %cforceShowModal()',
     'color: #64748b;',
     'color: #22c55e; font-family: monospace;'

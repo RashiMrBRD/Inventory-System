@@ -19,7 +19,7 @@ class BarcodeService
         return $this->generator->getBarcode($code, $typeConst);
     }
 
-    private function mapType(string $type): int
+    private function mapType(string $type): string
     {
         $normalized = strtolower($type);
 
