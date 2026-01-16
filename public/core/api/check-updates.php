@@ -7,20 +7,6 @@
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use App\Helper\SessionHelper;
-use App\Controller\AuthController;
-
-// Ensure session is started
-SessionHelper::start();
-
-// Enforce authentication
-$auth = new AuthController();
-if (!$auth->isLoggedIn()) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
 header('Content-Type: application/json');
 
 // Get current version from request
