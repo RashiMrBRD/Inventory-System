@@ -24,8 +24,10 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     mysqli \
     zip \
     gd \
-    opcache \
     exif
+
+# Install opcache separately (Zend extension)
+RUN docker-php-ext-install -j$(nproc) opcache
 
 # Install MongoDB PHP extension (latest version)
 RUN pecl install mongodb \
