@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for PHP with Apache and MongoDB support
 # Stage 1: Builder - Install dependencies and extensions
-FROM php:8.3-apache AS builder
+FROM php:8.5-apache AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -45,7 +45,7 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
 
 # Stage 2: Production - Final lightweight image
-FROM php:8.3-apache
+FROM php:8.5-apache
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \

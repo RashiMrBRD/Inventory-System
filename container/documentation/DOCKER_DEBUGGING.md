@@ -105,7 +105,7 @@ docker exec inventory_web env | grep MONGODB
 # Check PHP version
 docker exec inventory_web php -v
 
-# Should show: PHP 8.3.x
+# Should show: PHP 8.5.x
 
 # Check loaded extensions
 docker exec inventory_web php -m | grep mongodb
