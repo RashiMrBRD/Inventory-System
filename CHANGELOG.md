@@ -1,5 +1,21 @@
 # Changelog
 
+## update 0.4.2 - 01.18.2026
+fixed Invitation Key toggle requiring multiple page refreshes to reflect state changes by implementing comprehensive cache-busting strategies.
+added HTTP cache control headers to login.php to prevent HTML page caching.
+added data attributes directly to body tag for immediate availability of configuration values to client-side scripts.
+removed data attribute setting from page-loader.php to prevent overwriting server-side values.
+changed cache-busting parameter for page-loader to use timestamp for fresh load on every request.
+added PHP opcode cache invalidation in settings.php when config file is updated.
+fixed Timezone Settings persistence issue by prioritizing session timezone over database timezone values.
+removed problematic session update logic that was overwriting session timezone with database value on page load.
+added error logging for database update failures in timezone settings.
+
+Bugs and Fixes:
+- fix an issue with Invitation Key toggle requiring multiple page refreshes to reflect state changes.
+- fix an issue with Timezone Settings not persisting selected timezone and resetting to default values.
+- fix an issue with page-loader script overwriting server-side data attributes with cached values.
+
 ## update 0.4.1 - 01.16.2026
 redesigned System Information section with compact layout and shadcn/ui design principles for better space utilization and visual appeal.
 implemented server time polling mechanism replacing WebSocket for simpler architecture and better reliability.
