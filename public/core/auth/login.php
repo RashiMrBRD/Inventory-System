@@ -8,6 +8,11 @@
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
+// Prevent caching of the login page
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0');
+header('Pragma: no-cache');
+header('Expires: Wed, 11 Jan 1984 05:00:00 GMT');
+
 use App\Controller\AuthController;
 use App\Helper\CsrfHelper;
 use App\Service\RateLimitService;
@@ -15,12 +20,20 @@ use App\Service\RateLimitService;
 // Load app config
 $appConfig = require __DIR__ . '/../../../config/app.php';
 
+// Get config file modification time for cache-busting
+$configFile = __DIR__ . '/../../../config/app.php';
+$configMtime = filemtime($configFile);
+
 $authController = new AuthController();
 $error = '';
 $isFirstRun = !$authController->hasAnyUser();
+
+// Load app config
+$appConfig = require __DIR__ . '/../../../config/app.php';
+
 $host = $_SERVER['HTTP_HOST'] ?? '';
-$isDemoDomain = (strpos($host, 'demo.rashlink.eu.org') === 0);
-$isLocalhost = (strpos($host, 'localhost') === 0 || $host === '127.0.0.1');
+$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
+$isDemoDomain = (strpos($hostOnly, $appConfig['security']['access_control']['demo_domain']) === 0);
 
 CsrfHelper::setTokenCookie();
 
@@ -79,4 +92,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Inventory Management System</title><style>html{visibility:hidden}</style><script src="/assets/js/debug-logger.js"></script><script src="page-loader?error=<?php echo urlencode($error); ?>&isFirstRun=<?php echo $isFirstRun ? 'true' : 'false'; ?>&allowRegistration=<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>"></script><style>.login-footer{margin-top:1rem;text-align:center;font-size:0.875rem}.login-footer p{margin:0;color:var(--text-secondary)}.login-footer a{color:var(--color-primary);text-decoration:none;font-weight:500}.login-footer a:hover{text-decoration:underline}</style></head><body><noscript>JavaScript is required to use this application.</noscript><script src="/assets/js/login-register-link.js"></script></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Inventory Management System</title><style>html{visibility:hidden}</style><script src="/assets/js/debug-logger.js"></script><script src="page-loader?error=<?php echo urlencode($error); ?>&isFirstRun=<?php echo $isFirstRun ? 'true' : 'false'; ?>&allowRegistration=<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>&allowInvitations=<?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'true' : 'false'; ?>&_v=<?php echo time(); ?>"></script><style>.login-footer{margin-top:1rem;text-align:center;font-size:0.875rem}.login-footer p{margin:0;color:var(--text-secondary)}.login-footer a{color:var(--color-primary);text-decoration:none;font-weight:500}.login-footer a:hover{text-decoration:underline}</style></head><body data-allow-registration="<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>" data-allow-invitations="<?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'true' : 'false'; ?>"><noscript>JavaScript is required to use this application.</noscript><script src="/assets/js/login-register-link.js"></script></body></html>

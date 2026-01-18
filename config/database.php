@@ -30,6 +30,7 @@ return [
         'bir_forms' => 'bir_forms',
         'fda_products' => 'fda_products',
         // System
-        'notifications' => 'notifications'
+        'notifications' => 'notifications',
+        'invites' => 'invites'
     ]
 ];

@@ -29,8 +29,14 @@ class NotificationRepository
      */
     public function getAll(array $filters = []): array
     {
-        $query = ['user_id' => $this->userId];
-        
+        // Check if current user is admin
+        $isAdmin = $this->isAdmin();
+
+        // Build query - admins see all notifications, regular users see only their own
+        $query = $isAdmin ? [] : ['user_id' => $this->userId];
+
+        error_log("DEBUG NotificationRepository::getAll() - isAdmin: " . ($isAdmin ? 'true' : 'false') . ", userId: {$this->userId}, query: " . json_encode($query));
+
         // Apply filters (handle both booleans and 'true'/'false' strings)
         if (array_key_exists('read', $filters) && $filters['read'] !== null && $filters['read'] !== '') {
             $read = is_string($filters['read']) ? ($filters['read'] === 'true') : (bool)$filters['read'];
@@ -52,21 +58,25 @@ class NotificationRepository
             // When filtering for false, treat missing field as false as well
             $query['deleted'] = $deleted ? true : ['$ne' => true];
         }
-        
+
+        error_log("DEBUG NotificationRepository::getAll() - final query: " . json_encode($query));
+
         // Always sort by created_at descending (newest first)
         $options = [
             'sort' => ['created_at' => -1],
             'limit' => $filters['limit'] ?? 100,
             'skip' => $filters['skip'] ?? 0
         ];
-        
+
         $cursor = $this->collection->find($query, $options);
         $notifications = [];
-        
+
         foreach ($cursor as $doc) {
             $notifications[] = $this->formatNotification($doc);
         }
-        
+
+        error_log("DEBUG NotificationRepository::getAll() - returned " . count($notifications) . " notifications");
+
         return $notifications;
     }
 
@@ -75,8 +85,12 @@ class NotificationRepository
      */
     public function countBy(array $filters = []): int
     {
-        $query = ['user_id' => $this->userId];
-        
+        // Check if current user is admin
+        $isAdmin = $this->isAdmin();
+
+        // Build query - admins see all notifications, regular users see only their own
+        $query = $isAdmin ? [] : ['user_id' => $this->userId];
+
         if (array_key_exists('read', $filters) && $filters['read'] !== null && $filters['read'] !== '') {
             $read = is_string($filters['read']) ? ($filters['read'] === 'true') : (bool)$filters['read'];
             $query['read'] = $read;
@@ -95,7 +109,7 @@ class NotificationRepository
             $deleted = is_string($filters['deleted']) ? ($filters['deleted'] === 'true') : (bool)$filters['deleted'];
             $query['deleted'] = $deleted ? true : ['$ne' => true];
         }
-        
+
         return $this->collection->countDocuments($query);
     }
 
@@ -104,13 +118,17 @@ class NotificationRepository
      */
     public function getUnreadCount(): int
     {
-        return $this->collection->countDocuments([
-            'user_id' => $this->userId,
-            'read' => false,
-            // Exclude dismissed/deleted; treat missing fields as not dismissed/deleted
-            'dismissed' => ['$ne' => true],
-            'deleted' => ['$ne' => true]
-        ]);
+        // Check if current user is admin
+        $isAdmin = $this->isAdmin();
+
+        // Build query - admins see all notifications, regular users see only their own
+        $query = $isAdmin ? [] : ['user_id' => $this->userId];
+        $query['read'] = false;
+        // Exclude dismissed/deleted; treat missing fields as not dismissed/deleted
+        $query['dismissed'] = ['$ne' => true];
+        $query['deleted'] = ['$ne' => true];
+
+        return $this->collection->countDocuments($query);
     }
 
     /**
@@ -118,21 +136,29 @@ class NotificationRepository
      */
     public function getTrash(): array
     {
+        // Check if current user is admin
+        $isAdmin = $this->isAdmin();
+
+        // Build query - admins see all notifications, regular users see only their own
+        $query = $isAdmin ? [] : ['user_id' => $this->userId];
+        $query['dismissed'] = true;
+        // Only not-deleted (treat missing as not deleted)
+        $query['deleted'] = ['$ne' => true];
+
+        error_log("DEBUG NotificationRepository::getTrash() - isAdmin: " . ($isAdmin ? 'true' : 'false') . ", userId: {$this->userId}, query: " . json_encode($query));
+
         $cursor = $this->collection->find(
-            [
-                'user_id' => $this->userId,
-                'dismissed' => true,
-                // Only not-deleted (treat missing as not deleted)
-                'deleted' => ['$ne' => true]
-            ],
+            $query,
             ['sort' => ['dismissed_at' => -1, 'created_at' => -1]]
         );
-        
+
         $notifications = [];
         foreach ($cursor as $doc) {
             $notifications[] = $this->formatNotification($doc);
         }
-        
+
+        error_log("DEBUG NotificationRepository::getTrash() - returned " . count($notifications) . " notifications");
+
         return $notifications;
     }
 
@@ -271,12 +297,40 @@ class NotificationRepository
         $timestamp = $date->toDateTime()->getTimestamp();
         $now = time();
         $diff = $now - $timestamp;
-        
+
         if ($diff < 60) return 'just now';
         if ($diff < 3600) return floor($diff / 60) . ' minutes ago';
         if ($diff < 86400) return floor($diff / 3600) . ' hours ago';
         if ($diff < 604800) return floor($diff / 86400) . ' days ago';
-        
+
         return date('M d, Y', $timestamp);
+    }
+
+    /**
+     * Check if current user is admin
+     */
+    private function isAdmin(): bool
+    {
+        // Use the userId from constructor
+        if (!$this->userId) {
+            error_log("DEBUG NotificationRepository::isAdmin() - No userId provided");
+            return false;
+        }
+
+        // Load User model to check access level
+        $userModel = new \App\Model\User();
+        $user = $userModel->findById($this->userId);
+
+        if (!$user) {
+            error_log("DEBUG NotificationRepository::isAdmin() - User not found: " . $this->userId);
+            return false;
+        }
+
+        $accessLevel = $user['access_level'] ?? 'user';
+        $isAdmin = ($accessLevel === 'admin');
+
+        error_log("DEBUG NotificationRepository::isAdmin() - userId: {$this->userId}, access_level: {$accessLevel}, isAdmin: " . ($isAdmin ? 'true' : 'false'));
+
+        return $isAdmin;
     }
 }

@@ -19,6 +19,21 @@ class Project
 
     public function getAll(array $filter = [], array $options = []): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $options = array_merge([
             'sort' => ['created_at' => -1],
             'limit' => 500
@@ -66,10 +81,17 @@ class Project
 
     public function create(array $data): string
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            throw new \Exception("User not authenticated");
+        }
+
+        $data['user_id'] = $userId;
         $data['created_at'] = new \MongoDB\BSON\UTCDateTime();
         $data['updated_at'] = new \MongoDB\BSON\UTCDateTime();
         $data['spent'] = $data['spent'] ?? 0;
-        
+
         $result = $this->collection->insertOne($data);
         return (string)$result->getInsertedId();
     }

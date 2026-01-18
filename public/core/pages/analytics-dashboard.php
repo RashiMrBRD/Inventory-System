@@ -50,7 +50,16 @@ $hasComplianceCharts = $showBirWidgets || $showFdaWidgets;
 // Notifications widgets visibility based on sidebar settings
 $showNotificationsWidgets = !in_array('notifications', $sidebarHiddenItems, true);
 
-$userId = $user['id'] ?? 'admin';
+// Initialize user ID - use MongoDB _id
+$userId = isset($user['_id']) ? (string)$user['_id'] : null;
+if (!$userId) {
+    // Fallback to session user_id
+    $userId = $_SESSION['user_id'] ?? null;
+}
+
+if (!$userId) {
+    die("User not authenticated");
+}
 
 // ============================================
 // TIME RANGE FILTER

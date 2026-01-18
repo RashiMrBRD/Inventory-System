@@ -207,6 +207,24 @@ $twoFAEnabled = (bool)($user['mfa_enabled'] ?? $user['two_factor_enabled'] ?? $u
 $twoFAStatus = $twoFAEnabled ? 'Enabled' : 'Disabled';
 $dbSecurityEvents = [];
 
+// Handle firstname and lastname - if not set, split from full_name
+$firstname = $user['firstname'] ?? '';
+$lastname = $user['lastname'] ?? '';
+if (empty($firstname) && empty($lastname) && !empty($user['full_name'])) {
+    $nameParts = explode(' ', trim($user['full_name']), 2);
+    $firstname = $nameParts[0] ?? '';
+    $lastname = isset($nameParts[1]) ? $nameParts[1] : '';
+}
+
+// Calculate age from birthday
+$ageDisplay = '—';
+if (!empty($user['birthday'])) {
+    $birthday = new DateTime($user['birthday']);
+    $today = new DateTime();
+    $age = $today->diff($birthday)->y;
+    $ageDisplay = $age . ' years old';
+}
+
 try {
     if (!empty($userId)) {
         $sessionService = new SessionService();
@@ -266,7 +284,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'website' => trim($_POST['website'] ?? ''),
                         'telegram' => trim($_POST['telegram'] ?? ''),
                         'bio' => trim($_POST['bio'] ?? ''),
-                        'role' => $_POST['role'] ?? 'user'
+                        'role' => $_POST['role'] ?? 'user',
+                        'birthday' => trim($_POST['birthday'] ?? ''),
+                        'education' => trim($_POST['education'] ?? ''),
+                        'phone' => trim($_POST['phone'] ?? ''),
+                        'address' => trim($_POST['address'] ?? ''),
+                        'skills' => trim($_POST['skills'] ?? ''),
+                        'linkedin' => trim($_POST['linkedin'] ?? ''),
+                        'github' => trim($_POST['github'] ?? ''),
+                        'twitter' => trim($_POST['twitter'] ?? '')
                     ];
 
                     $result = $authController->updateUserProfile($userId, $updates);
@@ -1032,6 +1058,187 @@ html, body {
   font-size: 0.8125rem;
 }
 
+/* Shadcn Form Styling */
+.form-input, .form-select, textarea.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 1px solid hsl(214 32% 91%);
+  border-radius: 0.375rem;
+  background-color: white;
+  color: hsl(222 47% 11%);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.form-input:focus, .form-select:focus, textarea.form-input:focus {
+  outline: none;
+  border-color: hsl(222 47% 11%);
+  box-shadow: 0 0 0 2px hsl(210 40% 98%);
+}
+
+.form-input::placeholder, textarea.form-input::placeholder {
+  color: hsl(215 16% 47%);
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(222 47% 11%);
+  margin-bottom: 0.375rem;
+}
+
+.form-helper {
+  display: block;
+  font-size: 0.75rem;
+  color: hsl(215 16% 47%);
+  margin-top: 0.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Shadcn Button Styling */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  text-decoration: none;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background-color: hsl(222 47% 11%);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: hsl(222 47% 25%);
+}
+
+.btn-secondary {
+  background-color: white;
+  border-color: hsl(214 32% 91%);
+  color: hsl(222 47% 11%);
+}
+
+.btn-secondary:hover {
+  background-color: hsl(210 40% 98%);
+  border-color: hsl(214 32% 91%);
+}
+
+.btn-sm {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* Shadcn Card Styling */
+.card {
+  background: white;
+  border: 1px solid hsl(214 32% 91%);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid hsl(214 32% 91%);
+  background-color: hsl(210 40% 98%);
+}
+
+.card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: hsl(222 47% 11%);
+  margin: 0;
+}
+
+.card-content {
+  padding: 1.25rem;
+}
+
+.card-footer {
+  padding: 0.75rem 1.25rem;
+  background-color: hsl(210 40% 98%);
+  border-top: 1px solid hsl(214 32% 91%);
+}
+
+/* Shadcn Alert Styling */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.alert-success {
+  background-color: hsl(143 85% 96%);
+  border-color: hsl(143 85% 80%);
+  color: hsl(140 61% 13%);
+}
+
+.alert-danger {
+  background-color: hsl(0 86% 97%);
+  border-color: hsl(0 86% 80%);
+  color: hsl(0 74% 24%);
+}
+
+.alert-warning {
+  background-color: hsl(48 96% 89%);
+  border-color: hsl(48 96% 80%);
+  color: hsl(25 95% 16%);
+}
+
+.alert-info {
+  background-color: hsl(214 95% 93%);
+  border-color: hsl(214 95% 80%);
+  color: hsl(222 47% 17%);
+}
+
+.alert-close {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
 /* Compact Forms */
 .form-input, .form-select {
   width: 100%;
@@ -1299,8 +1506,8 @@ textarea {
           <div class="metric-label">Email</div>
         </div>
         <div class="metric-card">
-          <div class="metric-value"><?php echo htmlspecialchars($lastLoginDisplay); ?></div>
-          <div class="metric-label">Last Login</div>
+          <div class="metric-value"><?php echo htmlspecialchars($ageDisplay); ?></div>
+          <div class="metric-label">Age</div>
         </div>
         <div class="metric-card">
           <div class="metric-value"><?php echo htmlspecialchars($twoFAStatus); ?></div>
@@ -1314,6 +1521,118 @@ textarea {
         </div>
         <div class="card-content">
           <div id="profile-tab-overview" class="profile-tab-content active">
+            <form method="POST" id="profileForm" style="display: grid; gap: 1.5rem;">
+              <input type="hidden" name="action" value="update_profile">
+              
+              <!-- Personal Information -->
+              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                <h4 style="margin: 0 0 1rem 0; font-size: 0.9375rem; font-weight: 600; color: var(--text-primary);">Personal Information</h4>
+                
+                <div class="form-row" style="margin-bottom: 0.75rem;">
+                  <div class="form-group">
+                    <label class="form-label">First Name</label>
+                    <input type="text" name="firstname" class="form-input" value="<?php echo htmlspecialchars($firstname); ?>" placeholder="John">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" name="lastname" class="form-input" value="<?php echo htmlspecialchars($lastname); ?>" placeholder="Doe">
+                  </div>
+                </div>
+                
+                <div class="form-row" style="margin-bottom: 0.75rem;">
+                  <div class="form-group">
+                    <label class="form-label">Birthday</label>
+                    <input type="date" name="birthday" class="form-input" value="<?php echo htmlspecialchars($user['birthday'] ?? ''); ?>">
+                    <span class="form-helper">Your age will be calculated automatically</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" name="phone" class="form-input" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" placeholder="+1 234 567 8900">
+                  </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                  <label class="form-label">Address</label>
+                  <input type="text" name="address" class="form-input" value="<?php echo htmlspecialchars($user['address'] ?? ''); ?>" placeholder="123 Main St, City, Country">
+                </div>
+              </div>
+              
+              <!-- Education & Skills -->
+              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                <h4 style="margin: 0 0 1rem 0; font-size: 0.9375rem; font-weight: 600; color: var(--text-primary);">Education & Skills</h4>
+                
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                  <label class="form-label">Educational Background</label>
+                  <textarea name="education" class="form-input" rows="3" placeholder="Bachelor's Degree in Computer Science, University Name, 2020"><?php echo htmlspecialchars($user['education'] ?? ''); ?></textarea>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Skills & Expertise</label>
+                  <textarea name="skills" class="form-input" rows="3" placeholder="JavaScript, PHP, Project Management, Data Analysis"><?php echo htmlspecialchars($user['skills'] ?? ''); ?></textarea>
+                </div>
+              </div>
+              
+              <!-- Social Media -->
+              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                <h4 style="margin: 0 0 1rem 0; font-size: 0.9375rem; font-weight: 600; color: var(--text-primary);">Social Media</h4>
+                
+                <div class="form-row" style="margin-bottom: 0.75rem;">
+                  <div class="form-group">
+                    <label class="form-label">LinkedIn</label>
+                    <input type="url" name="linkedin" class="form-input" value="<?php echo htmlspecialchars($user['linkedin'] ?? ''); ?>" placeholder="https://linkedin.com/in/username">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">GitHub</label>
+                    <input type="url" name="github" class="form-input" value="<?php echo htmlspecialchars($user['github'] ?? ''); ?>" placeholder="https://github.com/username">
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Twitter</label>
+                  <input type="url" name="twitter" class="form-input" value="<?php echo htmlspecialchars($user['twitter'] ?? ''); ?>" placeholder="https://twitter.com/username">
+                </div>
+              </div>
+              
+              <!-- Contact Information -->
+              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                <h4 style="margin: 0 0 1rem 0; font-size: 0.9375rem; font-weight: 600; color: var(--text-primary);">Contact Information</h4>
+                
+                <div class="form-row" style="margin-bottom: 0.75rem;">
+                  <div class="form-group">
+                    <label class="form-label">WhatsApp</label>
+                    <input type="tel" name="whatsapp" class="form-input" value="<?php echo htmlspecialchars($user['whatsapp'] ?? ''); ?>" placeholder="+1 234 567 8900">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Telegram</label>
+                    <input type="text" name="telegram" class="form-input" value="<?php echo htmlspecialchars($user['telegram'] ?? ''); ?>" placeholder="@username">
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Website</label>
+                  <input type="url" name="website" class="form-input" value="<?php echo htmlspecialchars($user['website'] ?? ''); ?>" placeholder="https://yourwebsite.com">
+                </div>
+              </div>
+              
+              <!-- About -->
+              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                <h4 style="margin: 0 0 1rem 0; font-size: 0.9375rem; font-weight: 600; color: var(--text-primary);">About</h4>
+                <div class="form-group">
+                  <textarea name="bio" class="form-input" rows="4" placeholder="Tell us about yourself..."><?php echo htmlspecialchars($user['bio'] ?? ''); ?></textarea>
+                </div>
+              </div>
+              
+              <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
 
           <div id="profile-tab-activity" class="profile-tab-content">

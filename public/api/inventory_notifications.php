@@ -21,7 +21,19 @@ if (!$authController->isLoggedIn()) {
 }
 
 $user = $authController->getCurrentUser();
-$userId = $user['id'] ?? 'admin';
+
+// Initialize with user ID
+$userId = isset($user['_id']) ? (string)$user['_id'] : null;
+if (!$userId) {
+    // Fallback to session user_id
+    $userId = $_SESSION['user_id'] ?? null;
+}
+
+if (!$userId) {
+    http_response_code(401);
+    echo json_encode(['error' => 'User not authenticated']);
+    exit;
+}
 
 $inventoryModel = new Inventory();
 $notificationRepo = new NotificationRepository($userId);

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Model\User;
 use App\Service\SessionService;
+use App\Service\TimezoneDetectionService;
 
 /**
  * Auth Controller
@@ -13,11 +14,13 @@ class AuthController
 {
     private User $userModel;
     private SessionService $sessionService;
+    private TimezoneDetectionService $timezoneDetection;
 
     public function __construct()
     {
         $this->userModel = new User();
         $this->sessionService = new SessionService();
+        $this->timezoneDetection = new TimezoneDetectionService();
         
         // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
@@ -74,14 +77,28 @@ class AuthController
                 ];
             }
 
+            // Split full_name into firstname and lastname
+            $fullNameToUse = $fullName !== '' ? $fullName : $username;
+            $nameParts = explode(' ', trim($fullNameToUse), 2);
+            $firstname = $nameParts[0] ?? '';
+            $lastname = isset($nameParts[1]) ? $nameParts[1] : '';
+
             $userData = [
                 'username' => $username,
                 'password' => $password,
                 'email' => $email,
-                'full_name' => $fullName !== '' ? $fullName : $username,
+                'full_name' => $fullNameToUse,
+                'firstname' => $firstname,
+                'lastname' => $lastname,
                 'access_level' => 'admin',
                 'role' => 'admin'
             ];
+
+            // Detect and save timezone automatically
+            $detectedTimezone = $this->timezoneDetection->detect();
+            if ($detectedTimezone !== null && in_array($detectedTimezone, timezone_identifiers_list())) {
+                $userData['timezone'] = $detectedTimezone;
+            }
 
             $id = $this->userModel->create($userData);
             if (!$id) {
@@ -110,6 +127,12 @@ class AuthController
 
             $_SESSION['access_level'] = $user['access_level'] ?? 'admin';
             $_SESSION['last_activity'] = time();
+
+            // Load timezone from user profile into session
+            if (isset($user['timezone']) && in_array($user['timezone'], timezone_identifiers_list())) {
+                $_SESSION['timezone'] = $user['timezone'];
+                date_default_timezone_set($user['timezone']);
+            }
 
             $this->sessionService->createSession(
                 (string)$user['_id'],
@@ -171,6 +194,12 @@ class AuthController
 
             $_SESSION['access_level'] = $user['access_level'] ?? 'user';
             $_SESSION['last_activity'] = time();
+
+            // Load timezone from user profile into session
+            if (isset($user['timezone']) && in_array($user['timezone'], timezone_identifiers_list())) {
+                $_SESSION['timezone'] = $user['timezone'];
+                date_default_timezone_set($user['timezone']);
+            }
 
             // Track session login
             $this->sessionService->createSession(
@@ -252,16 +281,19 @@ class AuthController
     public function updateUserProfile(string $userId, array $data): array
     {
         try {
-            // Validate email
-            if (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            // Only validate email and username if they are being updated
+            $hasEmail = isset($data['email']);
+            $hasUsername = isset($data['username']);
+
+            if ($hasEmail && (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL))) {
                 return [
                     'success' => false,
                     'message' => 'Valid email address is required'
                 ];
             }
 
-            // Check if username is taken by another user
-            if (!empty($data['username'])) {
+            // Check if username is taken by another user (only if username is being updated)
+            if ($hasUsername && !empty($data['username'])) {
                 $existingUser = $this->userModel->findByUsername($data['username']);
                 if ($existingUser && $existingUser['_id'] !== $userId) {
                     return [
@@ -271,28 +303,67 @@ class AuthController
                 }
             }
 
-            // Update user data
-            $updateData = [
-                'username' => $data['username'] ?? '',
-                'email' => $data['email'] ?? '',
-                'firstname' => $data['firstname'] ?? '',
-                'lastname' => $data['lastname'] ?? '',
-                'nickname' => $data['nickname'] ?? '',
-                'display_name' => $data['display_name'] ?? '',
-                'role' => $data['role'] ?? 'user',
-                'whatsapp' => $data['whatsapp'] ?? '',
-                'website' => $data['website'] ?? '',
-                'telegram' => $data['telegram'] ?? '',
-                'bio' => $data['bio'] ?? '',
-                'full_name' => trim(($data['firstname'] ?? '') . ' ' . ($data['lastname'] ?? ''))
-            ];
+            // Update user data - only include fields that are provided
+            $updateData = [];
+
+            if ($hasUsername) {
+                $updateData['username'] = $data['username'];
+            }
+            if ($hasEmail) {
+                $updateData['email'] = $data['email'];
+            }
+            if (isset($data['firstname'])) {
+                $updateData['firstname'] = $data['firstname'];
+            }
+            if (isset($data['lastname'])) {
+                $updateData['lastname'] = $data['lastname'];
+            }
+            if (isset($data['nickname'])) {
+                $updateData['nickname'] = $data['nickname'];
+            }
+            if (isset($data['display_name'])) {
+                $updateData['display_name'] = $data['display_name'];
+            }
+            if (isset($data['role'])) {
+                $updateData['role'] = $data['role'];
+            }
+            if (isset($data['whatsapp'])) {
+                $updateData['whatsapp'] = $data['whatsapp'];
+            }
+            if (isset($data['website'])) {
+                $updateData['website'] = $data['website'];
+            }
+            if (isset($data['telegram'])) {
+                $updateData['telegram'] = $data['telegram'];
+            }
+            if (isset($data['bio'])) {
+                $updateData['bio'] = $data['bio'];
+            }
+            if (isset($data['timezone'])) {
+                $updateData['timezone'] = $data['timezone'];
+            }
+
+            // Update full_name if firstname or lastname is provided
+            if (isset($data['firstname']) || isset($data['lastname'])) {
+                $updateData['full_name'] = trim(($data['firstname'] ?? '') . ' ' . ($data['lastname'] ?? ''));
+            }
 
             $result = $this->userModel->updateUser($userId, $updateData);
 
             if ($result) {
-                // Update session data
-                $_SESSION['username'] = $updateData['username'];
-                $_SESSION['full_name'] = $updateData['full_name'];
+                // Update session data for fields that were updated
+                if (isset($updateData['username'])) {
+                    $_SESSION['username'] = $updateData['username'];
+                }
+                if (isset($updateData['full_name'])) {
+                    $_SESSION['full_name'] = $updateData['full_name'];
+                }
+
+                // Update timezone in session if provided
+                if (isset($updateData['timezone'])) {
+                    $_SESSION['timezone'] = $updateData['timezone'];
+                    date_default_timezone_set($updateData['timezone']);
+                }
 
                 return [
                     'success' => true,

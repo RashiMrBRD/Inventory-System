@@ -12,17 +12,20 @@ header('Cache-Control: public, max-age=31536000, immutable'); // 1 year cache fo
 header('ETag: "' . md5_file(__FILE__) . '"');
 header('Vary: Accept-Encoding');
 
-$host = $_SERVER['HTTP_HOST'] ?? '';
-$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
-$isDemoDomain = (strpos($hostOnly, 'demo.rashlink.eu.org') === 0);
-$isLocalhost = ($hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1');
+// Load app config
+$appConfig = require __DIR__ . '/../../../config/app.php';
 
-// Only serve font content for demo domain and localhost
-if (!$isDemoDomain && !$isLocalhost) {
+$host = $_SERVER['HTTP_HOST'] ?? '';
+
+// Check if host is allowed using centralized configuration
+if (!isHostAllowed($host, $appConfig['security']['access_control'])) {
     http_response_code(403);
     echo '/* Access denied */';
     exit;
 }
+
+$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
+$isDemoDomain = (strpos($hostOnly, $appConfig['security']['access_control']['demo_domain']) === 0);
 
 ?>
 /* Google Fonts - Inter */

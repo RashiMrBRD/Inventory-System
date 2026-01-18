@@ -18,6 +18,21 @@ class Shipment
 
     public function getAll(array $filter = [], array $options = []): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $options = array_merge([
             'sort' => ['createdAt' => -1],
             'limit' => 500
@@ -56,16 +71,23 @@ class Shipment
 
     public function create(array $data): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            throw new \Exception("User not authenticated");
+        }
+
+        $data['user_id'] = $userId;
         $data['createdAt'] = new \MongoDB\BSON\UTCDateTime();
         $data['updatedAt'] = new \MongoDB\BSON\UTCDateTime();
-        
+
         $result = $this->collection->insertOne($data);
-        
+
         if ($result->getInsertedCount() > 0) {
             $data['_id'] = $result->getInsertedId();
             return $data;
         }
-        
+
         throw new \Exception('Failed to create shipment');
     }
 

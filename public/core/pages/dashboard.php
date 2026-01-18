@@ -49,8 +49,16 @@ if ($user && isset($user['sidebar_hidden_items']) && is_array($user['sidebar_hid
 }
 $showProjectsWidgets = !in_array('projects', $sidebarHiddenItems, true);
 
-// Initialize user ID
-$userId = $user['id'] ?? 'admin';
+// Initialize user ID - use MongoDB _id
+$userId = isset($user['_id']) ? (string)$user['_id'] : null;
+if (!$userId) {
+    // Fallback to session user_id
+    $userId = $_SESSION['user_id'] ?? null;
+}
+
+if (!$userId) {
+    die("User not authenticated");
+}
  
 // BIR widgets visibility based on sidebar settings
 $showBirWidgets = !in_array('bir-compliance', $sidebarHiddenItems, true);

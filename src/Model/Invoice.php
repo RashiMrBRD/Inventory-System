@@ -25,6 +25,21 @@ class Invoice
      */
     public function getAll(array $filter = [], array $options = []): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $options = array_merge([
             'sort' => ['date' => -1],
             'limit' => 200
@@ -41,23 +56,40 @@ class Invoice
     /**
      * Search invoices by invoice number, customer name, or status
      * This method searches invoices by invoice number, customer name, or status
-     * 
+     *
      * @param string $query
      * @return array
      */
     public function search(string $query): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
         $regex = new \MongoDB\BSON\Regex($query, 'i');
-        
-        $items = $this->collection->find([
+
+        $filter = [
             '$or' => [
                 ['invoice_number' => $regex],
                 ['customer_name' => $regex],
                 ['customer_email' => $regex],
                 ['status' => $regex]
             ]
-        ])->toArray();
-        
+        ];
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
+        $items = $this->collection->find($filter)->toArray();
+
         return array_map(function($item) {
             return (array)$item;
         }, $items);
@@ -69,25 +101,32 @@ class Invoice
     public function generateInvoiceNumber(): string
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                throw new \Exception("User not authenticated");
+            }
+
             $year = date('Y');
             $month = date('m');
-            
+
             error_log("DEBUG: Generating invoice number for year: $year, month: $month");
-            
-            // Get the count of invoices for this month
+
+            // Get the count of invoices for this month and user
             $monthlyCount = $this->collection->countDocuments([
-                'invoice_number' => ['$regex' => "^INV-{$year}{$month}"]
+                'invoice_number' => ['$regex' => "^INV-{$year}{$month}"],
+                'user_id' => $userId
             ]);
-            
+
             error_log("DEBUG: Found $monthlyCount existing invoices for this month");
-            
+
             // Generate sequential number (starting from 1)
             $sequence = $monthlyCount + 1;
             $sequencePadded = str_pad($sequence, 3, '0', STR_PAD_LEFT);
-            
+
             $invoiceNumber = "INV-{$year}{$month}-{$sequencePadded}";
             error_log("DEBUG: Generated invoice number: $invoiceNumber");
-            
+
             return $invoiceNumber;
         } catch (\Exception $e) {
             error_log("ERROR: Failed to generate invoice number: " . $e->getMessage());
@@ -102,23 +141,30 @@ class Invoice
     public function create(array $data): string
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                throw new \Exception("User not authenticated");
+            }
+
             error_log("DEBUG: Invoice create called with data: " . json_encode($data));
-            
+
             // Add timestamps and defaults
+            $data['user_id'] = $userId;
             $data['created_at'] = date('Y-m-d H:i:s');
             $data['updated_at'] = date('Y-m-d H:i:s');
             $data['status'] = $data['status'] ?? 'draft';
             $data['paid'] = 0; // Default no payment made yet
             $data['outstanding'] = (float)($data['total'] ?? 0);
-            
+
             error_log("DEBUG: Final invoice data before insert: " . json_encode($data));
-            
+
             // Insert into database
             $result = $this->collection->insertOne($data);
-            
+
             $invoiceId = (string)$result->getInsertedId();
             error_log("DEBUG: Invoice inserted with ID: $invoiceId");
-            
+
             // Return the inserted ID as string
             return $invoiceId;
         } catch (\Exception $e) {
@@ -181,6 +227,21 @@ class Invoice
     public function totals(array $filter = []): array
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                return ['total' => 0, 'paid' => 0, 'outstanding' => 0];
+            }
+
+            // Check if user is admin
+            $user = (new User())->findById($userId);
+            $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+            // Add user_id filter for non-admin users
+            if (!$isAdmin) {
+                $filter['user_id'] = $userId;
+            }
+
             $pipeline = [
                 ['$match' => $filter],
                 ['$group' => [
@@ -218,12 +279,27 @@ class Invoice
      */
     public function getPaginated(int $page = 1, int $perPage = 6, array $filter = [], array $sort = ['date' => -1]): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return ['items' => [], 'total' => 0, 'page' => $page, 'perPage' => $perPage, 'totalPages' => 0];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $skip = ($page - 1) * $perPage;
 
         $totalCount = $this->collection->countDocuments($filter);
-        
+
         $options = [
             'sort' => $sort,
             'skip' => $skip,

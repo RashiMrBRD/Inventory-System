@@ -977,6 +977,10 @@
     // Allow arrow keys for tab switching even when in input fields (for modal tabs)
     const isArrowKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key);
     
+    // If in input field and not in a modal, allow arrow keys to work normally for cursor movement
+    if (isInputField && !isAnyModalOpen() && isArrowKey) return;
+    
+    // If in input field and not an arrow key, return early
     if (isInputField && !isArrowKey) return;
 
     // Handle Shift + Key combinations

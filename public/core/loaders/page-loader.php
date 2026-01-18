@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Stealth Page Loader - Complete view-source protection with preloading
  * 
@@ -10,29 +10,41 @@ header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
-header('ETag: "' . md5_file(__FILE__) . '"');
-header('Vary: Accept-Encoding');
+
+// Load app config
+$appConfig = require __DIR__ . '/../../../config/app.php';
 
 $host = $_SERVER['HTTP_HOST'] ?? '';
-$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
-$isDemoDomain = (strpos($hostOnly, 'demo.rashlink.eu.org') === 0);
-$isLocalhost = ($hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1');
 
-if (!$isDemoDomain && !$isLocalhost) {
-    http_response_code(403);
+// Check if host is allowed using centralized configuration
+if (!isHostAllowed($host, $appConfig['security']['access_control'])) {
+    // Return generic error to avoid revealing security information
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Access Denied</title></head><body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;"><div style="text-align: center;"><h1 style="color: #333;">Access Denied</h1><p style="color: #666;">You do not have permission to access this resource.</p></div></body></html>';
     exit;
 }
+
+$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
+$isDemoDomain = (strpos($hostOnly, $appConfig['security']['access_control']['demo_domain']) === 0);
 
 // Get variables from URL parameters
 $error = $_GET['error'] ?? '';
 $isFirstRun = ($_GET['isFirstRun'] ?? 'false') === 'true';
-$allowRegistration = ($_GET['allowRegistration'] ?? 'false') === 'true';
+
+// Read config values directly from file (not from URL params to avoid caching issues)
+$allowRegistration = $appConfig['security']['allow_registration'] ?? false;
+$allowInvitations = $appConfig['security']['allow_invitations'] ?? false;
+
+// Get CSRF token from cookie
+$csrfToken = $_COOKIE['csrf_token'] ?? '';
 
 // Escape variables for JavaScript
 $errorJs = addslashes(htmlspecialchars($error));
+$csrfTokenJs = addslashes(htmlspecialchars($csrfToken));
 
 // The stealth loading JavaScript (will be encrypted)
-$jsCode = "(function(){'use strict';var isFirstRun=" . ($isFirstRun ? 'true' : 'false') . ";var isDemoDomain=" . ($isDemoDomain ? 'true' : 'false') . ";var allowRegistration=" . ($allowRegistration ? 'true' : 'false') . ";if(typeof window.debugLog==='function'){window.debugLog('[Page-Loader] allowRegistration:',allowRegistration);}var error='" . $errorJs . "';function preloadResources(){var resources=[{type:'css',url:'css-loader?files=core.css,components.css,utilities.css,login-page.css'},{type:'css',url:'font-loader'}];var loaded=0;var total=resources.length;function checkLoaded(){loaded++;if(loaded===total){createPage();}}resources.forEach(function(resource){if(resource.type==='css'){var link=document.createElement('link');link.rel='preload';link.as='style';link.href=resource.url;link.onload=function(){var styleLink=document.createElement('link');styleLink.rel='stylesheet';styleLink.href=resource.url;document.head.appendChild(styleLink);checkLoaded();};link.onerror=checkLoaded;document.head.appendChild(link);}});}function createPage(){document.documentElement.style.visibility='visible';document.body.setAttribute('data-allow-registration',allowRegistration?'true':'false');if(typeof window.debugLog==='function'){window.debugLog('[Page-Loader] Set data-allow-registration to:',allowRegistration?'true':'false');}var bodyHtml='<div class=\"login-wrapper\"><div class=\"login-header\"><h1 class=\"login-title\">Inventory Management</h1><p class=\"login-subtitle\">'+(isFirstRun?'Create the first admin account to start using the system':'Sign in to your account')+'</p></div><div class=\"login-form\">';if(error){bodyHtml+='<div class=\"alert alert-danger mb-4\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12 8V12M12 16H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg><span>'+error+'</span></div>';}if(isFirstRun){bodyHtml+='<form method=\"POST\"><input type=\"hidden\" name=\"setup_admin\" value=\"1\"><div class=\"form-group\"><label for=\"full_name\" class=\"form-label\">Full Name</label><input type=\"text\" id=\"full_name\" name=\"full_name\" class=\"form-input\" placeholder=\"Enter full name (optional)\"></div><div class=\"form-group\"><label for=\"email\" class=\"form-label\">Email</label><input type=\"email\" id=\"email\" name=\"email\" class=\"form-input\" placeholder=\"Enter email (optional)\"></div><div class=\"form-group\"><label for=\"username\" class=\"form-label\">Username</label><input type=\"text\" id=\"username\" name=\"username\" class=\"form-input\" placeholder=\"Choose an admin username\" required></div><div class=\"form-group\"><label for=\"password\" class=\"form-label\">Password</label><input type=\"password\" id=\"password\" name=\"password\" class=\"form-input\" placeholder=\"Create a password\" required></div><div class=\"form-group\"><label for=\"confirm_password\" class=\"form-label\">Confirm Password</label><input type=\"password\" id=\"confirm_password\" name=\"confirm_password\" class=\"form-input\" placeholder=\"Confirm password\" required></div><button type=\"submit\" class=\"btn btn-primary w-full\">Create Admin Account</button></form>';}else{bodyHtml+='<form method=\"POST\"><div class=\"form-group\"><label for=\"username\" class=\"form-label\">Username</label><input type=\"text\" id=\"username\" name=\"username\" class=\"form-input\" placeholder=\"Enter username\" required></div><div class=\"form-group\"><label for=\"password\" class=\"form-label\">Password</label><input type=\"password\" id=\"password\" name=\"password\" class=\"form-input\" placeholder=\"Enter password\" required></div><button type=\"submit\" class=\"btn btn-primary w-full\">Sign In</button></form>';}if(!isFirstRun&&isDemoDomain){bodyHtml+='<div class=\"demo-info\"><strong>Demo Credentials</strong><code>Username: admin</code><code>Password: admin123</code></div>';}bodyHtml+='</div></div>';document.body.innerHTML=bodyHtml;setTimeout(function(){var firstInput=document.querySelector('input[type=\"text\"]');if(firstInput){firstInput.focus();}},100);}document.documentElement.style.visibility='hidden';preloadResources();})();";
+$jsCode = "(function(){'use strict';console.log('[Page-Loader] Starting...');var isFirstRun=" . ($isFirstRun ? 'true' : 'false') . ";var isDemoDomain=" . ($isDemoDomain ? 'true' : 'false') . ";var allowRegistration=" . ($allowRegistration ? 'true' : 'false') . ";var allowInvitations=" . ($allowInvitations ? 'true' : 'false') . ";var csrfToken='" . $csrfTokenJs . "';if(typeof window.debugLog==='function'){window.debugLog('[Page-Loader] allowRegistration:',allowRegistration);}if(typeof window.debugLog==='function'){window.debugLog('[Page-Loader] allowInvitations:',allowInvitations);}var error='" . $errorJs . "';var loadTimeout=null;function preloadResources(){console.log('[Page-Loader] preloadResources called');var resources=[{type:'css',url:'css-loader?files=core.css,components.css,utilities.css,login-page.css'},{type:'css',url:'font-loader'}];var loaded=0;var total=resources.length;console.log('[Page-Loader] Loading',total,'resources');function checkLoaded(){loaded++;console.log('[Page-Loader] Resource loaded',loaded,'of',total);if(loaded===total){console.log('[Page-Loader] All resources loaded, calling createPage');createPage();}}resources.forEach(function(resource){if(resource.type==='css'){var link=document.createElement('link');link.rel='preload';link.as='style';link.href=resource.url;link.onload=function(){var styleLink=document.createElement('link');styleLink.rel='stylesheet';styleLink.href=resource.url;document.head.appendChild(styleLink);console.log('[Page-Loader] CSS loaded:',resource.url);checkLoaded();};link.onerror=function(){console.error('[Page-Loader] Failed to load:',resource.url);checkLoaded();};document.head.appendChild(link);}});loadTimeout=setTimeout(function(){console.warn('[Page-Loader] CSS loading timeout, showing page anyway');createPage();},5000);}function createPage(){console.log('[Page-Loader] createPage called');if(loadTimeout)clearTimeout(loadTimeout);console.log('[Page-Loader] Setting visibility to visible');document.documentElement.style.visibility='visible';}preloadResources();})();";
 
 // XOR encryption function
 function xorEncrypt($data, $key) {
@@ -53,7 +65,9 @@ $encryptedCode = xorEncrypt($jsCode, $encryptionKey);
 $decryptorCode = "(function(){var k='InventoryManagement2025Secure';var d='{$encryptedCode}';function b64(e){return atob(e).split('').map(function(c){return c.charCodeAt(0)});}function xor(e,k){var r='';for(var i=0;i<e.length;i++){r+=String.fromCharCode(e[i]^k.charCodeAt(i%k.length));}return r;}function c(n){var p=('; '+document.cookie).split('; '+n+'=');if(p.length===2){return p.pop().split(';').shift();}return '';}function inject(){try{var t=c('csrf_token');if(!t){return;}var fs=document.getElementsByTagName('form');for(var i=0;i<fs.length;i++){var f=fs[i];var m=(f.getAttribute('method')||f.method||'').toString().toUpperCase();if(m!=='POST'){continue;}if(f.querySelector('input[name=csrf_token]')){continue;}var inp=document.createElement('input');inp.type='hidden';inp.name='csrf_token';inp.value=t;f.insertBefore(inp,f.firstChild);}}catch(e){}}try{var dec=xor(b64(d),k);eval(dec);inject();if(typeof MutationObserver!=='undefined'){var o=new MutationObserver(function(){inject();});o.observe(document.documentElement||document.body,{childList:true,subtree:true});setTimeout(function(){try{o.disconnect();}catch(e){}},5000);}else{var n=0;var iv=setInterval(function(){inject();n++;if(n>50){clearInterval(iv);}},100);}}catch(e){console.error('Page loading failed');}})();";
 
 // Compress and output
-ob_start('ob_gzhandler');
+header('Content-Type: application/javascript; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 echo $decryptorCode;
-ob_end_flush();
 ?>

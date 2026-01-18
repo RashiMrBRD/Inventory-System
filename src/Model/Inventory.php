@@ -24,13 +24,26 @@ class Inventory
     /**
      * Get all inventory items
      * This method retrieves all items, optionally sorted by a specific field
-     * 
+     *
      * @param array $sort Sorting criteria (e.g., ['date_added' => -1])
      * @return array
      */
     public function getAll(array $sort = ['date_added' => -1]): array
     {
-        $items = $this->collection->find([], ['sort' => $sort])->toArray();
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        $filter = $isAdmin ? [] : ['user_id' => $userId];
+
+        $items = $this->collection->find($filter, ['sort' => $sort])->toArray();
         return array_map(function($item) {
             return (array)$item;
         }, $items);
@@ -66,15 +79,22 @@ class Inventory
 
     /**
      * Create a new inventory item
-     * 
+     *
      * @param array $itemData
      * @return string|null Returns the ID of the created item, or null on failure
      */
     public function create(array $itemData): ?string
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                return null;
+            }
+
+            $itemData['user_id'] = $userId;
             $itemData['date_added'] = new \MongoDB\BSON\UTCDateTime();
-            
+
             $result = $this->collection->insertOne($itemData);
             return $result->getInsertedId()->__toString();
         } catch (\Exception $e) {
@@ -222,51 +242,109 @@ class Inventory
 
     /**
      * Count total inventory items
-     * 
+     *
      * @return int
      */
     public function count(): int
     {
-        return $this->collection->countDocuments();
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return 0;
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        $filter = $isAdmin ? [] : ['user_id' => $userId];
+
+        return $this->collection->countDocuments($filter);
     }
 
     /**
      * Get count of low stock items
-     * 
+     *
      * @param int $threshold
      * @return int
      */
     public function getLowStockCount(int $threshold = 5): int
     {
-        return $this->collection->countDocuments(['quantity' => ['$lte' => $threshold]]);
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return 0;
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        $filter = ['quantity' => ['$lte' => $threshold]];
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
+        return $this->collection->countDocuments($filter);
     }
 
     /**
      * Get count of out of stock items
-     * 
+     *
      * @return int
      */
     public function getOutOfStockCount(): int
     {
-        return $this->collection->countDocuments(['quantity' => 0]);
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return 0;
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        $filter = ['quantity' => 0];
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
+        return $this->collection->countDocuments($filter);
     }
 
     /**
      * Get recent items
-     * 
+     *
      * @param int $limit
      * @return array
      */
     public function getRecentItems(int $limit = 5): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        $filter = $isAdmin ? [] : ['user_id' => $userId];
+
         $items = $this->collection->find(
-            [],
+            $filter,
             [
                 'sort' => ['date_added' => -1],
                 'limit' => $limit
             ]
         )->toArray();
-        
+
         return array_map(function($item) {
             return (array)$item;
         }, $items);
@@ -277,8 +355,23 @@ class Inventory
      */
     public function countAddedSince(\DateTimeInterface $since): int
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return 0;
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
         $utc = new \MongoDB\BSON\UTCDateTime($since->getTimestamp() * 1000);
-        return $this->collection->countDocuments(['date_added' => ['$gte' => $utc]]);
+        $filter = ['date_added' => ['$gte' => $utc]];
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
+        return $this->collection->countDocuments($filter);
     }
 
     /**
@@ -286,8 +379,23 @@ class Inventory
      */
     public function countBefore(\DateTimeInterface $dt): int
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return 0;
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
         $utc = new \MongoDB\BSON\UTCDateTime($dt->getTimestamp() * 1000);
-        return $this->collection->countDocuments(['date_added' => ['$lt' => $utc]]);
+        $filter = ['date_added' => ['$lt' => $utc]];
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
+        return $this->collection->countDocuments($filter);
     }
 
     /**
@@ -296,10 +404,26 @@ class Inventory
      */
     public function getDailyAddedCounts(int $days = 30): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
         $startTs = strtotime('-' . max(1, $days - 1) . ' days 00:00:00');
         $start = new \MongoDB\BSON\UTCDateTime($startTs * 1000);
+
+        $match = ['date_added' => ['$gte' => $start]];
+        if (!$isAdmin) {
+            $match['user_id'] = $userId;
+        }
+
         $pipeline = [
-            ['$match' => ['date_added' => ['$gte' => $start]]],
+            ['$match' => $match],
             ['$group' => [
                 '_id' => [
                     '$dateToString' => ['format' => '%Y-%m-%d', 'date' => '$date_added']

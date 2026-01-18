@@ -25,6 +25,21 @@ class Order
 
     public function getAll(array $filter = [], array $options = []): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $options = array_merge([
             'sort' => ['date' => -1],
             'limit' => 500
@@ -241,6 +256,13 @@ class Order
     public function create(array $data): ?string
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                throw new \Exception("User not authenticated");
+            }
+
+            $data['user_id'] = $userId;
             $data['created_at'] = new UTCDateTime();
             $data['updated_at'] = new UTCDateTime();
             if (!isset($data['date'])) {
@@ -248,18 +270,18 @@ class Order
             } else if (is_string($data['date'])) {
                 $data['date'] = new UTCDateTime(strtotime($data['date']) * 1000);
             }
-            
+
             // Insert the order first
             $result = $this->collection->insertOne($data);
             $orderId = $result->getInsertedId()->__toString();
-            
+
             // Reduce inventory quantities for sales orders
             if (($data['type'] ?? '') === 'Sales' || ($data['type'] ?? '') === 'sales') {
                 error_log("DEBUG: Sales order created, reducing inventory quantities");
                 $data['_id'] = $orderId; // Add ID for inventory reduction
                 $this->reduceInventoryFromOrder($data);
             }
-            
+
             return $orderId;
         } catch (\Exception $e) {
             error_log("Order create error: " . $e->getMessage());

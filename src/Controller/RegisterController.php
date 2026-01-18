@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Model\User;
+use App\Model\Invite;
 use App\Service\DatabaseService;
 use App\Service\SecurityEventService;
 use App\Service\SessionService;
+use App\Service\TimezoneDetectionService;
 use MongoDB\BSON\Regex;
 use MongoDB\Collection;
 
@@ -15,12 +17,18 @@ class RegisterController
     private SessionService $sessionService;
     private SecurityEventService $securityEventService;
     private Collection $usersCollection;
+    private TimezoneDetectionService $timezoneDetection;
+    private Invite $inviteModel;
+    private array $appConfig;
 
     public function __construct(?User $userModel = null, ?SessionService $sessionService = null, ?SecurityEventService $securityEventService = null)
     {
         $this->userModel = $userModel ?? new User();
         $this->sessionService = $sessionService ?? new SessionService();
         $this->securityEventService = $securityEventService ?? new SecurityEventService();
+        $this->timezoneDetection = new TimezoneDetectionService();
+        $this->inviteModel = new Invite();
+        $this->appConfig = require __DIR__ . '/../../../config/app.php';
 
         $db = DatabaseService::getInstance();
         $collectionName = $db->getCollectionName('users');
@@ -45,7 +53,7 @@ class RegisterController
             $username = trim((string)($data['username'] ?? ''));
             $password = (string)($data['password'] ?? '');
             $confirmPassword = (string)($data['confirm_password'] ?? '');
-            $inviteToken = trim((string)($data['invite_token'] ?? ''));
+            $inviteToken = trim((string)($data['invite_token'] ?? $data['invite'] ?? ''));
 
             if ($username === '') {
                 $username = $email;
@@ -135,10 +143,34 @@ class RegisterController
                 ];
             }
 
+            // Handle invite token
+            $inviteData = null;
             $teams = [];
-            if ($inviteToken !== '') {
-                $invite = $this->resolveTeamInvite($inviteToken);
-                if (!$invite) {
+            $userRole = 'user';
+
+            $allowInvitations = $this->appConfig['security']['allow_invitations'] ?? false;
+
+            if ($allowInvitations) {
+                if ($inviteToken === '') {
+                    return [
+                        'success' => false,
+                        'message' => 'Invitation key is required'
+                    ];
+                }
+
+                // Validate invite token
+                $validation = $this->inviteModel->validate($inviteToken);
+
+                if (!$validation['valid']) {
+                    $message = $validation['reason'] ?? 'Invalid invitation key';
+                    $invalidMessage = 'Invalid invitation key';
+                    $lowerMessage = strtolower($message);
+                    if (strpos($lowerMessage, 'expired') !== false
+                        || strpos($lowerMessage, 'revoked') !== false
+                        || strpos($lowerMessage, 'maximum uses') !== false
+                        || strpos($lowerMessage, 'not found') !== false) {
+                        $message = $invalidMessage;
+                    }
                     $this->securityEventService->log('anonymous', 'Registration failed: invalid invite token', 'security', $this->buildMeta([
                         'email' => $email,
                         'invite_token' => $inviteToken,
@@ -146,24 +178,65 @@ class RegisterController
 
                     return [
                         'success' => false,
-                        'message' => 'Invalid invite token'
+                        'message' => $message
                     ];
                 }
 
-                $teams[] = $invite;
+                // Get invite details
+                $invite = $this->inviteModel->findByToken($inviteToken);
+
+                // Check email restriction
+                if (!empty($invite['email']) && $invite['email'] !== $email) {
+                    return [
+                        'success' => false,
+                        'message' => 'This invite is restricted to a specific email address'
+                    ];
+                }
+
+                // Set user role from invite
+                $userRole = $invite['role'] ?? 'user';
+
+                // Add team association if specified
+                if (!empty($invite['team_id'])) {
+                    $teams[] = [
+                        'team_id' => $invite['team_id'],
+                        'invited_by' => $invite['inviter_id'],
+                        'invited_at' => new \MongoDB\BSON\UTCDateTime(),
+                        'role' => $userRole
+                    ];
+                }
+
+                // Store invite data for later use
+                $inviteData = $invite;
+            } elseif ($inviteToken !== '') {
+                // If invitations are disabled but invite token is provided, ignore it
+                $inviteToken = '';
             }
+
+            // Split full_name into firstname and lastname
+            $nameParts = explode(' ', trim($fullName), 2);
+            $firstname = $nameParts[0] ?? '';
+            $lastname = isset($nameParts[1]) ? $nameParts[1] : '';
 
             $userData = [
                 'username' => $username,
                 'password' => $password,
                 'email' => $email,
                 'full_name' => $fullName,
+                'firstname' => $firstname,
+                'lastname' => $lastname,
                 'access_level' => 'user',
-                'role' => 'user'
+                'role' => $userRole
             ];
 
             if (!empty($teams)) {
                 $userData['teams'] = $teams;
+            }
+
+            // Detect and save timezone automatically
+            $detectedTimezone = $this->timezoneDetection->detect();
+            if ($detectedTimezone !== null && in_array($detectedTimezone, timezone_identifiers_list())) {
+                $userData['timezone'] = $detectedTimezone;
             }
 
             $id = $this->userModel->create($userData);
@@ -177,6 +250,11 @@ class RegisterController
                     'success' => false,
                     'message' => 'Failed to create account'
                 ];
+            }
+
+            // Use the invite token if provided
+            if ($inviteToken !== '' && $inviteData) {
+                $this->inviteModel->useInvite($inviteToken);
             }
 
             $user = $this->userModel->findById($id);
@@ -202,6 +280,12 @@ class RegisterController
             $_SESSION['full_name'] = $fullNameSession;
             $_SESSION['access_level'] = $user['access_level'] ?? 'user';
             $_SESSION['last_activity'] = time();
+
+            // Load timezone from user profile into session
+            if (isset($user['timezone']) && in_array($user['timezone'], timezone_identifiers_list())) {
+                $_SESSION['timezone'] = $user['timezone'];
+                date_default_timezone_set($user['timezone']);
+            }
 
             $this->sessionService->createSession((string)$user['_id'], (string)($user['username'] ?? $username));
 

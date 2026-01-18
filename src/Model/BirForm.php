@@ -71,7 +71,7 @@ class BirForm
     }
 
     /**
-     * Get all forms with optional filters
+     * Get all BIR forms
      * @param array $filters
      * @param array $options
      * @return array
@@ -79,6 +79,22 @@ class BirForm
     public function getAll(array $filters = [], array $options = []): array
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                return [];
+            }
+
+            // Check if user is admin
+            $user = new User();
+            $currentUser = $user->findById($userId);
+            $isAdmin = ($currentUser['access_level'] ?? 'user') === 'admin';
+
+            // Add user_id filter for non-admin users
+            if (!$isAdmin) {
+                $filters['user_id'] = $userId;
+            }
+
             $defaultOptions = [
                 "sort" => ["created_at" => -1],
                 "limit" => 100,

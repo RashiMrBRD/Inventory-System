@@ -46,6 +46,7 @@ $dispatchMap = [
     'journal-entries' => '/core/modules/journal-entries.php',
     'journal-entry-form' => '/fragments/forms/journal-entry-form.php',
     'login' => '/core/auth/login.php',
+    'register' => '/core/auth/login.php',
     'logout' => '/core/auth/logout.php',
     'notifications' => '/core/pages/notifications.php',
     'orders' => '/core/modules/orders.php',
@@ -93,6 +94,7 @@ if (!$isKnownRoute) {
 
 $publicRoutes = [
     'login',
+    'register',
     'logout',
     'page-loader',
     'css-loader',

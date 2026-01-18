@@ -1,17 +1,26 @@
 <?php
 /**
  * API Endpoint: Check for Updates
- * 
+ *
  * Checks the GitHub repository for the latest version and compares it with the current version.
  */
 
-require_once __DIR__ . '/../../vendor/autoload.php';
-
 header('Content-Type: application/json');
+
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Simple authentication check
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
 
 // Get current version from request
 $input = json_decode(file_get_contents('php://input'), true);
-$currentVersion = $input['current_version'] ?? '0.3.7';
+$currentVersion = $input['current_version'] ?? '0.4.1';
 
 // GitHub repository configuration
 $githubRepo = getenv('GITHUB_REPO') ?? 'RashiMrBRD/Inventory-System';
@@ -35,7 +44,7 @@ try {
         'Authorization: token ' . $githubToken
     ]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -45,7 +54,7 @@ try {
     }
 
     $release = json_decode($response, true);
-    
+
     if (!isset($release['tag_name'])) {
         throw new Exception('Invalid response from GitHub API');
     }

@@ -21,10 +21,22 @@ try {
     }
     
     $user = $authController->getCurrentUser();
-    $userId = $user['id'] ?? 'admin';
-    
-    // Get notifications from database
-    $repo = new NotificationRepository($userId);
+
+// Initialize repository with user ID
+$userId = isset($user['_id']) ? (string)$user['_id'] : null;
+if (!$userId) {
+    // Fallback to session user_id
+    $userId = $_SESSION['user_id'] ?? null;
+}
+
+if (!$userId) {
+    http_response_code(401);
+    echo json_encode(['error' => 'User not authenticated']);
+    exit;
+}
+
+// Get notifications from database
+$repo = new NotificationRepository($userId);
     
     // Get ALL notifications (same as notifications.php - not just unread)
     // This ensures header shows same data as notifications.php page

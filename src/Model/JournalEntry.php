@@ -50,7 +50,7 @@ class JournalEntry
 
     /**
      * Create a new journal entry
-     * 
+     *
      * @param array $entryData Entry header data
      * @param array $lines Array of entry lines (debits and credits)
      * @return array Result with success status and entry ID
@@ -58,6 +58,15 @@ class JournalEntry
     public function createEntry(array $entryData, array $lines): array
     {
         try {
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            if (!$userId) {
+                return [
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ];
+            }
+
             // Validate entry lines
             $validation = $this->validateEntry($lines);
             if (!$validation['valid']) {
@@ -69,7 +78,7 @@ class JournalEntry
 
             // Prepare entry data
             $entry = [
-                'entry_number' => $entryData['entry_number'] ?? $this->generateEntryNumber(),
+                'entry_number' => $entryData['entry_number'] ?? $this->generateEntryNumber($userId),
                 'entry_date' => $entryData['entry_date'] ?? new \MongoDB\BSON\UTCDateTime(),
                 'entry_type' => $entryData['entry_type'] ?? self::TYPE_GENERAL,
                 'description' => $entryData['description'] ?? '',
@@ -87,16 +96,17 @@ class JournalEntry
                 'requires_approval' => $entryData['requires_approval'] ?? false,
                 'approved_by' => null,
                 'approved_at' => null,
-                'created_by' => $entryData['created_by'] ?? null,
+                'created_by' => $userId,
+                'user_id' => $userId,
                 'created_at' => new \MongoDB\BSON\UTCDateTime(),
                 'updated_at' => new \MongoDB\BSON\UTCDateTime()
             ];
 
             $result = $this->collection->insertOne($entry);
-            
+
             // Auto-post if requested
             if ($entryData['auto_post'] ?? false) {
-                $this->postEntry($result->getInsertedId()->__toString());
+                $this->postEntry($result->getInsertedId()->__toString(), $userId);
             }
 
             return [
@@ -186,17 +196,27 @@ class JournalEntry
 
     /**
      * Post a journal entry (update account balances)
-     * 
+     *
      * @param string $entryId Entry ID
+     * @param string|null $userId User ID (for authorization check)
      * @return bool
      */
-    public function postEntry(string $entryId): bool
+    public function postEntry(string $entryId, ?string $userId = null): bool
     {
         try {
             $entry = $this->getEntry($entryId);
-            
+
             if (!$entry) {
                 throw new \Exception("Entry not found");
+            }
+
+            // Verify user owns this entry (unless admin)
+            if ($userId) {
+                $user = (new User())->findById($userId);
+                $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+                if (!$isAdmin && ($entry['user_id'] ?? null) !== $userId) {
+                    throw new \Exception("You don't have permission to post this entry");
+                }
             }
 
             if ($entry['status'] !== self::STATUS_DRAFT) {
@@ -207,7 +227,7 @@ class JournalEntry
             foreach ($entry['lines'] as $line) {
                 $account = $this->chartOfAccounts->getAccountByCode($line['account_code']);
                 $accountId = (string)$account['_id'];
-                
+
                 $debit = floatval($line['debit'] ?? 0);
                 $credit = floatval($line['credit'] ?? 0);
 
@@ -493,20 +513,35 @@ class JournalEntry
 
     /**
      * Get all journal entries
-     * 
+     *
      * @param array $filter Optional filter
      * @param int $limit Limit results
      * @return array
      */
     public function getAllEntries(array $filter = [], int $limit = 100): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $options = [
             'sort' => ['entry_date' => -1, 'entry_number' => -1],
             'limit' => $limit
         ];
-        
+
         $entries = $this->collection->find($filter, $options)->toArray();
-        
+
         return array_map(function($entry) {
             return (array)$entry;
         }, $entries);
@@ -562,17 +597,21 @@ class JournalEntry
 
     /**
      * Generate unique entry number
-     * 
+     *
+     * @param string $userId User ID for isolation
      * @return string
      */
-    private function generateEntryNumber(): string
+    private function generateEntryNumber(string $userId): string
     {
         $year = date('Y');
         $month = date('m');
-        
-        // Find the highest entry number for this month
+
+        // Find the highest entry number for this month and user
         $lastEntry = $this->collection->findOne(
-            ['entry_number' => ['$regex' => "^JE-{$year}{$month}"]],
+            [
+                'entry_number' => ['$regex' => "^JE-{$year}{$month}"],
+                'user_id' => $userId
+            ],
             ['sort' => ['entry_number' => -1]]
         );
 

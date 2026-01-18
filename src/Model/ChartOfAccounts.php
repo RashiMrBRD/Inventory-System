@@ -78,15 +78,31 @@ class ChartOfAccounts
 
     /**
      * Get all accounts
-     * 
+     *
      * @param array $filter Optional filter criteria
      * @return array
      */
     public function getAllAccounts(array $filter = []): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = new User();
+        $currentUser = $user->findById($userId);
+        $isAdmin = ($currentUser['access_level'] ?? 'user') === 'admin';
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
         $options = ['sort' => ['account_code' => 1]];
         $accounts = $this->collection->find($filter, $options)->toArray();
-        
+
         return array_map(function($account) {
             return (array)$account;
         }, $accounts);
@@ -95,23 +111,41 @@ class ChartOfAccounts
     /**
      * Search accounts by name, code, or type
      * This method searches accounts by account name, account code, or account type
-     * 
+     *
      * @param string $query
      * @return array
      */
     public function search(string $query): array
     {
+        // Get current user ID from session
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        // Check if user is admin
+        $user = new User();
+        $currentUser = $user->findById($userId);
+        $isAdmin = ($currentUser['access_level'] ?? 'user') === 'admin';
+
         $regex = new \MongoDB\BSON\Regex($query, 'i');
-        
-        $items = $this->collection->find([
+
+        $filter = [
             '$or' => [
                 ['account_name' => $regex],
                 ['account_code' => $regex],
                 ['account_type' => $regex],
                 ['account_subtype' => $regex]
             ]
-        ])->toArray();
-        
+        ];
+
+        // Add user_id filter for non-admin users
+        if (!$isAdmin) {
+            $filter['user_id'] = $userId;
+        }
+
+        $items = $this->collection->find($filter)->toArray();
+
         return array_map(function($item) {
             return (array)$item;
         }, $items);

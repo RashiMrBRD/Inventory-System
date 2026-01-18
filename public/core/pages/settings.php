@@ -32,12 +32,11 @@ $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail'
 // Use session value for allow_registration if set (after save), otherwise use config value
 $allowRegistration = $_SESSION['allow_registration'] ?? $appConfig['security']['allow_registration'];
 
-// Get current timezone (from user database, then session, then default to system/UTC)
-$currentTimezone = $user['timezone'] ?? $_SESSION['timezone'] ?? date_default_timezone_get();
-// Update session if loaded from database
-if (isset($user['timezone'])) {
-    $_SESSION['timezone'] = $user['timezone'];
-}
+// Check if current user is admin
+$isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+
+// Get current timezone (from session first, then user database, then default to system/UTC)
+$currentTimezone = $_SESSION['timezone'] ?? $user['timezone'] ?? date_default_timezone_get();
 date_default_timezone_set($currentTimezone);
 
 // List of common timezones grouped by region
@@ -281,49 +280,75 @@ if (!$isDemoUser && isset($user['username']) && $user['username'] === 'admin') {
     $isDemoUser = $testUser['success'] ?? false;
 }
 
+// Load app config
+$appConfig = require __DIR__ . '/../../../config/app.php';
+
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
+$isDemoDomain = (strpos($hostOnly, $appConfig['security']['access_control']['demo_domain']) === 0);
+
 $message = '';
 $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
+        $username = trim($_POST['username'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $role = trim($_POST['role'] ?? 'user');
-        
+        $currentUserRole = $user['role'] ?? 'user';
+
         // Prevent demo users from changing username/email
         if ($isDemoUser) {
             $_SESSION['flash_message'] = 'Demo account cannot modify username or email';
             $_SESSION['flash_type'] = 'error';
+        } elseif (in_array($currentUserRole, ['manager', 'viewer'])) {
+            // Prevent Manager and Viewer from changing username
+            $_SESSION['flash_message'] = 'Manager and Viewer roles cannot modify username';
+            $_SESSION['flash_type'] = 'error';
         } else {
-            // Validate email
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $_SESSION['flash_message'] = 'Valid email address is required';
+            // Validate username (only for Admin and User roles)
+            if (empty($username)) {
+                $_SESSION['flash_message'] = 'Username is required';
+                $_SESSION['flash_type'] = 'error';
+            } elseif (strlen($username) < 3) {
+                $_SESSION['flash_message'] = 'Username must be at least 3 characters';
+                $_SESSION['flash_type'] = 'error';
+            } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+                $_SESSION['flash_message'] = 'Username can only contain letters, numbers, and underscores';
+                $_SESSION['flash_type'] = 'error';
+            } elseif ($username !== ($user['username'] ?? '') && $authController->userModel->findByUsername($username)) {
+                $_SESSION['flash_message'] = 'Username is already taken';
                 $_SESSION['flash_type'] = 'error';
             } else {
-                // Validate role
-                $allowedRoles = ['user', 'admin', 'manager', 'viewer'];
-                if (!in_array($role, $allowedRoles)) {
-                    $role = 'user';
-                }
-                
-                // Update user data
-                $updateData = [
-                    'email' => $email,
-                    'role' => $role
-                ];
-                
-                $result = $authController->updateUserProfile((string)$user['_id'], $updateData);
-                
-                if ($result['success']) {
-                    // Refresh user data
-                    $user = $authController->getCurrentUser();
-                    $_SESSION['flash_message'] = 'Profile updated successfully';
-                    $_SESSION['flash_type'] = 'success';
-                    
-                    // Store active tab for persistence
-                    $_SESSION['active_settings_tab'] = $_POST['active_tab'] ?? 'tab-profile';
-                } else {
-                    $_SESSION['flash_message'] = $result['message'] ?? 'Failed to update profile';
+                // Validate email
+                if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $_SESSION['flash_message'] = 'Valid email address is required';
                     $_SESSION['flash_type'] = 'error';
+                } else {
+                    // Update user data (role cannot be changed via profile form)
+                    $updateData = [
+                        'username' => $username,
+                        'email' => $email
+                    ];
+
+                    $result = $authController->updateUserProfile((string)$user['_id'], $updateData);
+
+                    if ($result['success']) {
+                        // Update session username if changed
+                        if ($username !== ($user['username'] ?? '')) {
+                            $_SESSION['username'] = $username;
+                        }
+
+                        // Refresh user data
+                        $user = $authController->getCurrentUser();
+                        $_SESSION['flash_message'] = 'Profile updated successfully';
+                        $_SESSION['flash_type'] = 'success';
+                        
+                        // Store active tab for persistence
+                        $_SESSION['active_settings_tab'] = $_POST['active_tab'] ?? 'tab-profile';
+                    } else {
+                        $_SESSION['flash_message'] = $result['message'] ?? 'Failed to update profile';
+                        $_SESSION['flash_type'] = 'error';
+                    }
                 }
             }
         }
@@ -342,14 +367,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedTimezone = $_POST['timezone'] ?? 'UTC';
         // Validate timezone
         if (in_array($selectedTimezone, timezone_identifiers_list())) {
-            // Save to session
+            // Save to session first
             $_SESSION['timezone'] = $selectedTimezone;
             date_default_timezone_set($selectedTimezone);
             
             // Save to database for persistence across sessions
             if (isset($user['_id'])) {
                 $updateData = ['timezone' => $selectedTimezone];
-                $authController->updateUserProfile((string)$user['_id'], $updateData);
+                $result = $authController->updateUserProfile((string)$user['_id'], $updateData);
+                
+                if (!$result['success']) {
+                    error_log('Failed to update timezone in database: ' . ($result['message'] ?? 'Unknown error'));
+                }
             }
             
             $_SESSION['flash_message'] = 'Timezone updated to ' . $selectedTimezone;
@@ -367,9 +396,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['action']) && $_POST['action'] === 'update_security') {
         // Handle security settings update
         $allowRegistration = isset($_POST['allow_registration']);
-        
+        $allowInvitations = isset($_POST['allow_invitations']);
+
+        // Prevent non-admin users from changing registration setting
+        if (!$isAdmin) {
+            $_SESSION['flash_message'] = 'Only administrators can change registration settings.';
+            $_SESSION['flash_type'] = 'error';
+            $_SESSION['active_settings_tab'] = 'tab-security';
         // Prevent demo users from changing registration setting
-        if ($isDemoDomain) {
+        } elseif ($isDemoDomain) {
             $_SESSION['flash_message'] = 'Registration settings cannot be changed on demo domain.';
             $_SESSION['flash_type'] = 'error';
             $_SESSION['active_settings_tab'] = 'tab-security';
@@ -377,17 +412,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update config file
             $configFile = __DIR__ . '/../../../config/app.php';
             $configContent = file_get_contents($configFile);
-            
+
             // Update allow_registration setting
             $configContent = preg_replace(
                 "/'allow_registration'\s*=>\s*(true|false)/",
                 "'allow_registration' => " . ($allowRegistration ? 'true' : 'false'),
                 $configContent
             );
-            
+
+            // Update allow_invitations setting
+            $configContent = preg_replace(
+                "/'allow_invitations'\s*=>\s*(true|false)/",
+                "'allow_invitations' => " . ($allowInvitations ? 'true' : 'false'),
+                $configContent
+            );
+
             if (file_put_contents($configFile, $configContent)) {
+                // Clear PHP opcode cache for the config file
+                if (function_exists('opcache_invalidate')) {
+                    opcache_invalidate($configFile, true);
+                }
+                if (function_exists('opcache_reset')) {
+                    opcache_reset();
+                }
+
                 // Store in session for immediate UI update
                 $_SESSION['allow_registration'] = $allowRegistration;
+                $_SESSION['allow_invitations'] = $allowInvitations;
                 $_SESSION['flash_message'] = 'Security settings updated successfully';
                 $_SESSION['flash_type'] = 'success';
                 $_SESSION['active_settings_tab'] = 'tab-security';
@@ -397,7 +448,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['active_settings_tab'] = 'tab-security';
             }
         }
-        
+
         // Redirect to prevent form resubmission
         header('Location: settings.php');
         exit();
@@ -691,9 +742,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $testRecipient = '';
+        
+        // First priority: Use user's email from account
         if (!empty($user['email']) && filter_var($user['email'], FILTER_VALIDATE_EMAIL)) {
             $testRecipient = $user['email'];
-        } elseif (!empty($smtpFromAddress) && filter_var($smtpFromAddress, FILTER_VALIDATE_EMAIL)) {
+        } 
+        // Second priority: Use the From Address
+        elseif (!empty($smtpFromAddress) && filter_var($smtpFromAddress, FILTER_VALIDATE_EMAIL)) {
             $testRecipient = $smtpFromAddress;
         }
         
@@ -701,6 +756,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode([
                 'success' => false,
                 'message' => 'Please fill in SMTP Host, Username, and From Address before testing'
+            ]);
+            exit();
+        }
+        
+        // Check if user has an email in their account
+        if (empty($user['email']) || !filter_var($user['email'], FILTER_VALIDATE_EMAIL)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Your account does not have a valid email address. Please update your profile email before testing SMTP configuration.'
             ]);
             exit();
         }
@@ -730,14 +794,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->SMTPAuth = true;
             $mail->Username = $smtpUsername;
             $mail->Password = $smtpPassword;
+            
+            // Set proper HELO/EHLO hostname (Gmail requires a proper domain, not localhost)
+            $mail->Helo = parse_url($_SERVER['HTTP_HOST'] ?? 'localhost', PHP_URL_HOST) ?? 'localhost';
+            
+            // Set encryption based on selection
             if ($smtpEncryption === 'ssl') {
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
             } else {
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             }
-            $mail->Port = $smtpPort;
-            $mail->Timeout = 10;
             
+            $mail->Port = $smtpPort;
+            
+            // Increase timeout for slow connections
+            $mail->Timeout = 30;
+            
+            // Disable SSL certificate verification for testing (not recommended for production)
+            $mail->SMTPOptions = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                )
+            );
+            
+            // First, try to authenticate without sending an email
+            try {
+                $mail->SMTPConnect();
+            } catch (\Exception $authError) {
+                $authErrorMessage = strip_tags($authError->getMessage());
+                
+                // Check if From address matches username
+                if (stripos($smtpUsername, '@') !== false && $smtpUsername !== $smtpFromAddress) {
+                    // For Gmail, Outlook, and other providers that require matching, show warning
+                    $requiresMatching = false;
+                    $providerName = '';
+                    
+                    if (stripos($smtpHost, 'gmail') !== false || stripos($smtpHost, 'google') !== false) {
+                        $requiresMatching = true;
+                        $providerName = 'Gmail';
+                    } elseif (stripos($smtpHost, 'outlook') !== false || stripos($smtpHost, 'office365') !== false || stripos($smtpHost, 'hotmail') !== false) {
+                        $requiresMatching = true;
+                        $providerName = 'Outlook/Office365';
+                    } elseif (stripos($smtpHost, 'yahoo') !== false) {
+                        $requiresMatching = true;
+                        $providerName = 'Yahoo';
+                    } elseif (stripos($smtpHost, 'brevo') !== false || stripos($smtpHost, 'sendinblue') !== false) {
+                        // Brevo allows different From addresses - don't warn about this
+                        $providerName = 'Brevo';
+                    } elseif (stripos($smtpHost, 'sendgrid') !== false) {
+                        // SendGrid allows different From addresses
+                        $providerName = 'SendGrid';
+                    } elseif (stripos($smtpHost, 'mailgun') !== false) {
+                        // MailGun allows different From addresses
+                        $providerName = 'MailGun';
+                    }
+                    
+                    if ($requiresMatching) {
+                        $authErrorMessage .= ' Note: Your From address (' . $smtpFromAddress . ') does not match your SMTP username (' . $smtpUsername . '). ' . 
+                                           'For ' . $providerName . ', the From address must match your SMTP username. Please update the From Address field to: ' . $smtpUsername;
+                    } elseif ($providerName === 'Brevo') {
+                        $authErrorMessage .= ' Note: For Brevo, the From address (' . $smtpFromAddress . ') does not need to match your SMTP username (' . $smtpUsername . '). ' .
+                                           'However, you must verify/authorize your sender domain in Brevo before sending. Make sure your SMTP username is your Brevo SMTP login (not Gmail) and your password is your SMTP key (not API key).';
+                    } elseif ($providerName === 'SendGrid' || $providerName === 'MailGun') {
+                        $authErrorMessage .= ' Note: For ' . $providerName . ', the From address (' . $smtpFromAddress . ') does not need to match your SMTP username (' . $smtpUsername . '). ' .
+                                           'However, you must verify your sender domain in ' . $providerName . ' before sending.';
+                    } else {
+                        $authErrorMessage .= ' Note: Your From address (' . $smtpFromAddress . ') does not match your SMTP username (' . $smtpUsername . '). Some providers require these to match.';
+                    }
+                }
+                
+                throw new \Exception($authErrorMessage);
+            }
+            
+            // If authentication succeeded, try to send the test email
             $mail->setFrom($smtpFromAddress, $smtpFromName !== '' ? $smtpFromName : ($appConfig['app_name'] ?? 'Inventory Management System'));
             $mail->addAddress($testRecipient);
             $mail->isHTML(true);
@@ -763,10 +894,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'success' => true,
                 'message' => 'SMTP test email sent successfully to ' . $testRecipient . '. You can now save your SMTP configuration.'
             ]);
-        } catch (\Throwable $e) {
+        } catch (\PHPMailer\PHPMailer\Exception $e) {
+            $errorMessage = strip_tags($e->errorMessage());
+            
+            // Provide more helpful error messages
+            if (strpos($errorMessage, 'Could not authenticate') !== false || strpos($errorMessage, 'Authentication failed') !== false) {
+                $errorMessage = 'Authentication failed. Please check: 1) Username is correct (currently: ' . htmlspecialchars($smtpUsername) . '), 2) Password/SMTP Key is correct, 3) Your SMTP provider allows connections from localhost, 4) 2FA is disabled or you are using an App Password, 5) From address matches your SMTP username.';
+            } elseif (strpos($errorMessage, 'Could not connect to SMTP host') !== false) {
+                $errorMessage = 'Could not connect to SMTP host. Please check: 1) Host address is correct (' . htmlspecialchars($smtpHost) . '), 2) Port is correct (currently: ' . $smtpPort . '), 3) Firewall is not blocking the connection, 4) DNS resolution is working.';
+            } elseif (strpos($errorMessage, 'certificate') !== false) {
+                $errorMessage = 'SSL certificate error. The SMTP server may be using a self-signed certificate.';
+            }
+            
             echo json_encode([
                 'success' => false,
-                'message' => 'SMTP Test Error: ' . $e->getMessage()
+                'message' => 'SMTP Test Error: ' . $errorMessage
+            ]);
+        } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
+            
+            echo json_encode([
+                'success' => false,
+                'message' => 'SMTP Test Error: ' . $errorMessage
             ]);
         }
         exit();
@@ -1114,13 +1263,13 @@ ob_start();
           </div>
 
           <div class="form-group">
-            <label for="smtp_password" class="form-label" style="display: block; margin-bottom: 0.5rem;">SMTP Password</label>
-            <input 
-              type="password" 
-              id="smtp_password" 
-              name="smtp_password" 
-              class="form-input" 
-              placeholder="<?php echo !empty($appConfig['mail']['password']) ? '••••••••' : 'Enter password'; ?>" 
+            <label id="smtp_password_label" for="smtp_password" class="form-label" style="display: block; margin-bottom: 0.5rem;">SMTP Password</label>
+            <input
+              type="password"
+              id="smtp_password"
+              name="smtp_password"
+              class="form-input"
+              placeholder="<?php echo !empty($appConfig['mail']['password']) ? '••••••••' : 'Enter password'; ?>"
               value=""
               style="width: 100%;"
             >
@@ -1146,7 +1295,7 @@ ob_start();
               name="smtp_from_address" 
               class="form-input" 
               placeholder="noreply@inventory.local" 
-              value="<?php echo htmlspecialchars($appConfig['mail']['from']['address'] ?? ''); ?>"
+              value=""
               required
               style="width: 100%;"
             >
@@ -1219,10 +1368,12 @@ ob_start();
           <div class="form-group">
             <label for="username" class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
               Username
+              <?php if ($isDemoUser || in_array($user['role'] ?? '', ['manager', 'viewer'])): ?>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="color: var(--text-secondary);">
                 <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
                 <path d="M12 17V17.01M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
+              <?php endif; ?>
             </label>
             <input 
               type="text" 
@@ -1230,10 +1381,15 @@ ob_start();
               name="username" 
               class="form-input" 
               value="<?php echo htmlspecialchars($user['username'] ?? ''); ?>"
-              readonly
-              style="background-color: var(--bg-secondary); cursor: not-allowed; opacity: 0.7;"
+              <?php echo ($isDemoUser || in_array($user['role'] ?? '', ['manager', 'viewer'])) ? 'readonly' : ''; ?>
+              style="<?php echo ($isDemoUser || in_array($user['role'] ?? '', ['manager', 'viewer'])) ? 'background-color: var(--bg-secondary); cursor: not-allowed; opacity: 0.7;' : ''; ?>"
+              <?php echo ($isDemoUser || in_array($user['role'] ?? '', ['manager', 'viewer'])) ? '' : 'required'; ?>
             >
-            <span class="form-helper" style="color: var(--text-secondary); font-size: 0.8125rem;">Cannot be changed</span>
+            <?php if ($isDemoUser): ?>
+            <span class="form-helper" style="color: var(--text-secondary); font-size: 0.8125rem;">Demo account restriction</span>
+            <?php elseif (in_array($user['role'] ?? '', ['manager', 'viewer'])): ?>
+            <span class="form-helper" style="color: var(--text-secondary); font-size: 0.8125rem;">Manager and Viewer roles cannot modify username</span>
+            <?php endif; ?>
           </div>
 
           <div class="form-group">
@@ -1290,26 +1446,50 @@ ob_start();
                 </div>
               </div>
             </label>
-            <select 
-              id="role" 
-              name="role" 
-              class="form-input" 
-              style="width: 100%; height: 44px; padding: 0.5rem 2.5rem 0.5rem 0.875rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--bg-primary); color: var(--text-primary); font-size: 0.9375rem; line-height: 1.6; cursor: pointer; transition: all 0.2s; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg width=\'14\' height=\'14\' viewBox=\'0 0 14 14\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3e%3cpath d=\'M3.5 5.25L7 8.75L10.5 5.25\' stroke=\'%23666\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3e%3c/svg%3e'); background-repeat: no-repeat; background-position: right 0.875rem center; background-size: 14px 14px; vertical-align: middle; display: flex; align-items: center;"
-              onmouseover="this.style.borderColor='var(--color-primary)'"
-              onmouseout="this.style.borderColor='var(--border-color)'"
-              onfocus="this.style.borderColor='var(--color-primary)'; this.style.boxShadow='0 0 0 3px hsl(214 95% 93%)'"
-              onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'"
-            >
-              <option value="user" <?php echo ($user['role'] ?? 'user') === 'user' ? 'selected' : ''; ?>>User</option>
-              <option value="admin" <?php echo ($user['role'] ?? 'user') === 'admin' ? 'selected' : ''; ?>>Admin</option>
-              <option value="manager" <?php echo ($user['role'] ?? 'user') === 'manager' ? 'selected' : ''; ?>>Manager</option>
-              <option value="viewer" <?php echo ($user['role'] ?? 'user') === 'viewer' ? 'selected' : ''; ?>>Viewer</option>
-            </select>
+
+            <?php
+            $currentRole = $user['role'] ?? 'user';
+            $roleLabels = [
+                'user' => 'User',
+                'admin' => 'Admin',
+                'manager' => 'Manager',
+                'viewer' => 'Viewer'
+            ];
+            ?>
+
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <div style="flex: 1; padding: 0.5rem 0.875rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--bg-secondary); color: var(--text-primary); font-size: 0.9375rem; line-height: 1.6; display: flex; align-items: center; gap: 0.5rem;">
+                <?php
+                $roleIcons = [
+                    'user' => '👤',
+                    'admin' => '⚡',
+                    'manager' => '👥',
+                    'viewer' => '👁'
+                ];
+                ?>
+                <span><?php echo $roleIcons[$currentRole] ?? '👤'; ?></span>
+                <span><?php echo htmlspecialchars($roleLabels[$currentRole] ?? 'User'); ?></span>
+
+                <?php if (in_array($currentRole, ['manager', 'viewer'])): ?>
+                  <span style="color: hsl(25 95% 45%); font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">⚠ Not Implemented</span>
+                <?php endif; ?>
+              </div>
+
+              <?php if (in_array($currentRole, ['admin', 'user']) && ($appConfig['security']['allow_invitations'] ?? false)): ?>
+              <a href="#" onclick="openInviteModal(); return false;" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background-color: var(--color-primary); color: white; border-radius: var(--radius-md); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.backgroundColor='hsl(214 95% 40%)'" onmouseout="this.style.backgroundColor='var(--color-primary)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16l4-2 4 2 4-2 4 2zM10 7h4M10 11h4"/>
+                </svg>
+                Invite Link
+              </a>
+              <?php endif; ?>
+            </div>
+
             <span class="form-helper" style="display: flex; align-items: center; gap: 0.375rem; margin-top: 0.5rem;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="color: var(--color-primary);">
                 <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              Your access level in the system - Changes apply immediately
+              Your access level in the system - Contact administrator to change
             </span>
           </div>
         </div>
@@ -2331,10 +2511,12 @@ ob_start();
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-top: 1px solid var(--border-color);">
             <div style="flex: 1;">
-              <label class="form-label" style="margin: 0; display: block;">
+              <label class="form-label" style="margin: 0; display: block; color: <?php echo ($isDemoDomain || !$isAdmin) ? 'var(--text-secondary)' : 'var(--text-primary)'; ?>;">
                 Allow Registration
                 <?php if ($isDemoDomain): ?>
                   <span style="color: hsl(25 95% 45%); font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">⚠ Disabled on Demo</span>
+                <?php elseif (!$isAdmin): ?>
+                  <span style="color: hsl(25 95% 45%); font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">⚠ Only administrators can change this setting.</span>
                 <?php endif; ?>
               </label>
               <span class="form-helper" style="color: var(--text-secondary);">
@@ -2344,9 +2526,34 @@ ob_start();
                 <?php endif; ?>
               </span>
             </div>
-            <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; opacity: <?php echo $isDemoDomain ? '0.5' : '1'; ?>;">
-              <input type="checkbox" name="allow_registration" <?php echo $allowRegistration ? 'checked' : ''; ?> <?php echo $isDemoDomain ? 'disabled' : ''; ?> style="opacity: 0; width: 0; height: 0; cursor: <?php echo $isDemoDomain ? 'not-allowed' : 'pointer'; ?>;">
-              <span class="slider" style="position: absolute; cursor: <?php echo $isDemoDomain ? 'not-allowed' : 'pointer'; ?>; top: 0; left: 0; right: 0; bottom: 0; background-color: <?php echo $allowRegistration ? 'var(--color-primary)' : '#ccc'; ?>; transition: .3s; border-radius: 24px;"></span>
+            <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; opacity: <?php echo ($isDemoDomain || !$isAdmin) ? '0.5' : '1'; ?>;">
+              <input type="checkbox" name="allow_registration" <?php echo $allowRegistration ? 'checked' : ''; ?> <?php echo ($isDemoDomain || !$isAdmin) ? 'disabled' : ''; ?> style="opacity: 0; width: 0; height: 0; cursor: <?php echo ($isDemoDomain || !$isAdmin) ? 'not-allowed' : 'pointer'; ?>;">
+              <span class="slider" style="position: absolute; cursor: <?php echo ($isDemoDomain || !$isAdmin) ? 'not-allowed' : 'pointer'; ?>; top: 0; left: 0; right: 0; bottom: 0; background-color: <?php echo ($isDemoDomain || !$isAdmin) ? 'hsl(215 16% 70%)' : 'var(--color-primary)'; ?>; transition: .3s; border-radius: 24px;"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-top: 1px solid var(--border-color);">
+            <div style="flex: 1;">
+              <label class="form-label" style="margin: 0; display: block; color: <?php echo ($isDemoDomain || !$isAdmin) ? 'var(--text-secondary)' : 'var(--text-primary)'; ?>;">
+                Invitation Key
+                <?php if ($isDemoDomain): ?>
+                  <span style="color: hsl(25 95% 45%); font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">⚠ Disabled on Demo</span>
+                <?php elseif (!$isAdmin): ?>
+                  <span style="color: hsl(25 95% 45%); font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">⚠ Only administrators can change this setting.</span>
+                <?php endif; ?>
+              </label>
+              <span class="form-helper" style="color: var(--text-secondary);">
+                Enable invitation-based registration with invite links
+                <?php if ($isDemoDomain): ?>
+                <br><span style="color: hsl(25 95% 45%); font-size: 0.8125rem;">Invitations are disabled on demo domain for security reasons.</span>
+                <?php endif; ?>
+              </span>
+            </div>
+            <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; opacity: <?php echo ($isDemoDomain || !$isAdmin) ? '0.5' : '1'; ?>;">
+              <input type="checkbox" name="allow_invitations" <?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'checked' : ''; ?> <?php echo ($isDemoDomain || !$isAdmin) ? 'disabled' : ''; ?> style="opacity: 0; width: 0; height: 0; cursor: <?php echo ($isDemoDomain || !$isAdmin) ? 'not-allowed' : 'pointer'; ?>;">
+              <span class="slider" style="position: absolute; cursor: <?php echo ($isDemoDomain || !$isAdmin) ? 'not-allowed' : 'pointer'; ?>; top: 0; left: 0; right: 0; bottom: 0; background-color: <?php echo ($isDemoDomain || !$isAdmin) ? 'hsl(215 16% 70%)' : (($appConfig['security']['allow_invitations'] ?? false) ? 'var(--color-primary)' : 'hsl(215 16% 70%)'); ?>; transition: .3s; border-radius: 24px;"></span>
             </label>
           </div>
         </div>
@@ -2490,7 +2697,11 @@ ob_start();
         </div>
         <div style="display: flex; flex-direction: column; justify-content: center; min-height: 48px; padding: 0.5rem; background: hsl(210 40% 98%); border-radius: 8px; border: 1px solid hsl(210 40% 90%);">
           <p class="text-xs" style="margin: 0 0 0.25rem 0; color: hsl(215 16% 47%); font-weight: 500; font-size: 0.75rem;">Server Time</p>
-          <p class="font-semibold" id="server-time" style="margin: 0; font-size: 0.875rem; color: hsl(222 47% 11%);"><?php echo date('H:i:s'); ?></p>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <p class="font-semibold" id="server-time" style="margin: 0; font-size: 0.875rem; color: hsl(222 47% 11%);"><?php echo date('H:i:s'); ?></p>
+            <span style="color: hsl(215 16% 47%);">|</span>
+            <p class="font-semibold" id="server-uptime" style="margin: 0; font-size: 0.875rem; color: hsl(215 16% 47%);">Loading...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -2992,24 +3203,57 @@ const smtpHasSavedPassword = <?php echo !empty($appConfig['mail']['password']) ?
 
 function updateSmtpPasswordHelperText() {
   const helper = document.getElementById('smtpPasswordHelper');
+  const label = document.getElementById('smtp_password_label');
+  const passwordInput = document.getElementById('smtp_password');
   const hostValue = (document.getElementById('smtp_host')?.value || '').toLowerCase();
-  if (!helper) return;
+  
+  if (!helper || !label || !passwordInput) return;
 
   let providerHint = 'Enter your SMTP password or API key.';
+  let labelText = 'SMTP Password';
+  let placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter password';
 
   if (hostValue.includes('gmail')) {
     providerHint = 'Gmail: use an App Password (not your normal Google password).';
+    labelText = 'App Password';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your App Password';
   } else if (hostValue.includes('office365') || hostValue.includes('outlook') || hostValue.includes('hotmail')) {
     providerHint = 'Office365/Outlook: use your account password or an app password if MFA is enabled.';
+    labelText = 'Password';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your password';
   } else if (hostValue.includes('brevo') || hostValue.includes('sendinblue')) {
     providerHint = 'Brevo: use your SMTP Key (not your login password).';
+    labelText = 'SMTP Key';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your SMTP Key';
+  } else if (hostValue.includes('sendgrid')) {
+    providerHint = 'SendGrid: use your API Key.';
+    labelText = 'API Key';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your API Key';
+  } else if (hostValue.includes('mailgun')) {
+    providerHint = 'Mailgun: use your API Key or SMTP password.';
+    labelText = 'API Key / Password';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your API Key or password';
+  } else if (hostValue.includes('amazon') || hostValue.includes('ses') || hostValue.includes('aws')) {
+    providerHint = 'Amazon SES: use your SMTP credentials.';
+    labelText = 'SMTP Credentials';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your SMTP credentials';
+  } else if (hostValue.includes('postmark')) {
+    providerHint = 'Postmark: use your Server API Token.';
+    labelText = 'Server API Token';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your Server API Token';
+  } else if (hostValue.includes('mailchimp') || hostValue.includes('mandrill')) {
+    providerHint = 'Mailchimp/Mandrill: use your API Key.';
+    labelText = 'API Key';
+    placeholderText = smtpHasSavedPassword ? '••••••••' : 'Enter your API Key';
   }
 
   const suffix = smtpHasSavedPassword
-    ? ' Leave blank to keep current password.'
+    ? ' Leave blank to keep current.'
     : ' Required for initial setup.';
 
   helper.textContent = providerHint + suffix;
+  label.textContent = labelText;
+  passwordInput.placeholder = placeholderText;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -3104,6 +3348,12 @@ function testSmtpConnection() {
   // Get form data
   const formData = new FormData(form);
   formData.set('action', 'test_smtp');
+  
+  // Debug: Log form data
+  console.log('SMTP Test Form Data:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}: ${value}`);
+  }
   
   // Send AJAX request to test SMTP
   fetch('settings', {
@@ -3225,18 +3475,19 @@ tabTriggers.forEach(trigger => {
 
 // Restore active tab on page load
 document.addEventListener('DOMContentLoaded', function() {
-  // Check PHP session first (from form submission)
-  const phpActiveTab = '<?php echo $_SESSION["active_settings_tab"] ?? ""; ?>';
-  // Then check sessionStorage (from tab clicks)
+  // Check sessionStorage first (from tab clicks) - this is the most recent user action
   const storedTab = sessionStorage.getItem('activeSettingsTab');
+  // Then check PHP session (from form submission)
+  const phpActiveTab = '<?php echo $_SESSION["active_settings_tab"] ?? ""; ?>';
   
   // Determine which tab to activate
   let activeTab = 'profile'; // default
   
-  if (phpActiveTab && phpActiveTab.startsWith('tab-')) {
-    activeTab = phpActiveTab.replace('tab-', '');
-  } else if (storedTab) {
+  // Prioritize sessionStorage over PHP session for better UX
+  if (storedTab) {
     activeTab = storedTab;
+  } else if (phpActiveTab && phpActiveTab.startsWith('tab-')) {
+    activeTab = phpActiveTab.replace('tab-', '');
   }
   
   // Always switch to the determined tab (including default profile)
@@ -4494,10 +4745,16 @@ function updateServerTimePolling() {
   fetch('/api/server-time')
     .then(response => response.json())
     .then(data => {
-      if (data.time) {
+      if (data.success) {
         const serverTimeElement = document.getElementById('server-time');
-        if (serverTimeElement) {
+        const serverUptimeElement = document.getElementById('server-uptime');
+        
+        if (serverTimeElement && data.time) {
           serverTimeElement.textContent = data.time;
+        }
+        
+        if (serverUptimeElement) {
+          serverUptimeElement.textContent = data.uptime || '0m';
         }
       }
     })
@@ -4705,6 +4962,9 @@ function showUpdateProgress(progressUrl) {
 <?php
 // Get page content
 $pageContent = ob_get_clean();
+
+// Include invite modal component
+include __DIR__ . '/../../components/invite-modal.php';
 
 // Include layout
 include __DIR__ . '/../../components/layout.php';

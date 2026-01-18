@@ -20,7 +20,16 @@ $appConfig = require __DIR__ . '/../../../config/app.php';
 $smtpConfigured = !empty($appConfig['mail']['host']) && !empty($appConfig['mail']['username']);
 
 // Initialize repository with user ID
-$userId = $user['id'] ?? 'admin';
+$userId = isset($user['_id']) ? (string)$user['_id'] : null;
+if (!$userId) {
+    // Fallback to session user_id
+    $userId = $_SESSION['user_id'] ?? null;
+}
+
+if (!$userId) {
+    die("User not authenticated");
+}
+
 $repo = new NotificationRepository($userId);
 
 // Get pagination parameters

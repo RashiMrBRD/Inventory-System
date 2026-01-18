@@ -12,19 +12,22 @@
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: public, max-age=3600'); // Cache for 1 hour
 
+// Load app config
+$appConfig = require __DIR__ . '/../../../config/app.php';
+
 // Get current page title from query parameter or use default
 $pageTitle = $_GET['title'] ?? 'Login - Inventory Management System';
 $host = $_SERVER['HTTP_HOST'] ?? '';
-$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
-$isDemoDomain = (strpos($hostOnly, 'demo.rashlink.eu.org') === 0);
-$isLocalhost = ($hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1');
 
-// Only serve head content for demo domain and localhost
-if (!$isDemoDomain && !$isLocalhost) {
+// Check if host is allowed using centralized configuration
+if (!isHostAllowed($host, $appConfig['security']['access_control'])) {
     http_response_code(403);
     echo '<!-- Access denied -->';
     exit;
 }
+
+$hostOnly = parse_url('http://' . $host, PHP_URL_HOST) ?: $host;
+$isDemoDomain = (strpos($hostOnly, $appConfig['security']['access_control']['demo_domain']) === 0);
 
 ?>
 <!DOCTYPE html>
