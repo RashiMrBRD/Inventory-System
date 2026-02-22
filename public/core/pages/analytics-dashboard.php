@@ -97,299 +97,115 @@ function isInDateRange($dateValue, $start, $end) {
 
 // ============================================
 // INVENTORY ANALYTICS (Time-Range Filtered)
+// Uses async loading via API for performance
 // ============================================
 $inventoryModel = new Inventory();
-try {
-    $allItems = $inventoryModel->getAll();
-    
-    // Current period inventory stats (ALL items, not filtered by date)
-    $totalItems = count($allItems);
-    $lowStockItems = 0;
-    $outOfStockItems = 0;
-    $inventoryValue = 0;
-    
-    // Items added in current period (for trend calculation)
-    $itemsAddedThisPeriod = 0;
-    $itemsAddedPrevPeriod = 0;
-    
-    foreach ($allItems as $item) {
-        $createdDate = $item['created_at'] ?? $item['date_added'] ?? $item['date'] ?? null;
-        $quantity = $item['quantity'] ?? 0;
-        $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
-        
-        // Calculate current inventory value from ALL items
-        $inventoryValue += $quantity * $price;
-        
-        // Stock level classification
-        if ($quantity == 0) $outOfStockItems++;
-        elseif ($quantity <= 5) $lowStockItems++;
-        
-        // Count items added in time periods (for trend)
-        if (isInDateRange($createdDate, $startDate, $endDate)) {
-            $itemsAddedThisPeriod++;
-        }
-        if (isInDateRange($createdDate, $prevStartDate, $prevEndDate)) {
-            $itemsAddedPrevPeriod++;
-        }
-    }
-    
-    // Calculate trend based on items ADDED (not total count)
-    $inventoryTrend = $itemsAddedPrevPeriod > 0 ? 
-        round((($itemsAddedThisPeriod - $itemsAddedPrevPeriod) / $itemsAddedPrevPeriod) * 100, 1) : 
-        ($itemsAddedThisPeriod > 0 ? 100 : 0);
-    
-    // Inventory trend data points
-    $dailyCounts = $inventoryModel->getDailyAddedCounts($daysBack);
-    $inventoryTrendLabels = [];
-    $inventoryTrendData = [];
-    
-    $dataPoints = min($daysBack, 30); // Max 30 points for readability
-    $interval = max(1, floor($daysBack / $dataPoints));
-    
-    for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
-        $d = new \DateTimeImmutable("-$i days");
-        $key = $d->format('Y-m-d');
-        $inventoryTrendLabels[] = $d->format($timeRange === '1y' ? 'M' : 'M j');
-        $inventoryTrendData[] = (int)($dailyCounts[$key] ?? 0);
-    }
-    
-    // Inventory distribution
-    $typeData = [];
-    $stockLevelData = ['In Stock' => 0, 'Low Stock' => 0, 'Out of Stock' => 0];
-    foreach ($allItems as $item) {
-        $type = $item['type'] ?? 'Unknown';
-        $quantity = $item['quantity'] ?? 0;
-        if (!isset($typeData[$type])) $typeData[$type] = 0;
-        $typeData[$type]++;
-        
-        if ($quantity == 0) $stockLevelData['Out of Stock']++;
-        elseif ($quantity <= 5) $stockLevelData['Low Stock']++;
-        else $stockLevelData['In Stock']++;
-    }
-} catch (Exception $e) {
-    $totalItems = $lowStockItems = $outOfStockItems = 0;
-    $inventoryTrendLabels = $inventoryTrendData = [];
-    $typeData = $stockLevelData = [];
+
+// Use aggregation methods instead of loading all items
+$inventoryStats = $inventoryModel->getDashboardAnalytics($daysBack);
+$dailyCounts = $inventoryModel->getDailyAddedCounts($daysBack);
+
+$totalItems = $inventoryStats['total_items'];
+$lowStockItems = $inventoryStats['low_stock_count'];
+$outOfStockItems = $inventoryStats['out_of_stock_count'];
+$inventoryValue = $inventoryStats['total_value'];
+$inventoryTrend = $inventoryStats['trend'];
+$typeData = $inventoryStats['type_distribution'];
+$stockLevelData = $inventoryStats['stock_levels'];
+
+// Build trend data points
+$inventoryTrendLabels = [];
+$inventoryTrendData = [];
+$dataPoints = min($daysBack, 30);
+$interval = max(1, floor($daysBack / $dataPoints));
+
+for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
+    $d = new \DateTimeImmutable("-$i days");
+    $key = $d->format('Y-m-d');
+    $inventoryTrendLabels[] = $d->format($timeRange === '1y' ? 'M' : 'M j');
+    $inventoryTrendData[] = (int)($dailyCounts[$key] ?? 0);
 }
 
 // ============================================
-// SALES & REVENUE ANALYTICS
+// SALES & REVENUE ANALYTICS - Use aggregation
 // ============================================
 $invoiceModel = new Invoice();
 $quotationModel = new Quotation();
 $orderModel = new Order();
 
-try {
-    $invoices = $invoiceModel->getAll();
-    
-    // ALL invoices (not time-filtered)
-    $totalRevenue = 0;
-    $paidRevenue = 0;
-    $outstandingRevenue = 0;
-    $invoiceCount = count($invoices);
-    
-    // Time-filtered for trend comparison
-    $revenueInPeriod = 0;
-    $prevTotalRevenue = 0;
-    $prevPaidRevenue = 0;
-    
-    // Revenue trend data
-    $revenueByPeriod = [];
-    $dataPoints = $timeRange === '1y' ? 12 : ($timeRange === '90d' ? 12 : min($daysBack, 30));
-    $periodType = $timeRange === '1y' ? 'month' : 'day';
-    
-    foreach ($invoices as $inv) {
-        $date = $inv['date'] ?? null;
-        $total = (float)($inv['total'] ?? 0);
-        $status = $inv['status'] ?? '';
-        
-        // Calculate all-time totals
-        $totalRevenue += $total;
-        if ($status === 'paid') {
-            $paidRevenue += $total;
-        } else {
-            $outstandingRevenue += $total;
-        }
-        
-        // Track revenue in current period for trends
-        if (isInDateRange($date, $startDate, $endDate)) {
-            $revenueInPeriod += $total;
-        }
-        
-        // Previous period for comparison
-        if (isInDateRange($date, $prevStartDate, $prevEndDate)) {
-            $prevTotalRevenue += $total;
-            if ($status === 'paid') {
-                $prevPaidRevenue += $total;
-            }
-        }
+// Use aggregation methods instead of loading all records
+$invoiceStats = $invoiceModel->getDashboardAnalytics($daysBack);
+$quotationStats = $quotationModel->getDashboardAnalytics($daysBack);
+$orderStats = $orderModel->getDashboardAnalytics($daysBack);
+
+$totalRevenue = $invoiceStats['total_revenue'];
+$paidRevenue = $invoiceStats['paid_revenue'];
+$outstandingRevenue = $invoiceStats['outstanding_revenue'];
+$invoiceCount = $invoiceStats['invoice_count'];
+$revenueInPeriod = $invoiceStats['revenue_in_period'];
+$revenueTrend = $invoiceStats['revenue_trend'];
+$collectionRateTrend = $invoiceStats['collection_trend'];
+
+$quotationCount = $quotationStats['total_count'];
+$approvedCount = $quotationStats['approved_count'];
+$pendingCount = $quotationStats['pending_count'];
+$convertedCount = $quotationStats['converted_count'];
+$conversionRate = $quotationStats['conversion_rate'];
+$conversionTrend = $quotationStats['conversion_trend'];
+
+$ordersByType = $orderStats['by_type'];
+
+// Build revenue chart data from aggregation results
+$revenueByPeriod = $invoiceStats['revenue_by_period'];
+$monthLabels = [];
+$revenueData = [];
+
+if ($timeRange === '1y') {
+    // Monthly grouping for 1 year
+    for ($i = 11; $i >= 0; $i--) {
+        $month = new \DateTimeImmutable("-$i months");
+        $monthKey = $month->format('Y-m');
+        $monthLabels[] = $month->format('M y');
+        $revenueData[] = (float)($revenueByPeriod[$monthKey] ?? 0);
     }
-    
-    // Calculate trends
-    $revenueTrend = $prevTotalRevenue > 0 ? 
-        round((($totalRevenue - $prevTotalRevenue) / $prevTotalRevenue) * 100, 1) : 0;
-    $collectionRateTrend = $prevPaidRevenue > 0 && $prevTotalRevenue > 0 ? 
-        round(((($paidRevenue/$totalRevenue) - ($prevPaidRevenue/$prevTotalRevenue)) / ($prevPaidRevenue/$prevTotalRevenue)) * 100, 1) : 0;
-    
-    // Build revenue chart data
-    $monthLabels = [];
-    $revenueData = [];
-    
-    if ($timeRange === '1y') {
-        // Monthly grouping for 1 year
-        for ($i = 11; $i >= 0; $i--) {
-            $month = new \DateTimeImmutable("-$i months");
-            $monthKey = $month->format('Y-m');
-            $monthLabels[] = $month->format('M y');
-            $revenueByPeriod[$monthKey] = 0;
-        }
-        foreach ($invoices as $inv) {
-            $date = $inv['date'] ?? null;
-            if (isInDateRange($date, $startDate, $endDate)) {
-                $ts = is_string($date) ? strtotime($date) : 
-                      (is_object($date) && method_exists($date, 'toDateTime') ? $date->toDateTime()->getTimestamp() : null);
-                if ($ts) {
-                    $monthKey = date('Y-m', $ts);
-                    if (isset($revenueByPeriod[$monthKey])) {
-                        $revenueByPeriod[$monthKey] += (float)($inv['total'] ?? 0);
-                    }
-                }
-            }
-        }
-        $revenueData = array_values($revenueByPeriod);
-    } else {
-        // Daily/weekly grouping for shorter periods
-        $interval = $timeRange === '90d' ? 7 : 1; // Weekly for 90d, daily for others
-        for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
-            $d = new \DateTimeImmutable("-$i days");
-            $key = $d->format('Y-m-d');
-            $monthLabels[] = $d->format('M j');
-            $revenueByPeriod[$key] = 0;
-        }
-        foreach ($invoices as $inv) {
-            $date = $inv['date'] ?? null;
-            if (isInDateRange($date, $startDate, $endDate)) {
-                $ts = is_string($date) ? strtotime($date) : 
-                      (is_object($date) && method_exists($date, 'toDateTime') ? $date->toDateTime()->getTimestamp() : null);
-                if ($ts) {
-                    $dayKey = date('Y-m-d', $ts);
-                    if (isset($revenueByPeriod[$dayKey])) {
-                        $revenueByPeriod[$dayKey] += (float)($inv['total'] ?? 0);
-                    }
-                }
-            }
-        }
-        $revenueData = array_values($revenueByPeriod);
+} else {
+    // Daily/weekly grouping for shorter periods
+    $interval = $timeRange === '90d' ? 7 : 1;
+    for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
+        $d = new \DateTimeImmutable("-$i days");
+        $key = $d->format('Y-m-d');
+        $monthLabels[] = $d->format('M j');
+        $revenueData[] = (float)($revenueByPeriod[$key] ?? 0);
     }
-    
-    // Orders by type
-    $orders = $orderModel->getAll();
-    $ordersByType = ['Sales' => 0, 'Purchase' => 0];
-    foreach ($orders as $order) {
-        $type = $order['type'] ?? 'Sales';
-        if (!isset($ordersByType[$type])) $ordersByType[$type] = 0;
-        $ordersByType[$type]++;
-    }
-    
-    // Quotation analytics (show ALL quotations)
-    $quotations = $quotationModel->getAll();
-    $quotationCount = count($quotations);
-    $approvedCount = 0;
-    $pendingCount = 0;
-    $convertedCount = 0;
-    
-    // Time-filtered counts for trends
-    $quotationsInPeriod = 0;
-    $approvedInPeriod = 0;
-    $prevQuotationCount = 0;
-    $prevApprovedCount = 0;
-    
-    foreach ($quotations as $q) {
-        $date = $q['created_at'] ?? $q['date'] ?? null;
-        $status = $q['status'] ?? '';
-        
-        // All-time status counts
-        if ($status === 'approved') $approvedCount++;
-        if ($status === 'pending') $pendingCount++;
-        if ($status === 'converted') $convertedCount++;
-        
-        // Current period counts for trends
-        if (isInDateRange($date, $startDate, $endDate)) {
-            $quotationsInPeriod++;
-            if ($status === 'approved') $approvedInPeriod++;
-        }
-        
-        // Previous period for comparison
-        if (isInDateRange($date, $prevStartDate, $prevEndDate)) {
-            $prevQuotationCount++;
-            if ($status === 'approved') $prevApprovedCount++;
-        }
-    }
-    
-    // Calculate conversion rate from all-time data
-    $conversionRate = $quotationCount > 0 ? round(($approvedCount / $quotationCount) * 100, 1) : 0;
-    $prevConversionRate = $prevQuotationCount > 0 ? round(($prevApprovedCount / $prevQuotationCount) * 100, 1) : 0;
-    $conversionTrend = $prevConversionRate > 0 ? round((($conversionRate - $prevConversionRate) / $prevConversionRate) * 100, 1) : 0;
-    
-} catch (Exception $e) {
-    $totalRevenue = $paidRevenue = $outstandingRevenue = $revenueInPeriod = 0;
-    $monthLabels = $revenueData = $ordersByType = [];
-    $conversionRate = $revenueTrend = $collectionRateTrend = $conversionTrend = 0;
-    $invoiceCount = $quotationCount = $approvedCount = $pendingCount = $convertedCount = 0;
-    $quotationsInPeriod = $approvedInPeriod = 0;
 }
 
 // ============================================
-// OPERATIONS ANALYTICS
+// OPERATIONS ANALYTICS - Use aggregation
 // ============================================
 $projectModel = new Project();
 $shipmentModel = new Shipment();
 
-// Initialize operations analytics defaults to avoid undefined variables
-$projects = [];
-$projectsByStatus = ['active' => 0, 'completed' => 0, 'on_hold' => 0];
-$totalBudget = $totalSpent = 0;
-$totalProjects = 0;
-$shipmentsByStatus = [];
+// Use aggregation methods instead of loading all records
+$projectStats = $projectModel->getDashboardAnalytics($daysBack);
+$shipmentStats = $shipmentModel->getDashboardAnalytics($daysBack);
 
-try {
-    $projects = $projectModel->getAll();
-    $projectsByStatus = ['active' => 0, 'completed' => 0, 'on_hold' => 0];
-    $totalBudget = $totalSpent = 0;
-    $totalProjects = count($projects);
-    foreach ($projects as $proj) {
-        $status = $proj['status'] ?? 'active';
-        if (!isset($projectsByStatus[$status])) $projectsByStatus[$status] = 0;
-        $projectsByStatus[$status]++;
-        $totalBudget += (float)($proj['budget'] ?? 0);
-        $totalSpent += (float)($proj['spent'] ?? 0);
-    }
-    $budgetUtilization = $totalBudget > 0 ? round(($totalSpent / $totalBudget) * 100, 1) : 0;
-    
-    $shipments = $shipmentModel->getAll();
-    $shipmentsByStatus = [];
-    foreach ($shipments as $ship) {
-        $status = $ship['status'] ?? 'pending';
-        if (!isset($shipmentsByStatus[$status])) $shipmentsByStatus[$status] = 0;
-        $shipmentsByStatus[$status]++;
-    }
-} catch (Exception $e) {
-    $projects = [];
-    $projectsByStatus = ['active' => 0, 'completed' => 0, 'on_hold' => 0];
-    $totalBudget = $totalSpent = 0;
-    $totalProjects = 0;
-    $shipmentsByStatus = [];
-    $budgetUtilization = 0;
-}
+$projectsByStatus = $projectStats['by_status'];
+$totalBudget = $projectStats['total_budget'];
+$totalSpent = $projectStats['total_spent'];
+$totalProjects = $projectStats['total_count'];
+$budgetUtilization = $projectStats['budget_utilization'];
+
+$shipmentsByStatus = $shipmentStats['by_status'];
 
 // ============================================
-// COMPLIANCE ANALYTICS
+// COMPLIANCE ANALYTICS - Limited data
 // ============================================
 $birModel = new BirForm();
 $fdaModel = new FdaProduct();
 
 try {
-    $birForms = $birModel->getRecentForms(100);
+    // Use limited queries for compliance
+    $birForms = $birModel->getRecentForms(50);
     $birByStatus = ['filed' => 0, 'pending' => 0];
     foreach ($birForms as $form) {
         $status = $form['status'] ?? 'pending';

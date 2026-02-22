@@ -293,4 +293,120 @@ class Quotation
             return null;
         }
     }
+
+    /**
+     * Get dashboard analytics using aggregation (efficient for large datasets)
+     * @param int $daysBack Number of days for trend calculation
+     * @return array
+     */
+    public function getDashboardAnalytics(int $daysBack = 30): array
+    {
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return $this->emptyDashboardResult();
+        }
+
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+        $baseFilter = $isAdmin ? [] : ['user_id' => $userId];
+
+        // Single aggregation for all quotation stats
+        $pipeline = [];
+        if (!empty($baseFilter)) {
+            $pipeline[] = ['$match' => $baseFilter];
+        }
+        $pipeline[] = ['$group' => [
+            '_id' => null,
+            'total_count' => ['$sum' => 1],
+            'approved_count' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'approved']], 1, 0]]],
+            'pending_count' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'pending']], 1, 0]]],
+            'converted_count' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'converted']], 1, 0]]],
+            'total_value' => ['$sum' => ['$toDouble' => '$total']]
+        ]];
+
+        $result = $this->collection->aggregate($pipeline)->toArray();
+        $stats = !empty($result) ? (array)$result[0] : [];
+
+        $totalCount = (int)($stats['total_count'] ?? 0);
+        $approvedCount = (int)($stats['approved_count'] ?? 0);
+        $pendingCount = (int)($stats['pending_count'] ?? 0);
+        $convertedCount = (int)($stats['converted_count'] ?? 0);
+
+        // Current period counts
+        $startTs = strtotime('-' . max(1, $daysBack - 1) . ' days 00:00:00');
+        $start = new UTCDateTime($startTs * 1000);
+
+        $periodFilter = $baseFilter;
+        $periodFilter['created_at'] = ['$gte' => $start];
+
+        $periodPipeline = [];
+        if (!empty($periodFilter)) {
+            $periodPipeline[] = ['$match' => $periodFilter];
+        }
+        $periodPipeline[] = ['$group' => [
+            '_id' => null,
+            'count' => ['$sum' => 1],
+            'approved' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'approved']], 1, 0]]]
+        ]];
+
+        $periodResult = $this->collection->aggregate($periodPipeline)->toArray();
+        $quotationsInPeriod = !empty($periodResult) ? (int)$periodResult[0]->count : 0;
+        $approvedInPeriod = !empty($periodResult) ? (int)$periodResult[0]->approved : 0;
+
+        // Previous period
+        $prevStartTs = strtotime('-' . ($daysBack * 2) . ' days 00:00:00');
+        $prevStart = new UTCDateTime($prevStartTs * 1000);
+        $prevEnd = $start;
+
+        $prevFilter = $baseFilter;
+        $prevFilter['created_at'] = ['$gte' => $prevStart, '$lt' => $prevEnd];
+
+        $prevPipeline = [];
+        if (!empty($prevFilter)) {
+            $prevPipeline[] = ['$match' => $prevFilter];
+        }
+        $prevPipeline[] = ['$group' => [
+            '_id' => null,
+            'count' => ['$sum' => 1],
+            'approved' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'approved']], 1, 0]]]
+        ]];
+
+        $prevResult = $this->collection->aggregate($prevPipeline)->toArray();
+        $prevQuotationCount = !empty($prevResult) ? (int)$prevResult[0]->count : 0;
+        $prevApprovedCount = !empty($prevResult) ? (int)$prevResult[0]->approved : 0;
+
+        // Calculate conversion rate and trend
+        $conversionRate = $totalCount > 0 ? round(($approvedCount / $totalCount) * 100, 1) : 0;
+        $prevConversionRate = $prevQuotationCount > 0 ? round(($prevApprovedCount / $prevQuotationCount) * 100, 1) : 0;
+        $conversionTrend = $prevConversionRate > 0 
+            ? round((($conversionRate - $prevConversionRate) / $prevConversionRate) * 100, 1)
+            : 0;
+
+        return [
+            'total_count' => $totalCount,
+            'approved_count' => $approvedCount,
+            'pending_count' => $pendingCount,
+            'converted_count' => $convertedCount,
+            'total_value' => (float)($stats['total_value'] ?? 0),
+            'quotations_in_period' => $quotationsInPeriod,
+            'approved_in_period' => $approvedInPeriod,
+            'conversion_rate' => $conversionRate,
+            'conversion_trend' => $conversionTrend
+        ];
+    }
+
+    private function emptyDashboardResult(): array
+    {
+        return [
+            'total_count' => 0,
+            'approved_count' => 0,
+            'pending_count' => 0,
+            'converted_count' => 0,
+            'total_value' => 0,
+            'quotations_in_period' => 0,
+            'approved_in_period' => 0,
+            'conversion_rate' => 0,
+            'conversion_trend' => 0
+        ];
+    }
 }

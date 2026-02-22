@@ -2,11 +2,12 @@
 // Secure Asset Proxy: serves files from /assets and /features via signed URLs with no-cache headers
 // Query params: d=<base64url path relative to public>, e=<expiry epoch>, n=<nonce>, s=<signature>
 
-header('Permissions-Policy: geolocation=(), microphone=(), camera=(self)');
-
-// Basic hardening
+// CRITICAL: Suppress errors FIRST before any output
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_STRICT);
 ini_set('display_errors', '0');
-error_reporting(0);
+ini_set('display_startup_errors', '0');
+
+header('Permissions-Policy: geolocation=(), microphone=(), camera=(self)');
 
 // Resolve base paths
 $publicRoot = realpath(__DIR__ . '/../../');
@@ -15,15 +16,7 @@ $allowedRoots = [
     realpath(__DIR__ . '/../../features'),
 ];
 
-// Load signing key from config or env
-$signingKey = null;
-try {
-    $appConfig = @require __DIR__ . '/../../../config/app.php';
-    if (is_array($appConfig) && isset($appConfig['assets']['signing_key'])) {
-        $signingKey = (string)$appConfig['assets']['signing_key'];
-    }
-
-// Comment stripping helpers (safe, minimal)
+// Comment stripping helpers (safe, minimal) - MUST be defined BEFORE try block
 if (!function_exists('strip_css_comments')) {
     function strip_css_comments(string $css): string {
         return preg_replace('!/\*.*?\*/!s', '', $css);
@@ -36,9 +29,17 @@ if (!function_exists('strip_js_block_comments')) {
 }
 if (!function_exists('strip_html_comments')) {
     function strip_html_comments(string $html): string {
-        return preg_replace('/<!--(?!\[if).*?-->/s', '', $html);
+        return preg_replace('/<!--(?![if]).*?-->/s', '', $html);
     }
 }
+
+// Load signing key from config or env
+$signingKey = null;
+try {
+    $appConfig = @require __DIR__ . '/../../../config/app.php';
+    if (is_array($appConfig) && isset($appConfig['assets']['signing_key'])) {
+        $signingKey = (string)$appConfig['assets']['signing_key'];
+    }
 } catch (Throwable $e) {
     // ignore
 }

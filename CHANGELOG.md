@@ -1,5 +1,310 @@
 # Changelog
 
+## update 0.4.4 - 02.22.2026
+implemented real-time password validation on the registration form with strength indicator and confirmation matching. The password field now shows a dynamic strength bar that fills with color based on password complexity while the requirements checklist displays checkmarks when each requirement is met. Added a confirm password field that validates matching passwords with visual indicators.
+
+added email validation on the registration form with real-time feedback. The email input displays a checking animation while validating and shows green for valid emails or red for invalid ones with specific error messages.
+
+fixed the documentation page that was failing to load properly. The issue was behind escaped quotes in the HTML output where `href=\"/docs` appeared instead of `href="/docs"`. These malformed attributes broke all navigation links on the page. The document scanner was working correctly and found 168 markdown files across both the Project Docs and Container Docs directories.
+
+implemented password visibility toggle with an eye icon that switches between showing and hiding the password text. Added comprehensive CSS styling for all password validation UI elements including the strength bar, requirements list, and confirmation indicators.
+
+Bugs and Fixes:
+- fix an issue with registration form not showing password strength indicator, requirements checklist, and confirm password field due to missing HTML elements in the base64 encoded form string.
+- fix an issue with docs.php navigation links not working because of escaped backslashes before quotes in HTML attributes.
+- fix an issue with browser native validation interfering with custom email validation by adding novalidate attribute to the form.
+- fix an issue with Docker container caching JavaScript files for 1 month causing stale login-register-link.js not reflecting updates. Added cache-busting timestamp parameters to JS script sources in login.php.
+
+Known Issues:
+- The password requirements checkmarks may not clear properly when the password field is emptied after previously meeting requirements. This is because the checkmark spans are added dynamically and need proper cleanup logic.
+- The email validation only checks format validity and does not verify if the email domain actually exists or if the email is already registered in the system.
+
+While the updates from 01.19.2026 to 02.20.2026 introduced significant architectural changes including Windows support, Rust and Flutter migration, Android app development, and various performance optimizations, they were reverted to version 0.4.3 because there were underlying complexities that emerged behind the implementation. The idea behind these changes was ambitious but they introduced unexpected behaviors and data inconsistencies that affected overall functionality. Because time constraints limited thorough testing and validation, the decision was made to roll back to a stable state while preserving the documented progress for future reference.
+
+## update 0.4.3 - 02.21.2026
+implemented MongoDB aggregation pipelines for dashboard analytics to replace inefficient `getAll()` + `foreach` patterns that caused page unresponsiveness with large datasets (10k+ records).
+added `getDashboardAnalytics()` methods to Inventory, Invoice, Quotation, Order, Project, and Shipment models for server-side statistics calculation.
+rewrote dashboard API endpoint to consume aggregation methods instead of loading full collections into PHP memory.
+cached CurrencyService IP detection result in session to prevent 5-second external API timeout on every settings page load.
+fixed theme selection modal interaction where "Continue Anyway" and "Cancel" buttons were non-functional due to missing event listeners.
+implemented proper theme modal behavior: "Continue Anyway" closes modal and keeps selection without auto-submitting, "Cancel" reverts to previous theme.
+added keyboard (Escape) and click-outside support for theme modal dismissal.
+
+Bugs and Fixes:
+- fix an issue with analytics-dashboard.php and dashboard.php loading slowly and becoming unresponsive with large datasets (10k+ records).
+- fix an issue with settings.php slow loading due to uncached currency IP detection API call with 5-second timeout.
+- fix an issue with theme selection modal buttons (Continue Anyway, Cancel) not responding to clicks due to missing event listeners.
+- fix an issue with theme modal auto-submitting form on "Continue Anyway" instead of just closing modal and keeping selection.
+
+===================
+Cancelled due to 
+time constraint
+================
+## update 1.3.6 - 02.19.2026
+optimized application performance by updating outdated modules and libraries to their latest stable versions.
+implemented lazy loading for assets and components to reduce initial load time.
+added performance monitoring hooks for identifying bottlenecks in real-time.
+
+Bugs and Fixes:
+- fix an issue with application performance degradation due to outdated dependencies.
+- fix an issue with memory leaks in long-running sessions.
+- fix an issue with slow database queries on complex join operations.
+
+## update 1.3.5 - 02.18.2026
+refactored core modules for better performance and maintainability.
+implemented caching layer for frequently accessed data.
+optimized asset bundling and minification process.
+
+Bugs and Fixes:
+- fix an issue with cache invalidation not triggering properly on data updates.
+- fix an issue with asset versioning causing stale files to be served.
+
+## update 1.3.4 - 02.17.2026
+updated third-party libraries to address performance issues and security vulnerabilities.
+implemented connection pooling for database operations.
+added query optimization for common data retrieval patterns.
+
+Bugs and Fixes:
+- fix an issue with database connection overhead causing slow response times.
+- fix an issue with redundant API calls on page load.
+
+## update 1.3.3 - 02.16.2026
+implemented performance patches across multiple modules.
+added debouncing and throttling for user input handlers.
+optimized rendering pipeline for large data tables.
+
+Bugs and Fixes:
+- fix an issue with excessive re-renders causing UI lag.
+- fix an issue with event listeners not being properly cleaned up.
+
+## update 1.3.2 - 02.16.2026
+began performance optimization initiative by profiling application bottlenecks.
+implemented code splitting for faster initial page loads.
+added tree shaking for unused code elimination.
+
+Bugs and Fixes:
+- fix an issue with large bundle sizes affecting page load performance.
+- fix an issue with unused dependencies being included in production builds.
+
+## update 1.3.1 - 02.16.2026
+initiated performance audit and optimization planning.
+identified outdated modules and libraries requiring updates.
+created performance baseline metrics for comparison.
+
+Bugs and Fixes:
+- fix an issue with missing performance metrics collection.
+- fix an issue with development mode settings affecting production performance.
+
+## update 1.2.8 - 02.13.2026
+finalized container optimization and deployment pipeline improvements.
+added health checks and monitoring endpoints.
+implemented graceful shutdown handling for containerized environments.
+
+Bugs and Fixes:
+- fix an issue with container startup time being too slow.
+- fix an issue with health check endpoints not responding under load.
+
+## update 1.2.7 - 02.12.2026
+optimized container resource allocation and limits.
+added environment-based configuration management.
+implemented secret management for sensitive configuration values.
+
+Bugs and Fixes:
+- fix an issue with environment variables not being properly loaded.
+- fix an issue with container memory limits being exceeded.
+
+## update 1.2.6 - 02.11.2026
+continued database structure optimization and indexing improvements.
+added database migration scripts for schema updates.
+implemented connection retry logic for database resilience.
+
+Bugs and Fixes:
+- fix an issue with database migration scripts failing on large datasets.
+- fix an issue with missing indexes causing slow query performance.
+
+## update 1.2.5 - 02.10.2026
+updated database schema for improved data integrity and performance.
+added foreign key constraints and cascade rules.
+implemented soft delete pattern for data preservation.
+
+Bugs and Fixes:
+- fix an issue with orphaned records after parent deletion.
+- fix an issue with cascade delete not working as expected.
+
+## update 1.2.4 - 02.08.2026
+implemented security patches for identified vulnerabilities.
+added input validation and sanitization across all endpoints.
+implemented rate limiting for API endpoints.
+
+Bugs and Fixes:
+- fix an issue with XSS vulnerabilities in user input fields.
+- fix an issue with missing CSRF protection on form submissions.
+- fix an issue with rate limiting not being applied to critical endpoints.
+
+## update 1.0.8 - 02.07.2026
+finalized layout fixes and visual consistency improvements.
+added responsive breakpoints for various screen sizes.
+implemented consistent spacing system across all components.
+
+Bugs and Fixes:
+- fix an issue with inconsistent spacing between components.
+- fix an issue with responsive layouts breaking on certain screen widths.
+
+## update 1.0.7 - 02.06.2026
+continued alignment and width issue fixes across pages.
+added flexbox and grid layout standardization.
+implemented consistent width constraints for content areas.
+
+Bugs and Fixes:
+- fix an issue with content overflowing container boundaries.
+- fix an issue with alignment inconsistencies in card components.
+
+## update 1.0.6 - 02.05.2026
+addressed spacing and padding inconsistencies.
+implemented design token system for consistent spacing.
+added visual regression tests for layout changes.
+
+Bugs and Fixes:
+- fix an issue with inconsistent padding across similar components.
+- fix an issue with margin collapsing causing unexpected spacing.
+
+## update 1.0.5 - 02.04.2026
+continued layout and design structure improvements.
+refactored CSS architecture for better maintainability.
+added utility classes for common styling patterns.
+
+Bugs and Fixes:
+- fix an issue with CSS specificity conflicts.
+- fix an issue with duplicate style definitions.
+
+## update 1.0.4 - 02.03.2026
+implemented design system improvements and component standardization.
+added consistent border radius and shadow styles.
+implemented color palette standardization.
+
+Bugs and Fixes:
+- fix an issue with inconsistent border radius values.
+- fix an issue with shadow styles not matching design specifications.
+
+## update 1.0.3 - 02.02.2026
+continued layout fixes and alignment corrections.
+added consistent typography scale and line heights.
+implemented proper z-index hierarchy for overlays and modals.
+
+Bugs and Fixes:
+- fix an issue with typography not scaling properly.
+- fix an issue with z-index conflicts between overlapping elements.
+
+## update 1.0.2 - 01.28.2026
+began design structure improvements and layout refactoring.
+identified layout issues and alignment inconsistencies.
+started implementing consistent design patterns.
+
+Bugs and Fixes:
+- fix an issue with layout breaking on window resize.
+- fix an issue with alignment inconsistencies in header and footer.
+
+## update 0.9.4 - 01.27.2026
+finalized Android app support with native features.
+implemented push notification support for Android.
+added background sync capabilities for offline functionality.
+
+Bugs and Fixes:
+- fix an issue with push notifications not being received on certain devices.
+- fix an issue with background sync failing silently.
+
+## update 0.9.3 - 01.26.2026
+continued Android app development and optimization.
+implemented native sharing capabilities.
+added deep linking support for seamless navigation.
+
+Bugs and Fixes:
+- fix an issue with deep links not opening the correct page.
+- fix an issue with share functionality not working on older Android versions.
+
+## update 0.9.2 - 01.26.2026
+added Android-specific UI components and interactions.
+implemented material design patterns for Android.
+added haptic feedback for touch interactions.
+
+Bugs and Fixes:
+- fix an issue with touch targets being too small for Android guidelines.
+- fix an issue with haptic feedback not working on certain devices.
+
+## update 0.9.1 - 01.25.2026
+continued Android app support implementation.
+optimized performance for mobile devices.
+added gesture navigation support.
+
+Bugs and Fixes:
+- fix an issue with gesture navigation conflicting with app gestures.
+- fix an issue with performance drops on lower-end Android devices.
+
+## update 0.8.2 - 01.25.2026
+initiated Android app support development.
+created Android project structure and configuration.
+implemented basic Android app shell with navigation.
+
+Bugs and Fixes:
+- fix an issue with Android build configuration.
+- fix an issue with app not launching on certain Android versions.
+
+## update 0.8.1 - 01.24.2026
+finalized Flutter integration and cross-platform architecture.
+implemented unified codebase for web and mobile platforms.
+added platform-specific optimizations.
+
+Bugs and Fixes:
+- fix an issue with platform-specific code not being properly abstracted.
+- fix an issue with Flutter hot reload not working correctly.
+
+## update 0.8.0 - 01.23.2026
+continued Flutter migration and component development.
+implemented state management solution for Flutter.
+added navigation and routing system for Flutter app.
+
+Bugs and Fixes:
+- fix an issue with state not persisting across navigation.
+- fix an issue with routing not handling deep links properly.
+
+## update 0.7.0 - 01.22.2026
+expanded Flutter UI components and screens.
+implemented responsive layouts for Flutter.
+added form handling and validation for Flutter.
+
+Bugs and Fixes:
+- fix an issue with form validation not triggering correctly.
+- fix an issue with responsive layouts not adapting to screen sizes.
+
+## update 0.6.0 - 01.21.2026
+continued Rust backend development and Flutter integration.
+implemented API client for Flutter to communicate with Rust backend.
+added authentication flow for Flutter app.
+
+Bugs and Fixes:
+- fix an issue with API client not handling errors properly.
+- fix an issue with authentication tokens not being stored securely.
+
+## update 0.5.0 - 01.20.2026
+implemented Flutter framework setup and initial UI components.
+began migrating frontend components to Flutter.
+added Rust backend API endpoints for Flutter consumption.
+
+Bugs and Fixes:
+- fix an issue with Flutter dependencies not resolving correctly.
+- fix an issue with Rust API endpoints not returning proper CORS headers.
+
+## update 0.4.2 - 01.19.2026
+initiated Windows support implementation.
+began rewriting overall structures to Rust and Flutter.
+created initial Rust backend architecture.
+added Windows-specific build configurations.
+
+Bugs and Fixes:
+- fix an issue with Rust compilation errors on Windows.
+- fix an issue with cross-platform build scripts not working correctly.
+- fix an issue with Windows-specific paths not being handled properly.
+
 ## update 0.4.2 - 01.18.2026
 fixed Invitation Key toggle requiring multiple page refreshes to reflect state changes by implementing comprehensive cache-busting strategies.
 added HTTP cache control headers to login.php to prevent HTML page caching.

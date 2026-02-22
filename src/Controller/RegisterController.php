@@ -28,7 +28,7 @@ class RegisterController
         $this->securityEventService = $securityEventService ?? new SecurityEventService();
         $this->timezoneDetection = new TimezoneDetectionService();
         $this->inviteModel = new Invite();
-        $this->appConfig = require __DIR__ . '/../../../config/app.php';
+        $this->appConfig = require __DIR__ . '/../../config/app.php';
 
         $db = DatabaseService::getInstance();
         $collectionName = $db->getCollectionName('users');

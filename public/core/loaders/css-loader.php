@@ -11,6 +11,11 @@
  * - Multiple files: <link rel="stylesheet" href="css-loader.php?files=core.css,components.css,utilities.css,login-page.css">
  */
 
+// CRITICAL: Suppress errors and set Content-Type BEFORE any other code
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_STRICT);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
 header('Content-Type: text/css; charset=utf-8');
 header('Cache-Control: public, max-age=31536000, immutable'); // 1 year cache for CSS
 header('ETag: "' . md5_file(__FILE__) . '"');

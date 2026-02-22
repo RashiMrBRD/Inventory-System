@@ -475,4 +475,54 @@ class Order
             return null;
         }
     }
+
+    /**
+     * Get dashboard analytics using aggregation (efficient for large datasets)
+     */
+    public function getDashboardAnalytics(int $daysBack = 30): array
+    {
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return ['total_count' => 0, 'pending_count' => 0, 'by_type' => []];
+        }
+
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+        $baseFilter = $isAdmin ? [] : ['user_id' => $userId];
+
+        // Single aggregation for order stats
+        $pipeline = [];
+        if (!empty($baseFilter)) {
+            $pipeline[] = ['$match' => $baseFilter];
+        }
+        $pipeline[] = ['$group' => [
+            '_id' => null,
+            'total_count' => ['$sum' => 1],
+            'pending_count' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'pending']], 1, 0]]]
+        ]];
+
+        $result = $this->collection->aggregate($pipeline)->toArray();
+        $stats = !empty($result) ? (array)$result[0] : [];
+
+        // Orders by type
+        $typePipeline = [];
+        if (!empty($baseFilter)) {
+            $typePipeline[] = ['$match' => $baseFilter];
+        }
+        $typePipeline[] = ['$group' => ['_id' => '$type', 'count' => ['$sum' => 1]]];
+
+        $typeResult = $this->collection->aggregate($typePipeline)->toArray();
+        $byType = [];
+        foreach ($typeResult as $r) {
+            if ($r['_id']) {
+                $byType[$r['_id']] = (int)$r['count'];
+            }
+        }
+
+        return [
+            'total_count' => (int)($stats['total_count'] ?? 0),
+            'pending_count' => (int)($stats['pending_count'] ?? 0),
+            'by_type' => $byType
+        ];
+    }
 }

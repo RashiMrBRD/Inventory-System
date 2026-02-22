@@ -40,7 +40,7 @@ $currentKey = preg_replace('/\.php$/i', '', $uriBase);
 
 <aside class="sidebar" data-state="expanded" data-sidebar-root>
   <a href="dashboard" class="sidebar-header" style="text-decoration: none; color: inherit;">
-    <svg class="sidebar-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg class="sidebar-logo" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
       <path d="M9 9H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

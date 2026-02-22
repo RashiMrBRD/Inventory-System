@@ -4,15 +4,39 @@
  * This file serves as the main entry point for the application
  */
 
+// CRITICAL: Suppress ALL error output FIRST - prevents MIME type corruption
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_STRICT);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
+$route = trim($uri, '/');
+$route = preg_replace('/\.php$/i', '', $route);
+$route = ($route === 'index' || $route === 'index.php') ? '' : $route;
+
+// Handle loader and asset routes FIRST before autoload (they don't need vendor)
+// This prevents any vendor autoload output from corrupting Content-Type headers
+$earlyRoutes = [
+    'page-loader' => '/core/loaders/page-loader.php',
+    'css-loader' => '/core/loaders/css-loader.php',
+    'font-loader' => '/core/loaders/font-loader.php',
+    'head-loader' => '/core/loaders/head-loader.php',
+    'body-loader' => '/core/loaders/body-loader.php',
+    'asset' => '/core/utils/asset.php',
+];
+if (isset($earlyRoutes[$route])) {
+    $earlyFile = __DIR__ . $earlyRoutes[$route];
+    if (file_exists($earlyFile)) {
+        require $earlyFile;
+        return;
+    }
+}
+
+// Now load vendor autoload for routes that need it
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Controller\AuthController;
 use App\Controller\InventoryController;
-
-$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
-$route = trim($uri, '/');
-$route = preg_replace('/\\.php$/i', '', $route);
-$route = ($route === 'index' || $route === 'index.php') ? '' : $route;
 
 $dispatchMap = [
     'account-form' => '/fragments/forms/account-form.php',

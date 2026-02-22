@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Stealth Page Loader - Complete view-source protection with preloading
  * 
@@ -6,22 +6,47 @@
  * before showing any content. No HTML is visible during loading.
  */
 
+// CRITICAL: Suppress errors and set Content-Type BEFORE any other code
+// This prevents PHP warnings from corrupting the JavaScript output
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_STRICT);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
+// Set JavaScript content type FIRST before any other output
 header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-// Load app config
-$appConfig = require __DIR__ . '/../../../config/app.php';
+// Error handler to ensure JavaScript output on errors
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    $msg = addslashes($errstr);
+    echo "console.error('[page-loader] PHP Error: {$msg} in {$errfile}:{$errline}');";
+    return true;
+});
+
+// Load app config with error handling
+$configPath = __DIR__ . '/../../../config/app.php';
+if (!file_exists($configPath)) {
+    echo "(function(){console.error('[page-loader] Config file not found at: {$configPath}');document.body.innerHTML='<div style=\"padding:20px;font-family:monospace;text-align:center;\"><h1>Configuration Error</h1><p>Config file not found</p></div>';})();";
+    exit;
+}
+
+try {
+    $appConfig = require $configPath;
+} catch (Exception $e) {
+    $msg = addslashes($e->getMessage());
+    echo "(function(){console.error('[page-loader] Config load error: {$msg}');document.body.innerHTML='<div style=\"padding:20px;font-family:monospace;text-align:center;\"><h1>Configuration Error</h1><p>{$msg}</p></div>';})();";
+    exit;
+}
 
 $host = $_SERVER['HTTP_HOST'] ?? '';
 
 // Check if host is allowed using centralized configuration
 if (!isHostAllowed($host, $appConfig['security']['access_control'])) {
-    // Return generic error to avoid revealing security information
-    header('Content-Type: text/html; charset=utf-8');
-    header('Cache-Control: no-cache, no-store, must-revalidate');
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Access Denied</title></head><body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;"><div style="text-align: center;"><h1 style="color: #333;">Access Denied</h1><p style="color: #666;">You do not have permission to access this resource.</p></div></body></html>';
+    // Return JavaScript error (since this is loaded as a script)
+    $errorJs = 'Access Denied: You do not have permission to access this resource.';
+    echo "(function(){document.open();document.write('<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Access Denied</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#f4f6f9;font-family:monospace;min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:#fff;border:1px solid rgba(220,38,38,.2);border-radius:20px;padding:40px;text-align:center;max-width:400px}.icon{font-size:48px;margin-bottom:16px}.title{font-size:24px;font-weight:700;color:#dc2626;margin-bottom:8px}.msg{color:#666}</style></head><body><div class=\"card\"><div class=\"icon\">🔒</div><div class=\"title\">Access Denied</div><div class=\"msg\">{$errorJs}</div></div></body></html>');document.close();})();";
     exit;
 }
 
@@ -62,7 +87,7 @@ $encryptionKey = 'InventoryManagement2025Secure';
 $encryptedCode = xorEncrypt($jsCode, $encryptionKey);
 
 // Generate the decryptor and execution code
-$decryptorCode = "(function(){var k='InventoryManagement2025Secure';var d='{$encryptedCode}';function b64(e){return atob(e).split('').map(function(c){return c.charCodeAt(0)});}function xor(e,k){var r='';for(var i=0;i<e.length;i++){r+=String.fromCharCode(e[i]^k.charCodeAt(i%k.length));}return r;}function c(n){var p=('; '+document.cookie).split('; '+n+'=');if(p.length===2){return p.pop().split(';').shift();}return '';}function inject(){try{var t=c('csrf_token');if(!t){return;}var fs=document.getElementsByTagName('form');for(var i=0;i<fs.length;i++){var f=fs[i];var m=(f.getAttribute('method')||f.method||'').toString().toUpperCase();if(m!=='POST'){continue;}if(f.querySelector('input[name=csrf_token]')){continue;}var inp=document.createElement('input');inp.type='hidden';inp.name='csrf_token';inp.value=t;f.insertBefore(inp,f.firstChild);}}catch(e){}}try{console.log('[Page-Loader] Starting decryption...');var dec=xor(b64(d),k);console.log('[Page-Loader] Decryption successful, executing code...');eval(dec);inject();if(typeof MutationObserver!=='undefined'){var o=new MutationObserver(function(){inject();});o.observe(document.documentElement||document.body,{childList:true,subtree:true});setTimeout(function(){try{o.disconnect();}catch(e){}},5000);}else{var n=0;var iv=setInterval(function(){inject();n++;if(n>50){clearInterval(iv);}},100);}}catch(e){console.error('[Page-Loader] Error:',e.message,e.stack);document.documentElement.style.visibility='visible';document.body.innerHTML='<div style=\"padding:20px;font-family:sans-serif;\"><h1 style=\"color:red;\">Page Loading Error</h1><p>'+e.message+'</p><pre style=\"background:#f0f0f0;padding:10px;overflow:auto;\">'+e.stack+'</pre></div>';}})();";
+$decryptorCode = "(function(){var k='InventoryManagement2025Secure';var d='{$encryptedCode}';function b64(e){return atob(e).split('').map(function(c){return c.charCodeAt(0)});}function xor(e,k){var r='';for(var i=0;i<e.length;i++){r+=String.fromCharCode(e[i]^k.charCodeAt(i%k.length));}return r;}function c(n){var p=('; '+document.cookie).split('; '+n+'=');if(p.length===2){return p.pop().split(';').shift();}return '';}function inject(){try{var t=c('csrf_token');if(!t){return;}var fs=document.getElementsByTagName('form');for(var i=0;i<fs.length;i++){var f=fs[i];var m=(f.getAttribute('method')||f.method||'').toString().toUpperCase();if(m!=='POST'){continue;}if(f.querySelector('input[name=csrf_token]')){continue;}var inp=document.createElement('input');inp.type='hidden';inp.name='csrf_token';inp.value=t;f.insertBefore(inp,f.firstChild);}}catch(e){}}try{var dec=xor(b64(d),k);eval(dec);inject();if(typeof MutationObserver!=='undefined'){var o=new MutationObserver(function(){inject();});o.observe(document.documentElement||document.body,{childList:true,subtree:true});setTimeout(function(){try{o.disconnect();}catch(e){}},5000);}else{var n=0;var iv=setInterval(function(){inject();n++;if(n>50){clearInterval(iv);}},100);}}catch(e){console.error('Page loading failed');}})();";
 
 // Compress and output
 header('Content-Type: application/javascript; charset=utf-8');

@@ -5,6 +5,7 @@ namespace App\Service;
 use MongoDB\Client;
 use MongoDB\Database;
 use Exception;
+use App\Service\ErrorTemplate;
 
 /**
  * Database Service
@@ -66,7 +67,25 @@ class DatabaseService
             $this->database->command(['ping' => 1]);
             
         } catch (Exception $e) {
-            throw new Exception("MongoDB connection failed: " . $e->getMessage());
+            $errorMsg = "MongoDB connection failed: " . $e->getMessage();
+            error_log($errorMsg);
+            
+            // Get database config for error display
+            $mongoConfig = $this->config['mongodb'];
+            $database = $mongoConfig['database'] ?? 'inventory_system';
+            $host = $mongoConfig['host'] ?? 'localhost';
+            
+            // Determine error code from message
+            $errorCode = ErrorTemplate::getErrorCode($e->getMessage());
+            
+            // Show styled error page instead of white page
+            ErrorTemplate::show(
+                $errorCode,
+                $e->getMessage(),
+                $database,
+                $host,
+                'light'
+            );
         }
     }
 

@@ -241,8 +241,8 @@ textarea:focus-visible {
    =================================== */
 
 ::selection {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary-dark);
+  background-color: rgba(251, 146, 60, 0.3);
+  color: inherit;
 }
 
 /* ===================================

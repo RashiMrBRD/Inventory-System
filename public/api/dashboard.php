@@ -2,6 +2,7 @@
 /**
  * Dashboard API - AJAX endpoint for dashboard data
  * Returns JSON data without page refresh
+ * Uses MongoDB aggregation for efficient large dataset handling
  */
 
 header('Content-Type: application/json');
@@ -45,124 +46,55 @@ $rangeMap = [
     'year' => 365
 ];
 $daysBack = $rangeMap[$timeRange];
-$startDate = new \DateTimeImmutable("-$daysBack days");
-$endDate = new \DateTimeImmutable();
-
-// Helper function
-function isDashboardInRange($dateValue, $start, $end) {
-    if (!$dateValue) return false;
-    $ts = is_string($dateValue) ? strtotime($dateValue) : 
-          (is_object($dateValue) && method_exists($dateValue, 'toDateTime') ? 
-           $dateValue->toDateTime()->getTimestamp() : null);
-    if (!$ts) return false;
-    return $ts >= $start->getTimestamp() && $ts <= $end->getTimestamp();
-}
 
 try {
     switch ($action) {
         case 'get_stats':
             // ============================================
-            // INVENTORY MODULE
+            // INVENTORY MODULE - Use aggregation
             // ============================================
             $inventoryModel = new Inventory();
-            $totalItems = $inventoryModel->count();
-            $lowStockItems = $inventoryModel->getLowStockCount();
-            $outOfStockItems = $inventoryModel->getOutOfStockCount();
-            $recentItems = $inventoryModel->getRecentItems(5);
-            $addedToday = $inventoryModel->countAddedSince(new \DateTimeImmutable('-24 hours'));
+            $inventoryStats = $inventoryModel->getDashboardAnalytics($daysBack);
+            $dailyCounts = $inventoryModel->getDailyAddedCounts($daysBack);
             
             // ============================================
-            // SALES & OPERATIONS (Time-filtered)
+            // SALES MODULE - Use aggregation
             // ============================================
             $invoiceModel = new Invoice();
+            $invoiceStats = $invoiceModel->getDashboardAnalytics($daysBack);
+            
             $quotationModel = new Quotation();
-            $orderModel = new Order();
-            $projectModel = new Project();
-            $shipmentModel = new Shipment();
-            
-            // Quotations - Show ALL quotations (not time-filtered)
-            $quotations = $quotationModel->getAll();
-            $totalQuotations = count($quotations);
-            $pendingQuotations = 0;
-            $quotationsInPeriod = 0;
-            foreach ($quotations as $q) {
-                if (($q['status'] ?? '') === 'pending') {
-                    $pendingQuotations++;
-                }
-                // Count in period for trends
-                $date = $q['created_at'] ?? $q['date'] ?? null;
-                if (isDashboardInRange($date, $startDate, $endDate)) {
-                    $quotationsInPeriod++;
-                }
-            }
-            
-            // Invoices - Show ALL invoices (not time-filtered)
-            $invoices = $invoiceModel->getAll();
-            $totalInvoices = count($invoices);
-            $pendingInvoices = 0;
-            $totalRevenue = 0;
-            $revenueInPeriod = 0;
-            foreach ($invoices as $inv) {
-                $total = (float)($inv['total'] ?? 0);
-                $totalRevenue += $total;
-                
-                if (($inv['status'] ?? '') === 'pending') {
-                    $pendingInvoices++;
-                }
-                
-                // Count in period for trends
-                $date = $inv['created_at'] ?? $inv['date'] ?? null;
-                if (isDashboardInRange($date, $startDate, $endDate)) {
-                    $revenueInPeriod += $total;
-                }
-            }
-            
-            // Orders - Show ALL orders (not time-filtered)
-            $orders = $orderModel->getAll();
-            $totalOrders = count($orders);
-            $pendingOrders = 0;
-            $ordersInPeriod = 0;
-            foreach ($orders as $ord) {
-                if (($ord['status'] ?? '') === 'pending') {
-                    $pendingOrders++;
-                }
-                // Count in period for trends
-                $date = $ord['created_at'] ?? $ord['date'] ?? null;
-                if (isDashboardInRange($date, $startDate, $endDate)) {
-                    $ordersInPeriod++;
-                }
-            }
-            
-            // Projects
-            $projects = $projectModel->getAll();
-            $activeProjects = 0;
-            foreach ($projects as $proj) {
-                if (($proj['status'] ?? '') === 'active') $activeProjects++;
-            }
-            
-            // Shipments
-            $shipments = $shipmentModel->getAll();
-            $inTransitShipments = 0;
-            foreach ($shipments as $ship) {
-                if (($ship['status'] ?? '') === 'in_transit') $inTransitShipments++;
-            }
+            $quotationStats = $quotationModel->getDashboardAnalytics($daysBack);
             
             // ============================================
-            // COMPLIANCE (BIR & FDA)
+            // ORDERS - Use aggregation (simpler)
+            // ============================================
+            $orderModel = new Order();
+            $orderStats = $orderModel->getDashboardAnalytics($daysBack);
+            
+            // ============================================
+            // OPERATIONS - Use aggregation
+            // ============================================
+            $projectModel = new Project();
+            $projectStats = $projectModel->getDashboardAnalytics($daysBack);
+            
+            $shipmentModel = new Shipment();
+            $shipmentStats = $shipmentModel->getDashboardAnalytics($daysBack);
+            
+            // ============================================
+            // COMPLIANCE (BIR & FDA) - Limited data
             // ============================================
             try {
                 $birModel = new BirForm();
                 $fdaModel = new FdaProduct();
                 
-                // BirForm: getRecentForms() returns recent forms
+                // Use limited queries
                 $birForms = $birModel->getRecentForms(50);
                 $activeBir = count($birForms);
                 $pendingBir = count(array_filter($birForms, fn($f) => ($f['status'] ?? '') === 'pending'));
                 
-                // FdaProduct: countActive() for active, getExpiringProducts() for expiring
                 $activeFda = $fdaModel->countActive();
-                $expiringFdaProducts = $fdaModel->getExpiringProducts(30);
-                $expiringSoonFda = count($expiringFdaProducts);
+                $expiringSoonFda = count($fdaModel->getExpiringProducts(30));
             } catch (Exception $e) {
                 $activeBir = 0;
                 $pendingBir = 0;
@@ -170,17 +102,30 @@ try {
                 $expiringSoonFda = 0;
             }
             
-            // Format recent items
-            $formattedRecentItems = array_map(function($item) {
-                return [
-                    'id' => (string)($item['_id'] ?? ''),
-                    'name' => $item['name'] ?? 'Unnamed',
-                    'quantity' => $item['quantity'] ?? 0,
-                    'price' => CurrencyHelper::format((float)($item['price'] ?? 0)),
-                    'date_added' => isset($item['date_added']) ? 
-                        $item['date_added']->toDateTime()->format('M d, Y') : 'N/A'
-                ];
-            }, $recentItems);
+            // Build inventory trend data
+            $inventoryTrendLabels = [];
+            $inventoryTrendData = [];
+            $dataPoints = min($daysBack, 30);
+            $interval = max(1, floor($daysBack / $dataPoints));
+            
+            for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
+                $d = new \DateTimeImmutable("-$i days");
+                $key = $d->format('Y-m-d');
+                $inventoryTrendLabels[] = $d->format($timeRange === 'year' ? 'M' : 'M j');
+                $inventoryTrendData[] = (int)($dailyCounts[$key] ?? 0);
+            }
+            
+            // Build revenue trend data
+            $revenueByPeriod = $invoiceStats['revenue_by_period'] ?? [];
+            $revenueTrendLabels = [];
+            $revenueTrendData = [];
+            
+            for ($i = $daysBack - 1; $i >= 0; $i -= $interval) {
+                $d = new \DateTimeImmutable("-$i days");
+                $key = $d->format('Y-m-d');
+                $revenueTrendLabels[] = $d->format($timeRange === 'year' ? 'M' : 'M j');
+                $revenueTrendData[] = (float)($revenueByPeriod[$key] ?? 0);
+            }
             
             // Range labels
             $rangeLabels = [
@@ -197,40 +142,67 @@ try {
                 'time_range' => $timeRange,
                 'time_range_label' => $rangeLabels[$timeRange] ?? $timeRange,
                 'inventory' => [
-                    'total_items' => $totalItems,
-                    'low_stock' => $lowStockItems,
-                    'out_of_stock' => $outOfStockItems,
-                    'added_today' => $addedToday,
-                    'recent_items' => $formattedRecentItems
+                    'total_items' => $inventoryStats['total_items'],
+                    'total_quantity' => $inventoryStats['total_quantity'],
+                    'total_value' => $inventoryStats['total_value'],
+                    'total_value_formatted' => CurrencyHelper::format($inventoryStats['total_value']),
+                    'low_stock' => $inventoryStats['low_stock_count'],
+                    'out_of_stock' => $inventoryStats['out_of_stock_count'],
+                    'items_added_this_period' => $inventoryStats['items_added_this_period'],
+                    'trend' => $inventoryStats['trend'],
+                    'type_distribution' => $inventoryStats['type_distribution'],
+                    'stock_levels' => $inventoryStats['stock_levels'],
+                    'trend_labels' => $inventoryTrendLabels,
+                    'trend_data' => $inventoryTrendData
                 ],
                 'sales' => [
-                    'quotations' => [
-                        'total' => $totalQuotations,
-                        'pending' => $pendingQuotations
-                    ],
                     'invoices' => [
-                        'total' => $totalInvoices,
-                        'pending' => $pendingInvoices,
-                        'revenue' => $totalRevenue,
-                        'revenue_formatted' => CurrencyHelper::format($totalRevenue)
+                        'total' => $invoiceStats['invoice_count'],
+                        'total_revenue' => $invoiceStats['total_revenue'],
+                        'total_revenue_formatted' => CurrencyHelper::format($invoiceStats['total_revenue']),
+                        'paid_revenue' => $invoiceStats['paid_revenue'],
+                        'outstanding_revenue' => $invoiceStats['outstanding_revenue'],
+                        'revenue_in_period' => $invoiceStats['revenue_in_period'],
+                        'revenue_trend' => $invoiceStats['revenue_trend'],
+                        'collection_rate' => $invoiceStats['collection_rate'],
+                        'collection_trend' => $invoiceStats['collection_trend']
+                    ],
+                    'quotations' => [
+                        'total' => $quotationStats['total_count'],
+                        'approved' => $quotationStats['approved_count'],
+                        'pending' => $quotationStats['pending_count'],
+                        'converted' => $quotationStats['converted_count'],
+                        'total_value' => $quotationStats['total_value'],
+                        'conversion_rate' => $quotationStats['conversion_rate'],
+                        'conversion_trend' => $quotationStats['conversion_trend']
                     ],
                     'orders' => [
-                        'total' => $totalOrders,
-                        'pending' => $pendingOrders
-                    ]
+                        'total' => $orderStats['total_count'] ?? 0,
+                        'pending' => $orderStats['pending_count'] ?? 0,
+                        'by_type' => $orderStats['by_type'] ?? []
+                    ],
+                    'revenue_trend_labels' => $revenueTrendLabels,
+                    'revenue_trend_data' => $revenueTrendData
                 ],
                 'operations' => [
                     'projects' => [
-                        'active' => $activeProjects
+                        'total' => $projectStats['total_count'] ?? 0,
+                        'active' => $projectStats['active_count'] ?? 0,
+                        'by_status' => $projectStats['by_status'] ?? [],
+                        'total_budget' => $projectStats['total_budget'] ?? 0,
+                        'total_spent' => $projectStats['total_spent'] ?? 0,
+                        'budget_utilization' => $projectStats['budget_utilization'] ?? 0
                     ],
                     'shipments' => [
-                        'in_transit' => $inTransitShipments
+                        'total' => $shipmentStats['total_count'] ?? 0,
+                        'in_transit' => $shipmentStats['in_transit_count'] ?? 0,
+                        'by_status' => $shipmentStats['by_status'] ?? []
                     ]
                 ],
                 'compliance' => [
                     'bir' => [
                         'active' => $activeBir,
-                        'pending' => $pendingBir ?? 0
+                        'pending' => $pendingBir
                     ],
                     'fda' => [
                         'active' => $activeFda,

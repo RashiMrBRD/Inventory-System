@@ -167,9 +167,17 @@ class TimezoneDetectionService
         }
         
         foreach ($privateRanges as $range) {
-            list($rangeIp, $mask) = explode('/', $range);
+            $parts = explode('/', $range);
+            $rangeIp = $parts[0];
+            $mask = isset($parts[1]) ? (int)$parts[1] : 32;
+            
+            // Validate mask is in valid range
+            if ($mask < 0 || $mask > 32) {
+                continue;
+            }
+            
             $rangeLong = ip2long($rangeIp);
-            $maskLong = -1 << (32 - $mask);
+            $maskLong = $mask === 0 ? 0 : (-1 << (32 - $mask));
             
             if (($ipLong & $maskLong) === ($rangeLong & $maskLong)) {
                 return true;

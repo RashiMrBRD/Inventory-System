@@ -65,3 +65,161 @@ body {
     border-radius: var(--radius-sm);
     margin: var(--space-1) 0;
 }
+
+/* Login Button Loading State */
+.login-form .btn {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.login-form .btn .btn-text {
+    transition: opacity 0.15s ease;
+}
+
+.login-form .btn .spinner {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: login-spin 0.8s linear infinite;
+}
+
+@keyframes login-spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Email Validation Styles */
+.email-input-wrapper {
+    position: relative;
+}
+
+.email-input-wrapper .form-input {
+    padding-right: 2.5rem;
+}
+
+.email-validation-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    pointer-events: none;
+}
+
+.email-validation-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.email-validation-message {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    height: 1rem;
+    display: none;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.email-checking {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.email-valid {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.email-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Password Validation Styles */
+.password-input-wrapper,
+.confirm-password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper .form-input,
+.confirm-password-input-wrapper .form-input {
+    padding-right: 2.5rem;
+}
+
+.password-toggle-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.password-toggle-icon:hover {
+    color: var(--text-primary);
+}
+
+.password-strength-bar {
+    margin-top: 0.5rem;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.password-strength-fill {
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.password-strength-message {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    height: 1rem;
+}
+
+.password-requirements {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    color: var(--text-secondary);
+    list-style: disc;
+}
+
+.password-requirements li {
+    margin-bottom: 0.25rem;
+    transition: color 0.2s ease;
+}
+
+.confirm-password-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    pointer-events: none;
+}
+
+.confirm-password-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.confirm-password-message {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    height: 1rem;
+}

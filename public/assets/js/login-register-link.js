@@ -329,7 +329,7 @@
   waitForVisibility();
   
   // Obfuscated registration form HTML (base64 encoded to prevent easy reading)
-  var REGISTER_FORM_HTML = 'PGZvcm0gbWV0aG9kPSJQT1NUIiBhY3Rpb249IiI+PGRpdiBzdHlsZT0ibWFyZ2luLWJvdHRvbToxLjVyZW0iPjxoMyBzdHlsZT0iZm9udC1zaXplOjEuMTI1cm07Zm9udC13ZWlnaHQ6NjAwO21hcmdpbjowIDAgMC41cm0gMCI+Q3JlYXRlIEFjY291bnQ8L2gzPjxwIHN0eWxlPSJmb250LXNpemU6MC44NzVyZW07Y29sb3I6dmFyKC0tdGV4dC1zZWNvbmRhcnkpO21hcmdpbjowIj5GaWxsIGluIHRoZSBkZXRhaWxzIHRvIGNyZWF0ZSB5b3VyIGFjY291bnQ8L3A+PC9kaXY+PGRpdiBjbGFzcz0iZm9ybS1ncm91cCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MXJlbSI+PGxhYmVsIGZvcj0icmVnX2VtYWlsIiBjbGFzcz0iZm9ybS1sYWJlbCIgc3R5bGU9ImRpc3BsYXk6YmxvY2s7bWFyZ2luLWJvdHRvbTowLjVyZW07Zm9udC13ZWlnaHQ6NTAwIj5FbWFpbDwvbGFiZWw+PGlucHV0IHR5cGU9ImVtYWlsIiBpZD0icmVnX2VtYWlsIiBuYW1lPSJlbWFpbCIgY2xhc3M9ImZvcm0taW5wdXQiIHN0eWxlPSJ3aWR0aDoxMDAlO3BhZGRpbmc6MC42MjVyZW07Ym9yZGVyOjFweCBzb2xpZCB2YXIoLS1ib3JkZXItY29sb3IpO2JvcmRlci1yYWRpdXM6dmFyKC0tcmFkaXVzLW1kKTtmb250LXNpemU6MC44NzVyZW0iIHBsYWNlaG9sZGVyPSJFbnRlciB5b3VyIGVtYWlsIiByZXF1aXJlZD48L2Rpdj48ZGl2IGNsYXNzPSJmb3JtLWdyb3VwIiBzdHlsZT0ibWFyZ2luLWJvdHRvbToxcmVtIj48bGFiZWwgZm9yPSJyZWdfdXNlcm5hbWUiIGNsYXNzPSJmb3JtLWxhYmVsIiBzdHlsZT0iZGlzcGxheTpibG9jazttYXJnaW4tYm90dG9tOjAuNXJlbTtmb250LXdlaWdodDo1MDAiPlVzZXJuYW1lPC9sYWJlbD48aW5wdXQgdHlwZT0idGV4dCIgaWQ9InJlZ191c2VybmFtZSIgbmFtZT0idXNlcm5hbWUiIGNsYXNzPSJmb3JtLWlucHV0IiBzdHlsZT0id2lkdGg6MTAwJTtwYWRkaW5nOjAuNjI1cmVtO2JvcmRlcjFweCBzb2xpZCB2YXIoLS1ib3JkZXItY29sb3IpO2JvcmRlci1yYWRpdXM6dmFyKC0tcmFkaXVzLW1kKTtmb250LXNpemU6MC44NzVyZW0iIHBsYWNlaG9sZGVyPSJDaG9vc2UgYSB1c2VybmFtZSIgcmVxdWlyZWQ+PC9kaXY+PGRpdiBjbGFzcz0iZm9ybS1ncm91cCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MXJlbSI+PGxhYmVsIGZvcj0icmVnX3Bhc3N3b3JkIiBjbGFzcz0iZm9ybS1sYWJlbCIgc3R5bGU9ImRpc3BsYXk6YmxvY2s7bWFyZ2luLWJvdHRvbTowLjVyZW07Zm9udC13ZWlnaHQ6NTAwIj5QYXNzd29yZDwvbGFiZWw+PGlucHV0IHR5cGU9InBhc3N3b3JkIiBpZD0icmVnX3Bhc3N3b3JkIiBuYW1lPSJwYXNzd29yZCIgY2xhc3M9ImZvcm0taW5wdXQiIHN0eWxlPSJ3aWR0aDoxMDAlO3BhZGRpbmc6MC42MjVyZW07Ym9yZGVyOjFweCBzb2xpZCB2YXIoLS1ib3JkZXItY29sb3IpO2JvcmRlci1yYWRpdXM6dmFyKC0tcmFkaXVzLW1kKTtmb250LXNpemU6MC44NzVyZW0iIHBsYWNlaG9sZGVyPSJDcmVhdGUgYSBwYXNzd29yZCIgcmVxdWlyZWQ+PC9kaXY+PGRpdiBjbGFzcz0iZm9ybS1ncm91cCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MS41cmVtIj48bGFiZWwgZm9yPSJyZWdfY29uZmlybV9wYXNzd29yZCIgY2xhc3M9ImZvcm0tbGFiZWwiIHN0eWxlPSJkaXNwbGF5OmJsb2NrO21hcmdpbi1ib3R0b206MC41cmVtO2ZvbnQtd2VpZ2h0OjUwMCI+Q29uZmlybSBQYXNzd29yZDwvbGFiZWw+PGlucHV0IHR5cGU9InBhc3N3b3JkIiBpZD0icmVnX2NvbmZpcm1fcGFzc3dvcmQiIG5hbWU9ImNvbmZpcm1fcGFzc3dvcmQiIGNsYXNzPSJmb3JtLWlucHV0IiBzdHlsZT0id2lkdGg6MTAwJTtwYWRkaW5nOjAuNjI1cmVtO2JvcmRlcjFweCBzb2xpZCB2YXIoLS1ib3JkZXItY29sb3IpO2JvcmRlci1yYWRpdXM6dmFyKC0tcmFkaXVzLW1kKTtmb250LXNpemU6MC44NzVyZW0iIHBsYWNlaG9sZGVyPSJDb25maXJtIHlvdXIgcGFzc3dvcmQiIHJlcXVpcmVkPjwvZGl2PjxpbnB1dCB0eXBlPSJoaWRkZW4iIG5hbWU9ImFjdGlvbiIgdmFsdWU9InJlZ2lzdGVyIj48aW5wdXQgdHlwZT0iaGlkZGVuIiBuYW1lPSJjc3JmX3Rva2VuIiB2YWx1ZT0iIj48YnV0dG9uIHR5cGU9InN1Ym1pdCIgY2xhc3M9ImJ0biBidG4tcHJpbWFyeSIgc3R5bGU9IndpZHRoOjEwMCU7cGFkZGluZzowLjc1cmVtO2JhY2tncm91bmQ6dmFyKC0tY29sb3ItcHJpbWFyeSk7Y29sb3I6I2ZmZjtib3JkZXI6bm9uZTtib3JkZXItcmFkaXVzOnZhcigtLXJhZGl1cy1tZCk7Zm9udC1zaXplOjAuODc1cmVtO2ZvbnQtd2VpZ2h0OjUwMDtjdXJzb3I6cG9pbnRlciI+Q3JlYXRlIEFjY291bnQ8L2J1dHRvbj48L2Zvcm0+';
+  var REGISTER_FORM_HTML = 'PGZvcm0gbWV0aG9kPSJQT1NUIiBhY3Rpb249IiIgaWQ9InJlZ2lzdGVyRm9ybSIgbm92YWxpZGF0ZT48ZGl2IHN0eWxlPSJtYXJnaW4tYm90dG9tOjEuNXJlbSI+PGgzIHN0eWxlPSJmb250LXNpemU6MS4xMjVyZW07Zm9udC13ZWlnaHQ6NjAwO21hcmdpbjowIDAgMC41cmVtIDAiPkNyZWF0ZSBBY2NvdW50PC9oMz48cCBzdHlsZT0iZm9udC1zaXplOjAuODc1cmVtO2NvbG9yOnZhcigtLXRleHQtc2Vjb25kYXJ5KTttYXJnaW46MCI+RmlsbCBpbiB0aGUgZGV0YWlscyB0byBjcmVhdGUgeW91ciBhY2NvdW50PC9wPjwvZGl2PjxkaXYgY2xhc3M9ImZvcm0tZ3JvdXAiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjFyZW0iPjxsYWJlbCBmb3I9InJlZ19lbWFpbCIgY2xhc3M9ImZvcm0tbGFiZWwiIHN0eWxlPSJkaXNwbGF5OmJsb2NrO21hcmdpbi1ib3R0b206MC41cmVtO2ZvbnQtd2VpZ2h0OjUwMCI+RW1haWw8L2xhYmVsPjxkaXYgY2xhc3M9ImVtYWlsLWlucHV0LXdyYXBwZXIiIHN0eWxlPSJwb3NpdGlvbjpyZWxhdGl2ZSI+PGlucHV0IHR5cGU9ImVtYWlsIiBpZD0icmVnX2VtYWlsIiBuYW1lPSJlbWFpbCIgY2xhc3M9ImZvcm0taW5wdXQiIHN0eWxlPSJ3aWR0aDoxMDAlO3BhZGRpbmc6MC42MjVyZW0gMi41cmVtIDAuNjI1cmVtIDAuNjI1cmVtO2JvcmRlcjoxcHggc29saWQgdmFyKC0tYm9yZGVyLWNvbG9yKTtib3JkZXItcmFkaXVzOnZhcigtLXJhZGl1cy1tZCk7Zm9udC1zaXplOjAuODc1cmVtIiBwbGFjZWhvbGRlcj0iRW50ZXIgeW91ciBlbWFpbCI+PHNwYW4gY2xhc3M9ImVtYWlsLXZhbGlkYXRpb24taWNvbiIgc3R5bGU9InBvc2l0aW9uOmFic29sdXRlO3JpZ2h0OjAuNzVyZW07dG9wOjUwJTt0cmFuc2Zvcm06dHJhbnNsYXRlWSgtNTAlKTtkaXNwbGF5Om5vbmU7d2lkdGg6MS4yNXJlbTtoZWlnaHQ6MS4yNXJlbTsiPjwvc3Bhbj48L2Rpdj48ZGl2IGNsYXNzPSJlbWFpbC12YWxpZGF0aW9uLW1lc3NhZ2UiIHN0eWxlPSJmb250LXNpemU6MC43NXJlbTttYXJnaW4tdG9wOjAuMjVyZW07aGVpZ2h0OjFyZW07ZGlzcGxheTpub25lOyI+PC9kaXY+PC9kaXY+PGRpdiBjbGFzcz0iZm9ybS1ncm91cCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MXJlbSI+PGxhYmVsIGZvcj0icmVnX3VzZXJuYW1lIiBjbGFzcz0iZm9ybS1sYWJlbCIgc3R5bGU9ImRpc3BsYXk6YmxvY2s7bWFyZ2luLWJvdHRvbTowLjVyZW07Zm9udC13ZWlnaHQ6NTAwIj5Vc2VybmFtZTwvbGFiZWw+PGlucHV0IHR5cGU9InRleHQiIGlkPSJyZWdfdXNlcm5hbWUiIG5hbWU9InVzZXJuYW1lIiBjbGFzcz0iZm9ybS1pbnB1dCIgc3R5bGU9IndpZHRoOjEwMCU7cGFkZGluZzowLjYyNXJlbTtib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlci1jb2xvcik7Ym9yZGVyLXJhZGl1czp2YXIoLS1yYWRpdXMtbWQpO2ZvbnQtc2l6ZTowLjg3NXJlbSIgcGxhY2Vob2xkZXI9IkNob29zZSBhIHVzZXJuYW1lIiByZXF1aXJlZD48L2Rpdj48ZGl2IGNsYXNzPSJmb3JtLWdyb3VwIiBzdHlsZT0ibWFyZ2luLWJvdHRvbToxcmVtIj48bGFiZWwgZm9yPSJyZWdfcGFzc3dvcmQiIGNsYXNzPSJmb3JtLWxhYmVsIiBzdHlsZT0iZGlzcGxheTpibG9jazttYXJnaW4tYm90dG9tOjAuNXJlbTtmb250LXdlaWdodDo1MDAiPlBhc3N3b3JkPC9sYWJlbD48ZGl2IGNsYXNzPSJwYXNzd29yZC1pbnB1dC13cmFwcGVyIiBzdHlsZT0icG9zaXRpb246cmVsYXRpdmUiPjxpbnB1dCB0eXBlPSJwYXNzd29yZCIgaWQ9InJlZ19wYXNzd29yZCIgbmFtZT0icGFzc3dvcmQiIGNsYXNzPSJmb3JtLWlucHV0IiBzdHlsZT0id2lkdGg6MTAwJTtwYWRkaW5nOjAuNjI1cmVtIDIuNXJlbSAwLjYyNXJlbSAwLjYyNXJlbTtib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlci1jb2xvcik7Ym9yZGVyLXJhZGl1czp2YXIoLS1yYWRpdXMtbWQpO2ZvbnQtc2l6ZTowLjg3NXJlbSIgcGxhY2Vob2xkZXI9IkNyZWF0ZSBhIHBhc3N3b3JkIj48c3BhbiBjbGFzcz0icGFzc3dvcmQtdG9nZ2xlLWljb24iIHN0eWxlPSJwb3NpdGlvbjphYnNvbHV0ZTtyaWdodDowLjc1cmVtO3RvcDo1MCU7dHJhbnNmb3JtOnRyYW5zbGF0ZVkoLTUwJSk7Y3Vyc29yOnBvaW50ZXI7Y29sb3I6dmFyKC0tdGV4dC1zZWNvbmRhcnkpOyI+PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0eWxlPSJ3aWR0aDoxLjI1cmVtO2hlaWdodDoxLjI1cmVtOyI+PHBhdGggZD0iTTEgMTJzNC04IDExLTggMTEgOCAxMSA4LTQgOC0xMSA4LTExLTgtMTEtOHoiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PC9zdmc+PC9zcGFuPjwvZGl2PjxkaXYgY2xhc3M9InBhc3N3b3JkLXN0cmVuZ3RoLWJhciIgc3R5bGU9Im1hcmdpbi10b3A6MC41cmVtO2hlaWdodDo0cHg7YmFja2dyb3VuZDojZTVlN2ViO2JvcmRlci1yYWRpdXM6MnB4O292ZXJmbG93OmhpZGRlbjsiPjxkaXYgY2xhc3M9InBhc3N3b3JkLXN0cmVuZ3RoLWZpbGwiIHN0eWxlPSJoZWlnaHQ6MTAwJTt3aWR0aDowJTt0cmFuc2l0aW9uOmFsbCAwLjNzIGVhc2U7Ij48L2Rpdj48L2Rpdj48ZGl2IGNsYXNzPSJwYXNzd29yZC1zdHJlbmd0aC1tZXNzYWdlIiBzdHlsZT0iZm9udC1zaXplOjAuNzVyZW07bWFyZ2luLXRvcDowLjI1cmVtO2hlaWdodDoxcmVtOyI+PC9kaXY+PHVsIGNsYXNzPSJwYXNzd29yZC1yZXF1aXJlbWVudHMiIHN0eWxlPSJmb250LXNpemU6MC43NXJlbTttYXJnaW4tdG9wOjAuNXJlbTtwYWRkaW5nLWxlZnQ6MXJlbTtjb2xvcjp2YXIoLS10ZXh0LXNlY29uZGFyeSk7Ij48bGkgZGF0YS1yZXE9Imxlbmd0aCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MC4yNXJlbTsiPkF0IGxlYXN0IDggY2hhcmFjdGVyczwvbGk+PGxpIGRhdGEtcmVxPSJ1cHBlcmNhc2UiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjAuMjVyZW07Ij5PbmUgdXBwZXJjYXNlIGxldHRlcjwvbGk+PGxpIGRhdGEtcmVxPSJsb3dlcmNhc2UiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjAuMjVyZW07Ij5PbmUgbG93ZXJjYXNlIGxldHRlcjwvbGk+PGxpIGRhdGEtcmVxPSJudW1iZXIiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjAuMjVyZW07Ij5PbmUgbnVtYmVyPC9saT48L3VsPjwvZGl2PjxkaXYgY2xhc3M9ImZvcm0tZ3JvdXAiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjFyZW0iPjxsYWJlbCBmb3I9InJlZ19jb25maXJtX3Bhc3N3b3JkIiBjbGFzcz0iZm9ybS1sYWJlbCIgc3R5bGU9ImRpc3BsYXk6YmxvY2s7bWFyZ2luLWJvdHRvbTowLjVyZW07Zm9udC13ZWlnaHQ6NTAwIj5Db25maXJtIFBhc3N3b3JkPC9sYWJlbD48ZGl2IGNsYXNzPSJjb25maXJtLXBhc3N3b3JkLWlucHV0LXdyYXBwZXIiIHN0eWxlPSJwb3NpdGlvbjpyZWxhdGl2ZSI+PGlucHV0IHR5cGU9InBhc3N3b3JkIiBpZD0icmVnX2NvbmZpcm1fcGFzc3dvcmQiIG5hbWU9ImNvbmZpcm1fcGFzc3dvcmQiIGNsYXNzPSJmb3JtLWlucHV0IiBzdHlsZT0id2lkdGg6MTAwJTtwYWRkaW5nOjAuNjI1cmVtIDIuNXJlbSAwLjYyNXJlbSAwLjYyNXJlbTtib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlci1jb2xvcik7Ym9yZGVyLXJhZGl1czp2YXIoLS1yYWRpdXMtbWQpO2ZvbnQtc2l6ZTowLjg3NXJlbSIgcGxhY2Vob2xkZXI9IkNvbmZpcm0geW91ciBwYXNzd29yZCI+PHNwYW4gY2xhc3M9ImNvbmZpcm0tcGFzc3dvcmQtaWNvbiIgc3R5bGU9InBvc2l0aW9uOmFic29sdXRlO3JpZ2h0OjAuNzVyZW07dG9wOjUwJTt0cmFuc2Zvcm06dHJhbnNsYXRlWSgtNTAlKTtkaXNwbGF5Om5vbmU7d2lkdGg6MS4yNXJlbTtoZWlnaHQ6MS4yNXJlbTsiPjwvc3Bhbj48L2Rpdj48ZGl2IGNsYXNzPSJjb25maXJtLXBhc3N3b3JkLW1lc3NhZ2UiIHN0eWxlPSJmb250LXNpemU6MC43NXJlbTttYXJnaW4tdG9wOjAuMjVyZW07aGVpZ2h0OjFyZW07ZGlzcGxheTpub25lOyI+PC9kaXY+PC9kaXY+PGlucHV0IHR5cGU9ImhpZGRlbiIgbmFtZT0iYWN0aW9uIiB2YWx1ZT0icmVnaXN0ZXIiPjxpbnB1dCB0eXBlPSJoaWRkZW4iIG5hbWU9ImNzcmZfdG9rZW4iPjxidXR0b24gdHlwZT0ic3VibWl0IiBjbGFzcz0iYnRuIGJ0bi1wcmltYXJ5IHctZnVsbCIgaWQ9InJlZ1N1Ym1pdEJ0biI+PHNwYW4gY2xhc3M9ImJ0bi10ZXh0Ij5DcmVhdGUgQWNjb3VudDwvc3Bhbj48c3BhbiBjbGFzcz0ic3Bpbm5lciBzcGlubmVyLXNtIiBzdHlsZT0iZGlzcGxheTpub25lO3dpZHRoOjFyZW07aGVpZ2h0OjFyZW07Ym9yZGVyLXdpZHRoOjJweDsiPjwvc3Bhbj48L2J1dHRvbj48L2Zvcm0+Cg==';
 
   // Helper function to decode base64
   function decodeBase64(str) {
@@ -360,8 +360,330 @@
       ensureInviteField(inviteToken);
       ensureInviteToken(inviteToken);
       handleInviteValidation(inviteToken);
+      setupRegFormLoading();
+      setupEmailValidation();
+      setupPasswordValidation();
     }
   };
+  
+  // Email validation with visual feedback
+  function setupEmailValidation() {
+    var emailInput = document.getElementById('reg_email');
+    var validationIcon = document.querySelector('.email-validation-icon');
+    var validationMessage = document.querySelector('.email-validation-message');
+    
+    if (!emailInput) return;
+    
+    var validationTimer = null;
+    
+    function validateEmail(email) {
+      if (!email || email.trim() === '') {
+        return { valid: false, message: '', state: 'empty' };
+      }
+      
+      // Basic email regex pattern
+      var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      
+      if (!emailPattern.test(email)) {
+        // Check what's wrong
+        if (email.indexOf('@') === -1) {
+          return { valid: false, message: 'Email must contain @', state: 'invalid' };
+        }
+        if (email.indexOf('@') === 0) {
+          return { valid: false, message: 'Email must have a part before @', state: 'invalid' };
+        }
+        var parts = email.split('@');
+        if (parts.length > 1 && parts[1].indexOf('.') === -1) {
+          return { valid: false, message: 'Email domain must contain a dot', state: 'invalid' };
+        }
+        return { valid: false, message: 'Please enter a valid email address', state: 'invalid' };
+      }
+      
+      return { valid: true, message: 'Valid email address', state: 'valid' };
+    }
+    
+    function updateValidationUI(result) {
+      if (!emailInput) return;
+      
+      var wrapper = emailInput.closest('.email-input-wrapper') || emailInput.parentElement;
+      var icon = wrapper ? wrapper.querySelector('.email-validation-icon') : null;
+      var msg = document.querySelector('.email-validation-message');
+      
+      // Reset classes
+      emailInput.classList.remove('email-valid', 'email-invalid', 'email-checking');
+      emailInput.style.borderColor = '';
+      
+      if (result.state === 'empty') {
+        if (icon) icon.style.display = 'none';
+        if (msg) {
+          msg.style.display = 'none';
+          msg.textContent = '';
+        }
+        emailInput.style.borderColor = '';
+        return;
+      }
+      
+      if (result.state === 'checking') {
+        emailInput.classList.add('email-checking');
+        emailInput.style.borderColor = '#3b82f6';
+        if (icon) {
+          icon.style.display = 'inline-block';
+          icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" style="animation: spin 1s linear infinite; width: 1rem; height: 1rem;"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32"/></svg>';
+        }
+        if (msg) {
+          msg.style.display = 'block';
+          msg.style.color = '#3b82f6';
+          msg.textContent = 'Checking...';
+        }
+        return;
+      }
+      
+      if (result.valid) {
+        emailInput.classList.add('email-valid');
+        emailInput.style.borderColor = '#10b981';
+        if (icon) {
+          icon.style.display = 'inline-block';
+          icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="width: 1rem; height: 1rem;"><path d="M20 6L9 17l-5-5"/></svg>';
+        }
+        if (msg) {
+          msg.style.display = 'block';
+          msg.style.color = '#10b981';
+          msg.textContent = result.message;
+        }
+      } else {
+        emailInput.classList.add('email-invalid');
+        emailInput.style.borderColor = '#ef4444';
+        if (icon) {
+          icon.style.display = 'inline-block';
+          icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="width: 1rem; height: 1rem;"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';
+        }
+        if (msg) {
+          msg.style.display = 'block';
+          msg.style.color = '#ef4444';
+          msg.textContent = result.message;
+        }
+      }
+    }
+    
+    function handleEmailInput() {
+      var email = emailInput.value;
+      
+      // Clear previous timer
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+      }
+      
+      // Show checking state immediately if there's content
+      if (email.trim() !== '') {
+        updateValidationUI({ state: 'checking' });
+      }
+      
+      // Debounce validation
+      validationTimer = setTimeout(function() {
+        var result = validateEmail(email);
+        updateValidationUI(result);
+      }, 300);
+    }
+    
+    // Add input event listener
+    emailInput.addEventListener('input', handleEmailInput);
+    
+    // Also validate on blur
+    emailInput.addEventListener('blur', function() {
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+      }
+      var result = validateEmail(emailInput.value);
+      updateValidationUI(result);
+    });
+  }
+  
+  // Password validation with strength indicator and confirmation
+  function setupPasswordValidation() {
+    var passwordInput = document.getElementById('reg_password');
+    var confirmPasswordInput = document.getElementById('reg_confirm_password');
+    var strengthBar = document.querySelector('.password-strength-bar');
+    var strengthFill = document.querySelector('.password-strength-fill');
+    var strengthMessage = document.querySelector('.password-strength-message');
+    var confirmPasswordIcon = document.querySelector('.confirm-password-icon');
+    var confirmPasswordMessage = document.querySelector('.confirm-password-message');
+    var requirements = document.querySelectorAll('.password-requirements li');
+    var toggleIcon = document.querySelector('.password-toggle-icon');
+    
+    if (!passwordInput) return;
+    
+    var validationTimer = null;
+    
+    // Password toggle visibility
+    if (toggleIcon) {
+      toggleIcon.addEventListener('click', function() {
+        var type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        toggleIcon.innerHTML = type === 'password' 
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:1.25rem;height:1.25rem;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:1.25rem;height:1.25rem;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.97 9.97 0 0112 4c7 0 11 8 11 8a18.45 18.45 0 01-5.06 5.94M1 1l22 22"/></svg>';
+      });
+    }
+    
+    function checkPasswordStrength(password) {
+      var requirementsMet = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password)
+      };
+      
+      var score = 0;
+      if (requirementsMet.length) score++;
+      if (requirementsMet.uppercase) score++;
+      if (requirementsMet.lowercase) score++;
+      if (requirementsMet.number) score++;
+      
+      // Bonus for longer passwords
+      if (password.length >= 12) score += 0.5;
+      if (password.length >= 16) score += 0.5;
+      
+      // Bonus for special characters
+      if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 1;
+      
+      return {
+        score: Math.min(score, 5),
+        requirementsMet: requirementsMet,
+        percentage: Math.min((score / 5) * 100, 100)
+      };
+    }
+    
+    function updateStrengthUI(result) {
+      // Update requirements list
+      requirements.forEach(function(li) {
+        var req = li.getAttribute('data-req');
+        if (result.requirementsMet[req]) {
+          li.style.color = '#10b981';
+          li.innerHTML = li.innerHTML.replace(/^[-•]\s*/, '') + ' <span style="color:#10b981;">✓</span>';
+        } else {
+          li.style.color = 'var(--text-secondary)';
+          // Remove checkmark if present
+          li.innerHTML = li.innerHTML.replace(/\s*<span[^>]*>✓<\/span>/g, '');
+        }
+      });
+      
+      // Update strength bar
+      if (strengthBar && strengthFill) {
+        strengthBar.style.display = 'block';
+        strengthFill.style.width = result.percentage + '%';
+        
+        if (result.percentage <= 25) {
+          strengthFill.style.backgroundColor = '#ef4444';
+        } else if (result.percentage <= 50) {
+          strengthFill.style.backgroundColor = '#f59e0b';
+        } else if (result.percentage <= 75) {
+          strengthFill.style.backgroundColor = '#3b82f6';
+        } else {
+          strengthFill.style.backgroundColor = '#10b981';
+        }
+      }
+      
+      // Update strength message
+      if (strengthMessage) {
+        strengthMessage.style.display = 'block';
+        if (result.percentage <= 25) {
+          strengthMessage.textContent = 'Weak password';
+          strengthMessage.style.color = '#ef4444';
+        } else if (result.percentage <= 50) {
+          strengthMessage.textContent = 'Fair password';
+          strengthMessage.style.color = '#f59e0b';
+        } else if (result.percentage <= 75) {
+          strengthMessage.textContent = 'Good password';
+          strengthMessage.style.color = '#3b82f6';
+        } else {
+          strengthMessage.textContent = 'Strong password';
+          strengthMessage.style.color = '#10b981';
+        }
+      }
+    }
+    
+    function checkPasswordMatch() {
+      if (!confirmPasswordInput || !confirmPasswordMessage) return;
+      
+      var password = passwordInput.value;
+      var confirmPassword = confirmPasswordInput.value;
+      
+      if (confirmPassword === '') {
+        confirmPasswordMessage.style.display = 'none';
+        if (confirmPasswordIcon) confirmPasswordIcon.style.display = 'none';
+        confirmPasswordInput.style.borderColor = '';
+        return;
+      }
+      
+      confirmPasswordMessage.style.display = 'block';
+      
+      if (password === confirmPassword) {
+        confirmPasswordMessage.textContent = 'Passwords match';
+        confirmPasswordMessage.style.color = '#10b981';
+        confirmPasswordInput.style.borderColor = '#10b981';
+        if (confirmPasswordIcon) {
+          confirmPasswordIcon.style.display = 'inline-block';
+          confirmPasswordIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="width:1rem;height:1rem;"><path d="M20 6L9 17l-5-5"/></svg>';
+        }
+      } else {
+        confirmPasswordMessage.textContent = 'Passwords do not match';
+        confirmPasswordMessage.style.color = '#ef4444';
+        confirmPasswordInput.style.borderColor = '#ef4444';
+        if (confirmPasswordIcon) {
+          confirmPasswordIcon.style.display = 'inline-block';
+          confirmPasswordIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="width:1rem;height:1rem;"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';
+        }
+      }
+    }
+    
+    function handlePasswordInput() {
+      var password = passwordInput.value;
+      
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+      }
+      
+      if (password === '') {
+        if (strengthBar) strengthBar.style.display = 'none';
+        if (strengthMessage) strengthMessage.style.display = 'none';
+        requirements.forEach(function(li) {
+          li.style.color = 'var(--text-secondary)';
+          li.innerHTML = li.innerHTML.replace(/\s*<span[^>]*>✓<\/span>/g, '');
+        });
+        return;
+      }
+      
+      validationTimer = setTimeout(function() {
+        var result = checkPasswordStrength(password);
+        updateStrengthUI(result);
+        checkPasswordMatch();
+      }, 150);
+    }
+    
+    passwordInput.addEventListener('input', handlePasswordInput);
+    
+    if (confirmPasswordInput) {
+      confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    }
+  }
+  
+  // Setup loading animation for registration form
+  function setupRegFormLoading() {
+    var form = document.getElementById('registerForm');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+      var btn = document.getElementById('regSubmitBtn');
+      if (!btn) return;
+      var btnText = btn.querySelector('.btn-text');
+      var spinner = btn.querySelector('.spinner');
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.style.opacity = '0.8';
+      btn.style.cursor = 'wait';
+      if (btnText) btnText.style.opacity = '0';
+      if (spinner) spinner.style.display = 'inline-block';
+    });
+  }
   
   window.showLoginForm = function() {
     window.location.href = '/login';

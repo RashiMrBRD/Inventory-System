@@ -42,7 +42,8 @@ if (empty($_SESSION['full_name'])) {
     $normalizedName = '';
     if (!empty($currentUser['full_name'])) {
         $normalizedName = $currentUser['full_name'];
-    } elseif (!empty($currentUser['username'])) {
+    }
+    elseif (!empty($currentUser['username'])) {
         $normalizedName = $currentUser['username'];
     }
     if ($normalizedName !== '') {
@@ -89,7 +90,8 @@ if (!function_exists('asset_url')) {
             $scheme = 'http';
             if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
                 $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO'];
-            } elseif (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            }
+            elseif (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
                 $scheme = 'https';
             }
 
@@ -100,7 +102,8 @@ if (!function_exists('asset_url')) {
                 if ($basePath !== '') {
                     $baseUrl .= '/' . $basePath;
                 }
-            } else {
+            }
+            else {
                 $baseUrl = '';
             }
         }
@@ -124,7 +127,8 @@ if (!function_exists('asset_url')) {
             $exp = time() + 3600; // 1 hour expiry
             try {
                 $nonce = bin2hex(random_bytes(12));
-            } catch (\Throwable $e) {
+            }
+            catch (\Throwable $e) {
                 $nonce = bin2hex((string)mt_rand());
             }
             $b64 = rtrim(strtr(base64_encode($relativePath), '+/', '-_'), '=');
@@ -165,10 +169,12 @@ if (!function_exists('asset_url')) {
   <script>
     window.DASHBOARD_CONFIG = <?php echo json_encode($dashboardScriptConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
   </script>
-  <?php endif; ?>
+  <?php
+endif; ?>
   <?php if ($loadDashboardJS): ?>
   <script src="<?php echo asset_url('assets/js/dashboard.js'); ?>"></script>
-  <?php endif; ?>
+  <?php
+endif; ?>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Inventory Management System">
@@ -205,12 +211,14 @@ if (!function_exists('asset_url')) {
   <!-- Custom Fonts (User uploaded) -->
   <?php if (file_exists(__DIR__ . '/../../public/assets/css/custom-fonts.css')): ?>
   <link rel="stylesheet" href="<?php echo asset_url('assets/css/custom-fonts.css'); ?>">
-  <?php endif; ?>
+  <?php
+endif; ?>
   
   <!-- Additional CSS -->
   <?php foreach ($additionalCSS as $css): ?>
   <link rel="stylesheet" href="<?php echo asset_url($css); ?>">
-  <?php endforeach; ?>
+  <?php
+endforeach; ?>
 </head>
 <body data-font="<?php echo htmlspecialchars($_SESSION['font_family'] ?? 'system'); ?>" data-theme="<?php echo htmlspecialchars($_SESSION['theme'] ?? 'light'); ?>" data-resolved-theme="<?php echo htmlspecialchars($_SESSION['theme'] ?? 'light'); ?>">
   <!-- Mobile Menu -->
@@ -267,7 +275,8 @@ if (!function_exists('asset_url')) {
   <!-- Additional JavaScript -->
   <?php foreach ($additionalJS as $js): ?>
   <script src="<?php echo asset_url($js); ?>"></script>
-  <?php endforeach; ?>
+  <?php
+endforeach; ?>
 
   <?php if (isset($_SESSION['flash_message'])): ?>
   <script>
@@ -277,10 +286,10 @@ if (!function_exists('asset_url')) {
     '<?php echo $_SESSION['flash_type'] ?? 'info'; ?>'
   );
   </script>
-  <?php 
-  unset($_SESSION['flash_message']);
-  unset($_SESSION['flash_type']);
-  endif; 
-  ?>
+  <?php
+    unset($_SESSION['flash_message']);
+    unset($_SESSION['flash_type']);
+endif;
+?>
 </body>
 </html>

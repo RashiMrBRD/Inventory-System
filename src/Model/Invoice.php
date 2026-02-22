@@ -320,4 +320,163 @@ class Invoice
             'totalPages' => (int)ceil($totalCount / $perPage)
         ];
     }
+
+    /**
+     * Get dashboard analytics using aggregation (efficient for large datasets)
+     * @param int $daysBack Number of days for trend calculation
+     * @return array
+     */
+    public function getDashboardAnalytics(int $daysBack = 30): array
+    {
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return $this->emptyDashboardResult();
+        }
+
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+        $baseFilter = $isAdmin ? [] : ['user_id' => $userId];
+
+        // Single aggregation for all invoice stats
+        $pipeline = [];
+        if (!empty($baseFilter)) {
+            $pipeline[] = ['$match' => $baseFilter];
+        }
+        $pipeline[] = ['$group' => [
+            '_id' => null,
+            'total_revenue' => ['$sum' => ['$toDouble' => '$total']],
+            'paid_revenue' => ['$sum' => ['$cond' => [
+                ['$eq' => ['$status', 'paid']],
+                ['$toDouble' => '$total'],
+                0
+            ]]],
+            'invoice_count' => ['$sum' => 1]
+        ]];
+
+        $result = $this->collection->aggregate($pipeline)->toArray();
+        $stats = !empty($result) ? (array)$result[0] : [];
+
+        $totalRevenue = (float)($stats['total_revenue'] ?? 0);
+        $paidRevenue = (float)($stats['paid_revenue'] ?? 0);
+        $invoiceCount = (int)($stats['invoice_count'] ?? 0);
+
+        // Revenue in current period
+        $startTs = strtotime('-' . max(1, $daysBack - 1) . ' days 00:00:00');
+        $start = new \MongoDB\BSON\UTCDateTime($startTs * 1000);
+
+        $periodFilter = $baseFilter;
+        $periodFilter['date'] = ['$gte' => $start];
+
+        $periodPipeline = [];
+        if (!empty($periodFilter)) {
+            $periodPipeline[] = ['$match' => $periodFilter];
+        }
+        $periodPipeline[] = ['$group' => [
+            '_id' => null,
+            'revenue' => ['$sum' => ['$toDouble' => '$total']]
+        ]];
+
+        $periodResult = $this->collection->aggregate($periodPipeline)->toArray();
+        $revenueInPeriod = !empty($periodResult) ? (float)$periodResult[0]->revenue : 0;
+
+        // Previous period revenue
+        $prevStartTs = strtotime('-' . ($daysBack * 2) . ' days 00:00:00');
+        $prevStart = new \MongoDB\BSON\UTCDateTime($prevStartTs * 1000);
+        $prevEnd = $start;
+
+        $prevFilter = $baseFilter;
+        $prevFilter['date'] = ['$gte' => $prevStart, '$lt' => $prevEnd];
+
+        $prevPipeline = [];
+        if (!empty($prevFilter)) {
+            $prevPipeline[] = ['$match' => $prevFilter];
+        }
+        $prevPipeline[] = ['$group' => [
+            '_id' => null,
+            'revenue' => ['$sum' => ['$toDouble' => '$total']],
+            'paid' => ['$sum' => ['$cond' => [
+                ['$eq' => ['$status', 'paid']],
+                ['$toDouble' => '$total'],
+                0
+            ]]]
+        ]];
+
+        $prevResult = $this->collection->aggregate($prevPipeline)->toArray();
+        $prevRevenue = !empty($prevResult) ? (float)$prevResult[0]->revenue : 0;
+        $prevPaid = !empty($prevResult) ? (float)$prevResult[0]->paid : 0;
+
+        // Calculate trends
+        $revenueTrend = $prevRevenue > 0 
+            ? round((($revenueInPeriod - $prevRevenue) / $prevRevenue) * 100, 1)
+            : ($revenueInPeriod > 0 ? 100 : 0);
+
+        $collectionRate = $totalRevenue > 0 ? round(($paidRevenue / $totalRevenue) * 100, 1) : 0;
+        $prevCollectionRate = $prevRevenue > 0 ? round(($prevPaid / $prevRevenue) * 100, 1) : 0;
+        $collectionTrend = $prevCollectionRate > 0 
+            ? round((($collectionRate - $prevCollectionRate) / $prevCollectionRate) * 100, 1)
+            : 0;
+
+        // Revenue by period for chart
+        $revenueByPeriod = $this->getRevenueByPeriod($daysBack, $baseFilter);
+
+        return [
+            'total_revenue' => $totalRevenue,
+            'paid_revenue' => $paidRevenue,
+            'outstanding_revenue' => $totalRevenue - $paidRevenue,
+            'invoice_count' => $invoiceCount,
+            'revenue_in_period' => $revenueInPeriod,
+            'revenue_trend' => $revenueTrend,
+            'collection_rate' => $collectionRate,
+            'collection_trend' => $collectionTrend,
+            'revenue_by_period' => $revenueByPeriod
+        ];
+    }
+
+    /**
+     * Get revenue grouped by day/month for chart
+     */
+    private function getRevenueByPeriod(int $daysBack, array $baseFilter): array
+    {
+        $startTs = strtotime('-' . max(1, $daysBack - 1) . ' days 00:00:00');
+        $start = new \MongoDB\BSON\UTCDateTime($startTs * 1000);
+
+        $filter = $baseFilter;
+        $filter['date'] = ['$gte' => $start];
+
+        // Group by day
+        $pipeline = [
+            ['$match' => $filter],
+            ['$group' => [
+                '_id' => [
+                    '$dateToString' => ['format' => '%Y-%m-%d', 'date' => '$date']
+                ],
+                'revenue' => ['$sum' => ['$toDouble' => '$total']]
+            ]],
+            ['$sort' => ['_id' => 1]]
+        ];
+
+        $result = $this->collection->aggregate($pipeline)->toArray();
+        $byPeriod = [];
+        foreach ($result as $r) {
+            if ($r['_id']) {
+                $byPeriod[$r['_id']] = (float)$r['revenue'];
+            }
+        }
+        return $byPeriod;
+    }
+
+    private function emptyDashboardResult(): array
+    {
+        return [
+            'total_revenue' => 0,
+            'paid_revenue' => 0,
+            'outstanding_revenue' => 0,
+            'invoice_count' => 0,
+            'revenue_in_period' => 0,
+            'revenue_trend' => 0,
+            'collection_rate' => 0,
+            'collection_trend' => 0,
+            'revenue_by_period' => []
+        ];
+    }
 }

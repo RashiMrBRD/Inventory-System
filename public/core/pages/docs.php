@@ -287,7 +287,7 @@ if ($isAjax && $activeId) {
     ob_start();
     if ($prevDoc || $nextDoc): ?>
       <?php if ($prevDoc): ?>
-      <a href=\"/docs?id=<?php echo urlencode($prevDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-prev">
+      <a href="/docs?id=<?php echo urlencode($prevDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-prev">
         <svg class="docs-nav-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
@@ -301,7 +301,7 @@ if ($isAjax && $activeId) {
       <?php endif; ?>
       
       <?php if ($nextDoc): ?>
-      <a href=\"/docs?id=<?php echo urlencode($nextDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-next">
+      <a href="/docs?id=<?php echo urlencode($nextDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-next">
         <div class="docs-nav-btn-content" style="text-align: right;">
           <span class="docs-nav-btn-label">Next <span class="docs-kbd">Alt+→</span></span>
           <span class="docs-nav-btn-title"><?php echo htmlspecialchars($nextDoc['name']); ?></span>
@@ -1275,7 +1275,7 @@ html, body {
             <!-- Breadcrumb Navigation -->
             <nav class="docs-breadcrumb" aria-label="Breadcrumb">
               <div class="docs-breadcrumb-item">
-                <a href=\"/docs" class="docs-breadcrumb-link">Documentation</a>
+                <a href="/docs" class="docs-breadcrumb-link">Documentation</a>
               </div>
               <span class="docs-breadcrumb-sep">/</span>
               <div class="docs-breadcrumb-item">
@@ -1323,7 +1323,7 @@ html, body {
             <?php if ($prevDoc || $nextDoc): ?>
             <nav class="docs-navigation">
               <?php if ($prevDoc): ?>
-              <a href=\"/docs?id=<?php echo urlencode($prevDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-prev">
+              <a href="/docs?id=<?php echo urlencode($prevDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-prev">
                 <svg class="docs-nav-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
@@ -1337,7 +1337,7 @@ html, body {
               <?php endif; ?>
               
               <?php if ($nextDoc): ?>
-              <a href=\"/docs?id=<?php echo urlencode($nextDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-next">
+              <a href="/docs?id=<?php echo urlencode($nextDoc['id']); ?>" class="docs-nav-btn docs-nav-btn-next">
                 <div class="docs-nav-btn-content" style="text-align: right;">
                   <span class="docs-nav-btn-label">Next <span class="docs-kbd">Alt+→</span></span>
                   <span class="docs-nav-btn-title"><?php echo htmlspecialchars($nextDoc['name']); ?></span>
@@ -1407,7 +1407,7 @@ html, body {
               }
               $isActive = ($f['id'] === $activeId);
             ?>
-            <a href=\"/docs?id=<?php echo urlencode($f['id']); ?>" class="docs-sidebar-link <?php echo $isActive ? 'active' : ''; ?>" data-doc-name="<?php echo htmlspecialchars($f['relative']); ?>">
+            <a href="/docs?id=<?php echo urlencode($f['id']); ?>" class="docs-sidebar-link <?php echo $isActive ? 'active' : ''; ?>" data-doc-name="<?php echo htmlspecialchars($f['relative']); ?>">
               <?php echo htmlspecialchars($f['name']); ?>
             </a>
             <?php endforeach; ?>

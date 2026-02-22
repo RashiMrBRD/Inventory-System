@@ -373,4 +373,62 @@ class Project
             'status' => $variance >= 0 ? 'under_budget' : 'over_budget'
         ];
     }
+
+    /**
+     * Get dashboard analytics using aggregation (efficient for large datasets)
+     */
+    public function getDashboardAnalytics(int $daysBack = 30): array
+    {
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return ['total_count' => 0, 'active_count' => 0, 'by_status' => [], 'total_budget' => 0, 'total_spent' => 0, 'budget_utilization' => 0];
+        }
+
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+        $baseFilter = $isAdmin ? [] : ['user_id' => $userId];
+
+        // Single aggregation for project stats
+        $pipeline = [];
+        if (!empty($baseFilter)) {
+            $pipeline[] = ['$match' => $baseFilter];
+        }
+        $pipeline[] = ['$group' => [
+            '_id' => null,
+            'total_count' => ['$sum' => 1],
+            'active_count' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'active']], 1, 0]]],
+            'total_budget' => ['$sum' => ['$toDouble' => '$budget']],
+            'total_spent' => ['$sum' => ['$toDouble' => '$spent']]
+        ]];
+
+        $result = $this->collection->aggregate($pipeline)->toArray();
+        $stats = !empty($result) ? (array)$result[0] : [];
+
+        $totalBudget = (float)($stats['total_budget'] ?? 0);
+        $totalSpent = (float)($stats['total_spent'] ?? 0);
+
+        // Projects by status
+        $statusPipeline = [];
+        if (!empty($baseFilter)) {
+            $statusPipeline[] = ['$match' => $baseFilter];
+        }
+        $statusPipeline[] = ['$group' => ['_id' => '$status', 'count' => ['$sum' => 1]]];
+
+        $statusResult = $this->collection->aggregate($statusPipeline)->toArray();
+        $byStatus = [];
+        foreach ($statusResult as $r) {
+            if ($r['_id']) {
+                $byStatus[$r['_id']] = (int)$r['count'];
+            }
+        }
+
+        return [
+            'total_count' => (int)($stats['total_count'] ?? 0),
+            'active_count' => (int)($stats['active_count'] ?? 0),
+            'by_status' => $byStatus,
+            'total_budget' => $totalBudget,
+            'total_spent' => $totalSpent,
+            'budget_utilization' => $totalBudget > 0 ? round(($totalSpent / $totalBudget) * 100, 1) : 0
+        ];
+    }
 }

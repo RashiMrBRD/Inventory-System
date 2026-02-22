@@ -6,6 +6,9 @@
  * All content is dynamically generated and encrypted to prevent view-source visibility.
  */
 
+// Suppress deprecation warnings for vendor libraries (PHP 8.5 compatibility)
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
 // Prevent caching of the login page
@@ -92,4 +95,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Inventory Management System</title><style>html{visibility:hidden}</style><script src="/assets/js/debug-logger.js"></script><script src="page-loader?error=<?php echo urlencode($error); ?>&isFirstRun=<?php echo $isFirstRun ? 'true' : 'false'; ?>&allowRegistration=<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>&allowInvitations=<?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'true' : 'false'; ?>&_v=<?php echo time(); ?>"></script><style>.login-footer{margin-top:1rem;text-align:center;font-size:0.875rem}.login-footer p{margin:0;color:var(--text-secondary)}.login-footer a{color:var(--color-primary);text-decoration:none;font-weight:500}.login-footer a:hover{text-decoration:underline}</style></head><body data-allow-registration="<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>" data-allow-invitations="<?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'true' : 'false'; ?>"><noscript>JavaScript is required to use this application.</noscript><script src="/assets/js/login-register-link.js"></script></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Inventory Management System</title><style>html{visibility:hidden}</style><script src="/assets/js/debug-logger.js?_v=<?php echo time(); ?>"></script><script src="page-loader?error=<?php echo urlencode($error); ?>&isFirstRun=<?php echo $isFirstRun ? 'true' : 'false'; ?>&allowRegistration=<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>&allowInvitations=<?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'true' : 'false'; ?>&_v=<?php echo time(); ?>"></script><script src="body-loader?error=<?php echo urlencode($error); ?>&isFirstRun=<?php echo $isFirstRun ? 'true' : 'false'; ?>&_v=<?php echo time(); ?>"></script><style>.login-footer{margin-top:1rem;text-align:center;font-size:0.875rem}.login-footer p{margin:0;color:var(--text-secondary)}.login-footer a{color:var(--color-primary);text-decoration:none;font-weight:500}.login-footer a:hover{text-decoration:underline}</style></head><body data-allow-registration="<?php echo $appConfig['security']['allow_registration'] ? 'true' : 'false'; ?>" data-allow-invitations="<?php echo ($appConfig['security']['allow_invitations'] ?? false) ? 'true' : 'false'; ?>"><noscript>JavaScript is required to use this application.</noscript><script src="/assets/js/login-register-link.js?_v=<?php echo time(); ?>"></script></body></html>

@@ -3,8 +3,18 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 try {
-    $mongoClient = new MongoDB\Client("mongodb://localhost:27017");
-    $db = $mongoClient->inventory_system;
+    // Get MongoDB connection details from environment variables
+    $host = getenv('MONGODB_HOST') ?: 'mongodb';
+    $port = getenv('MONGODB_PORT') ?: '27017';
+    $database = getenv('MONGODB_DATABASE') ?: 'inventory_system';
+    $username = getenv('MONGODB_ROOT_USERNAME') ?: 'admin';
+    $password = getenv('MONGODB_ROOT_PASSWORD') ?: 'adminpassword';
+
+    // Build connection string with root credentials
+    $connectionString = "mongodb://{$username}:{$password}@{$host}:{$port}/{$database}?authSource=admin";
+
+    $mongoClient = new MongoDB\Client($connectionString);
+    $db = $mongoClient->$database;
     
     // Drop existing collections if they exist
     $db->dropCollection('inventory');
@@ -86,8 +96,9 @@ try {
     $usersCollection->insertOne([
         'username' => 'admin',
         'password' => password_hash('admin123', PASSWORD_DEFAULT),
-        'full_name' => 'Gian Benedict',
-        'access_level' => 'Admin',
+        'full_name' => 'Demo',
+        'access_level' => 'admin',
+        'role' => 'admin',
         'created_at' => new MongoDB\BSON\UTCDateTime()
     ]);
     

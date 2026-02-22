@@ -42,6 +42,7 @@
 .btn-primary:hover {
   background-color: #333333;
   border-color: #333333;
+  color: var(--text-white);
 }
 
 .btn-secondary {
@@ -945,6 +946,14 @@
   justify-content: center;
   padding: var(--space-12) var(--space-6);
   text-align: center;
+  min-height: 280px;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  transition: background-color 0.2s ease;
+}
+
+.empty-state:hover {
+  background-color: var(--bg-secondary);
 }
 
 .empty-state-icon {
@@ -964,6 +973,7 @@
 .empty-state-description {
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  margin-bottom: var(--space-6);
+  margin: 0 auto var(--space-6) auto;
   max-width: 28rem;
+  text-align: center;
 }

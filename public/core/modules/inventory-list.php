@@ -2,6 +2,7 @@
 /**
  * Inventory List Page
  * Professional data table with search and filtering
+ * Uses async loading for large datasets (10k+ items)
  */
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
@@ -22,7 +23,7 @@ $userId = $user['id'] ?? 'admin';
 $notificationSummary = NotificationHelper::getSummary($userId);
 $inventoryAlerts = $notificationSummary['by_type']['inventory'] ?? 0;
 
-// Get filter and pagination parameters
+// Get filter and pagination parameters from URL (for initial state and deep linking)
 $searchQuery = $_GET['search'] ?? '';
 $filterType = $_GET['filter'] ?? 'all';
 $categoryFilter = $_GET['category'] ?? 'all';
@@ -33,129 +34,28 @@ $currentPage = max(1, (int)($_GET['page'] ?? 1));
 $itemsPerPage = (int)($_GET['per_page'] ?? 6);
 $viewMode = $_GET['view'] ?? 'table'; // table or grid
 
-// Get ALL inventory items first (for total count)
+// Initialize empty state - data will be loaded asynchronously via API
+// This prevents loading ALL items on page load (fixes 10k+ item freeze)
+$items = [];
+$allItems = [];
+$totalItems = 0;
+$totalPages = 1;
+$totalValue = 0;
+$totalQuantity = 0;
+$lowStockCount = 0;
+$outOfStockCount = 0;
+$categories = [];
+
+// Get categories for filter dropdown (lightweight query)
 try {
-    if (!empty($searchQuery)) {
-        $allItems = $inventoryModel->search($searchQuery);
-    } elseif ($filterType === 'low_stock') {
-        $allItems = $inventoryModel->getLowStock(5);
-    } elseif ($filterType === 'out_of_stock') {
-        $allItems = $inventoryModel->getLowStock(0);
-    } else {
-        $allItems = $inventoryModel->getAll();
-    }
-    
-    // Apply filters
-    if ($categoryFilter !== 'all') {
-        $allItems = array_filter($allItems, fn($item) => ($item['type'] ?? '') === $categoryFilter);
-    }
-    
-    if ($statusFilter !== 'all') {
-        $allItems = array_filter($allItems, function($item) use ($statusFilter) {
-            $qty = $item['quantity'] ?? 0;
-            if ($statusFilter === 'in_stock') return $qty > 5;
-            if ($statusFilter === 'low_stock') return $qty > 0 && $qty <= 5;
-            if ($statusFilter === 'out_of_stock') return $qty == 0;
-            return true;
-        });
-    }
-    
-    // Sorting with proper field mapping
-    usort($allItems, function($a, $b) use ($sortBy, $sortOrder) {
-        // Map sort field to actual data
-        switch($sortBy) {
-            case 'barcode':
-            case 'sku':
-                $aVal = $a['barcode'] ?? '';
-                $bVal = $b['barcode'] ?? '';
-                break;
-            case 'name':
-                $aVal = $a['name'] ?? '';
-                $bVal = $b['name'] ?? '';
-                break;
-            case 'category':
-            case 'type':
-                $aVal = $a['type'] ?? '';
-                $bVal = $b['type'] ?? '';
-                break;
-            case 'price':
-                $aVal = (float)($a['sell_price'] ?? $a['price'] ?? 0);
-                $bVal = (float)($b['sell_price'] ?? $b['price'] ?? 0);
-                break;
-            case 'quantity':
-            case 'stock':
-                $aVal = (int)($a['quantity'] ?? 0);
-                $bVal = (int)($b['quantity'] ?? 0);
-                break;
-            case 'status':
-                // Sort by stock status (out->low->in)
-                $aQty = (int)($a['quantity'] ?? 0);
-                $bQty = (int)($b['quantity'] ?? 0);
-                $aStatus = $aQty == 0 ? 0 : ($aQty <= 5 ? 1 : 2);
-                $bStatus = $bQty == 0 ? 0 : ($bQty <= 5 ? 1 : 2);
-                $aVal = $aStatus;
-                $bVal = $bStatus;
-                break;
-            case 'value':
-                $aVal = ((int)($a['quantity'] ?? 0)) * ((float)($a['sell_price'] ?? $a['price'] ?? 0));
-                $bVal = ((int)($b['quantity'] ?? 0)) * ((float)($b['sell_price'] ?? $b['price'] ?? 0));
-                break;
-            case 'date':
-            case 'updated':
-                $aVal = isset($a['date_added']) ? $a['date_added']->toDateTime()->getTimestamp() : 0;
-                $bVal = isset($b['date_added']) ? $b['date_added']->toDateTime()->getTimestamp() : 0;
-                break;
-            default:
-                $aVal = $a[$sortBy] ?? '';
-                $bVal = $b[$sortBy] ?? '';
-        }
-        
-        $result = $aVal <=> $bVal;
-        return $sortOrder === 'desc' ? -$result : $result;
-    });
-    
-    // Calculate totals
-    $totalValue = 0;
-    $totalQuantity = 0;
-    $lowStockCount = 0;
-    $outOfStockCount = 0;
-    foreach ($allItems as $item) {
-        $qty = $item['quantity'] ?? 0;
-        // Use sell_price field (which is stored in database) instead of price
-        $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
-        $totalValue += $qty * $price;
-        $totalQuantity += $qty;
-        if ($qty == 0) $outOfStockCount++;
-        elseif ($qty <= 5) $lowStockCount++;
-    }
-    
-    // Calculate pagination
-    $totalItems = count($allItems);
-    $totalPages = max(1, ceil($totalItems / $itemsPerPage));
-    $currentPage = min($currentPage, $totalPages);
-    $offset = ($currentPage - 1) * $itemsPerPage;
-    
-    // Get items for current page
-    $items = array_slice($allItems, $offset, $itemsPerPage);
+    $stats = $inventoryModel->getStatsWithFilters([]);
+    $categories = $stats['categories'] ?? [];
 } catch (Exception $e) {
-    $items = [];
-    $allItems = [];
-    $totalItems = 0;
-    $totalPages = 1;
-    $totalValue = 0;
-    $totalQuantity = 0;
-    $lowStockCount = 0;
-    $outOfStockCount = 0;
     $categories = [];
-    $error = $e->getMessage();
 }
 
 // Set page variables
 $pageTitle = 'Inventory List';
-
-// Get unique categories from all items
-$categories = array_unique(array_column($allItems, 'type'));
-sort($categories);
 
 // Start output buffering for content
 ob_start();
@@ -329,6 +229,10 @@ ob_start();
   font-weight: 700;
   color: var(--inventory-primary);
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .stat-change {
@@ -1101,19 +1005,23 @@ ob_start();
   </div>
 </div>
 
-<!-- Stats Overview (Xero/QuickBooks Style) -->
-<div class="inventory-stats-grid">
+<!-- Stats Overview (Xero/QuickBooks Style) - Updated via API -->
+<div class="inventory-stats-grid" id="stats-grid">
   <div class="inventory-stat-card">
     <div class="stat-label">Total Items</div>
-    <div class="stat-value"><?php echo number_format($totalItems); ?></div>
+    <div class="stat-value" id="stat-total-items">
+      <span class="stat-skeleton" style="display: inline-block; width: 60px; height: 28px; background: linear-gradient(90deg, hsl(240 5% 95%) 25%, hsl(240 5% 90%) 50%, hsl(240 5% 95%) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px;"></span>
+    </div>
     <div class="stat-change" style="color: var(--text-secondary);">
-      <span><?php echo count($items); ?> on this page</span>
+      <span id="stat-items-page">Loading...</span>
     </div>
   </div>
   
   <div class="inventory-stat-card">
     <div class="stat-label">Total Quantity</div>
-    <div class="stat-value"><?php echo number_format($totalQuantity); ?></div>
+    <div class="stat-value" id="stat-total-quantity">
+      <span class="stat-skeleton" style="display: inline-block; width: 60px; height: 28px; background: linear-gradient(90deg, hsl(240 5% 95%) 25%, hsl(240 5% 90%) 50%, hsl(240 5% 95%) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px;"></span>
+    </div>
     <div class="stat-change" style="color: var(--text-secondary);">
       <span>units in stock</span>
     </div>
@@ -1121,7 +1029,9 @@ ob_start();
   
   <div class="inventory-stat-card">
     <div class="stat-label">Inventory Value</div>
-    <div class="stat-value"><?php echo CurrencyHelper::format($totalValue); ?></div>
+    <div class="stat-value" id="stat-total-value">
+      <span class="stat-skeleton" style="display: inline-block; width: 80px; height: 28px; background: linear-gradient(90deg, hsl(240 5% 95%) 25%, hsl(240 5% 90%) 50%, hsl(240 5% 95%) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px;"></span>
+    </div>
     <div class="stat-change" style="color: var(--text-secondary);">
       <span><?php echo CurrencyHelper::symbol(); ?> total worth</span>
     </div>
@@ -1129,14 +1039,24 @@ ob_start();
   
   <div class="inventory-stat-card">
     <div class="stat-label">Stock Alerts</div>
-    <div class="stat-value" style="color: <?php echo ($lowStockCount + $outOfStockCount) > 0 ? 'hsl(25 95% 16%)' : 'hsl(143 85% 30%)'; ?>;">
-      <?php echo $lowStockCount + $outOfStockCount; ?>
+    <div class="stat-value" id="stat-alerts">
+      <span class="stat-skeleton" style="display: inline-block; width: 30px; height: 28px; background: linear-gradient(90deg, hsl(240 5% 95%) 25%, hsl(240 5% 90%) 50%, hsl(240 5% 95%) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px;"></span>
     </div>
     <div class="stat-change" style="color: var(--text-secondary);">
-      <span><?php echo $lowStockCount; ?> low, <?php echo $outOfStockCount; ?> out</span>
+      <span id="stat-alerts-detail">Loading...</span>
     </div>
   </div>
 </div>
+
+<style>
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.stat-skeleton.loaded {
+  display: none !important;
+}
+</style>
 
 <!-- Advanced Filter Bar (Xero/QuickBooks/LedgerSMB Style) -->
 <div class="inventory-filter-bar">
@@ -1267,35 +1187,25 @@ ob_start();
 <?php endif; ?>
 
 <?php if (empty($items)): ?>
-<div class="card">
+<!-- Loading State - Data loaded via API -->
+<div class="card" id="loading-card">
   <div class="card-content">
-    <div class="empty-state">
+    <div id="loading-state" style="text-align: center; padding: 3rem;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; color: var(--inventory-primary); margin: 0 auto 1rem;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+      </svg>
+      <p style="color: var(--text-secondary); font-weight: 500;" id="loading-text">Loading inventory data...</p>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;" id="loading-progress">Fetching items from database</p>
+    </div>
+    <!-- Empty state (hidden until API confirms no items) -->
+    <div class="empty-state" id="empty-state" style="display: none;" onclick="window.location.href='add_item.php'">
       <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none">
         <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M9 12H15M9 16H12" stroke="currentColor" stroke-width="2"/>
       </svg>
-      <p class="empty-state-title">
-        <?php 
-        if (!empty($searchQuery)) {
-          echo "No items found for \"" . htmlspecialchars($searchQuery) . "\"";
-        } elseif ($filterType === 'low_stock') {
-          echo "No low stock items";
-        } elseif ($filterType === 'out_of_stock') {
-          echo "No out of stock items";
-        } else {
-          echo "No inventory items found";
-        }
-        ?>
-      </p>
-      <p class="empty-state-description">
-        <?php if (empty($searchQuery) && $filterType === 'all'): ?>
-          Start by adding your first inventory item
-        <?php else: ?>
-          Try adjusting your search or filters
-        <?php endif; ?>
-      </p>
-      <?php if (empty($searchQuery) && $filterType === 'all'): ?>
-        <a href="add_item.php" class="btn btn-primary">Add First Item</a>
-      <?php endif; ?>
+      <p class="empty-state-title" id="empty-title">No inventory items found</p>
+      <p class="empty-state-description" id="empty-description">Start by adding your first inventory item</p>
+      <span class="btn btn-primary" id="empty-action">Add First Item</span>
     </div>
   </div>
 </div>
@@ -1484,7 +1394,7 @@ ob_start();
           <?php
             // Generate proper fallback values
             $skuValue = !empty($item['sku']) ? $item['sku'] : 'SKU-' . str_pad($itemId, 6, '0', STR_PAD_LEFT);
-            $upcValue = !empty($item['barcode']) && $item['barcode'] !== $item['sku'] ? $item['barcode'] : 'UPC-' . str_pad($itemId, 12, '0', STR_PAD_LEFT);
+            $upcValue = (!empty($item['barcode']) && !isset($item['sku']) || $item['barcode'] !== $item['sku']) ? $item['barcode'] : 'UPC-' . str_pad($itemId, 12, '0', STR_PAD_LEFT);
             $barcodeValue = !empty($item['barcode']) ? $item['barcode'] : (!empty($item['sku']) ? $item['sku'] : 'BC-' . str_pad($itemId, 10, '0', STR_PAD_LEFT));
           ?>
           <div class="barcode-container" 
@@ -2225,22 +2135,172 @@ function loadInventory(params = {}) {
 }
 
 function updateStats(stats) {
-  const statCards = document.querySelectorAll('.inventory-stat-card');
-  if (statCards[0]) {
-    statCards[0].querySelector('.stat-value').textContent = stats.total_items.toLocaleString();
+  // Update stat cards with new element IDs
+  const totalItemsEl = document.getElementById('stat-total-items');
+  const totalQtyEl = document.getElementById('stat-total-quantity');
+  const totalValEl = document.getElementById('stat-total-value');
+  const alertsEl = document.getElementById('stat-alerts');
+  const alertsDetailEl = document.getElementById('stat-alerts-detail');
+  const itemsPageEl = document.getElementById('stat-items-page');
+  
+  // Remove skeleton loaders and show values with responsive formatting
+  if (totalItemsEl) {
+    totalItemsEl.textContent = ''; // Clear skeleton
+    totalItemsEl.dataset.rawValue = stats.total_items;
+    totalItemsEl.dataset.rawFormatted = stats.total_items.toLocaleString();
+    fitStatValue(totalItemsEl, stats.total_items);
   }
-  if (statCards[1]) {
-    statCards[1].querySelector('.stat-value').textContent = stats.total_quantity.toLocaleString();
+  if (totalQtyEl) {
+    totalQtyEl.textContent = '';
+    totalQtyEl.dataset.rawValue = stats.total_quantity;
+    totalQtyEl.dataset.rawFormatted = stats.total_quantity.toLocaleString();
+    fitStatValue(totalQtyEl, stats.total_quantity);
   }
-  if (statCards[2]) {
-    statCards[2].querySelector('.stat-value').textContent = stats.total_value_formatted;
+  if (totalValEl) {
+    totalValEl.textContent = '';
+    totalValEl.dataset.rawValue = stats.total_value;
+    totalValEl.dataset.rawFormatted = stats.total_value_formatted;
+    fitStatValue(totalValEl, stats.total_value, true); // true = is currency
   }
-  if (statCards[3]) {
+  if (alertsEl) {
     const alertCount = stats.low_stock_count + stats.out_of_stock_count;
-    statCards[3].querySelector('.stat-value').textContent = alertCount;
-    statCards[3].querySelector('.stat-value').style.color = alertCount > 0 ? 'hsl(25 95% 16%)' : 'hsl(143 85% 30%)';
-    statCards[3].querySelector('.stat-change span').textContent = `${stats.low_stock_count} low, ${stats.out_of_stock_count} out`;
+    alertsEl.textContent = alertCount.toLocaleString();
+    alertsEl.style.color = alertCount > 0 ? 'hsl(25 95% 16%)' : 'hsl(143 85% 30%)';
   }
+  if (alertsDetailEl) {
+    alertsDetailEl.textContent = `${stats.low_stock_count} low, ${stats.out_of_stock_count} out`;
+  }
+  if (itemsPageEl) {
+    itemsPageEl.textContent = `${formatShortNumber(stats.total_items)} total items`;
+  }
+  
+  // Setup resize observer for responsive stat values
+  setupStatResizeObserver();
+}
+
+// Format number with K, M, B, T suffixes
+function formatShortNumber(num, isCurrency = false) {
+  if (num === null || num === undefined || isNaN(num)) return '0';
+  
+  const absNum = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+  
+  if (absNum >= 1e12) {
+    return sign + (absNum / 1e12).toFixed(absNum >= 10e12 ? 0 : 1).replace(/\.0$/, '') + 'T';
+  }
+  if (absNum >= 1e9) {
+    return sign + (absNum / 1e9).toFixed(absNum >= 10e9 ? 0 : 1).replace(/\.0$/, '') + 'B';
+  }
+  if (absNum >= 1e6) {
+    return sign + (absNum / 1e6).toFixed(absNum >= 10e6 ? 0 : 1).replace(/\.0$/, '') + 'M';
+  }
+  if (absNum >= 1e3) {
+    return sign + (absNum / 1e3).toFixed(absNum >= 10e3 ? 0 : 1).replace(/\.0$/, '') + 'K';
+  }
+  return num.toLocaleString();
+}
+
+// Try to fit value in container, use short format if needed
+function fitStatValue(element, value, isCurrency = false) {
+  if (!element) return;
+  
+  const symbol = isCurrency ? '<?php echo CurrencyHelper::symbol(); ?>' : '';
+  const fullFormatted = isCurrency 
+    ? symbol + value.toLocaleString() 
+    : value.toLocaleString();
+  const shortFormatted = isCurrency 
+    ? symbol + formatShortNumber(value) 
+    : formatShortNumber(value);
+  
+  // Store both formats
+  element.dataset.fullFormat = fullFormatted;
+  element.dataset.shortFormat = shortFormatted;
+  
+  // Get the parent card's actual width
+  const parent = element.closest('.inventory-stat-card');
+  if (!parent) {
+    element.textContent = shortFormatted;
+    return;
+  }
+  
+  // For values >= 1000, check if full format fits
+  const cardWidth = parent.offsetWidth;
+  
+  // Always use short format if value >= 1000 and card is narrow
+  if (value >= 1000 && cardWidth < 200) {
+    element.textContent = shortFormatted;
+    element.title = fullFormatted;
+    return;
+  }
+  
+  // Measure the text width with the element's actual font
+  const computedStyle = window.getComputedStyle(element);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = `${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+  
+  const fullWidth = ctx.measureText(fullFormatted).width;
+  
+  // Available width = card width - padding - label space
+  const availableWidth = Math.max(50, cardWidth - 70);
+  
+  // Use short format if full doesn't fit
+  const useShort = fullWidth > availableWidth;
+  
+  element.textContent = useShort ? shortFormatted : fullFormatted;
+  element.title = fullFormatted; // Show full value on hover
+}
+
+// ResizeObserver to update stat values on window resize
+function setupStatResizeObserver() {
+  const statsGrid = document.getElementById('stats-grid');
+  if (!statsGrid) return;
+  
+  // Prevent duplicate observers
+  if (statsGrid.dataset.observerSet) return;
+  statsGrid.dataset.observerSet = 'true';
+  
+  const updateAllStats = () => {
+    const elements = [
+      { el: document.getElementById('stat-total-items'), isCurrency: false },
+      { el: document.getElementById('stat-total-quantity'), isCurrency: false },
+      { el: document.getElementById('stat-total-value'), isCurrency: true },
+      { el: document.getElementById('stat-alerts'), isCurrency: false }
+    ];
+    
+    elements.forEach(({ el, isCurrency }) => {
+      if (el && el.dataset.rawValue !== undefined) {
+        const value = parseFloat(el.dataset.rawValue);
+        if (!isNaN(value)) {
+          fitStatValue(el, value, isCurrency);
+        }
+      }
+    });
+  };
+  
+  // Initial fit check after DOM settles
+  requestAnimationFrame(() => {
+    updateAllStats();
+  });
+  
+  // ResizeObserver for container size changes
+  const resizeObserver = new ResizeObserver(() => {
+    clearTimeout(window.statResizeTimeout);
+    window.statResizeTimeout = setTimeout(updateAllStats, 50);
+  });
+  
+  resizeObserver.observe(statsGrid);
+  
+  // Observe each stat card
+  document.querySelectorAll('.inventory-stat-card').forEach(card => {
+    resizeObserver.observe(card);
+  });
+  
+  // Window resize as backup
+  window.addEventListener('resize', () => {
+    clearTimeout(window.statResizeTimeout);
+    window.statResizeTimeout = setTimeout(updateAllStats, 100);
+  });
 }
 
 // Generate proper fallback values for barcode data
@@ -2372,13 +2432,10 @@ function updateTable(items) {
 }
 
 function updatePagination(pagination) {
-  const paginationContainer = document.querySelector('.mt-6');
-  if (!paginationContainer) return;
-  
   // Update summary
-  const summary = paginationContainer.querySelector('.text-sm');
-  if (summary) {
-    summary.innerHTML = `Showing <strong>${pagination.showing_from}</strong> to <strong>${pagination.showing_to}</strong> of <strong>${pagination.total_items}</strong> ${pagination.total_items === 1 ? 'item' : 'items'}`;
+  const summaryEl = document.getElementById('pagination-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `Showing <strong>${pagination.showing_from}</strong> to <strong>${pagination.showing_to}</strong> of <strong>${pagination.total_items}</strong> ${pagination.total_items === 1 ? 'item' : 'items'}`;
   }
   
   // Rebuild pagination controls
@@ -2514,7 +2571,10 @@ if (sortOrder) {
 const perPage = document.getElementById('per-page');
 if (perPage) {
   perPage.addEventListener('change', function(e) {
-    loadInventory({ per_page: e.target.value, page: 1 });
+    const value = parseInt(e.target.value);
+    // Save to localStorage for persistence across sessions
+    localStorage.setItem('inventory_per_page', value);
+    loadInventory({ per_page: value, page: 1 });
   });
 }
 
@@ -3058,7 +3118,7 @@ function copyBarcodeValue(value, container) {
 }
 
 // ============================================
-// APPLY NUMBER FORMAT API
+// APPLY NUMBER FORMAT API & INITIAL LOAD
 // ============================================
 window.addEventListener('load', function() {
   const currencySymbol = '<?php echo CurrencyHelper::symbol(); ?>';
@@ -3079,7 +3139,138 @@ window.addEventListener('load', function() {
     const formattedDate = now.toLocaleDateString('en-US', options);
     contentHeader.setAttribute('data-print-date', formattedDate);
   }
+  
+  // ============================================
+  // INITIAL DATA LOAD (Async for performance)
+  // ============================================
+  // Get initial parameters from URL or defaults
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // Get per_page from URL, localStorage, or default to 6
+  let perPageValue = parseInt(urlParams.get('per_page')) 
+    || parseInt(localStorage.getItem('inventory_per_page')) 
+    || 6;
+  
+  // Sync the select element with the actual value being used
+  const perPageSelect = document.getElementById('per-page');
+  if (perPageSelect) {
+    perPageSelect.value = perPageValue;
+  }
+  
+  const initialParams = {
+    search: urlParams.get('search') || '',
+    status: urlParams.get('status') || 'all',
+    category: urlParams.get('category') || 'all',
+    sort: urlParams.get('sort') || 'name',
+    order: urlParams.get('order') || 'asc',
+    page: parseInt(urlParams.get('page')) || 1,
+    per_page: perPageValue
+  };
+  
+  // Load initial data via API
+  initialLoadInventory(initialParams);
 });
+
+// ============================================
+// INITIAL LOAD WITH LOADING STATE HANDLING
+// ============================================
+function initialLoadInventory(params) {
+  const url = new URL('/api/inventory.php', window.location.origin);
+  url.searchParams.set('action', 'list');
+  
+  // Apply all params
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (value && value !== 'all' && value !== '') {
+      url.searchParams.set(key, value);
+    }
+  });
+  
+  const loadingState = document.getElementById('loading-state');
+  const emptyState = document.getElementById('empty-state');
+  const loadingCard = document.getElementById('loading-card');
+  const loadingProgress = document.getElementById('loading-progress');
+  
+  // Update loading progress
+  if (loadingProgress) {
+    loadingProgress.textContent = `Fetching ${params.per_page} items per page...`;
+  }
+  
+  // Fetch data
+  fetch(url.toString())
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Update stats
+        updateStats(data.stats);
+        
+        // Check if we have items
+        if (data.items.length === 0 && data.pagination.total_items === 0) {
+          // Show empty state
+          if (loadingState) loadingState.style.display = 'none';
+          if (emptyState) emptyState.style.display = 'block';
+        } else {
+          // We have items - hide loading card and show table
+          if (loadingCard) loadingCard.style.display = 'none';
+          
+          // Create table container if not exists
+          let tableContainer = document.querySelector('.inventory-table-container');
+          if (!tableContainer) {
+            // Create table dynamically
+            const tableHtml = `
+              <div class="inventory-table-container">
+                <table class="inventory-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px;"><input type="checkbox" class="bulk-checkbox" id="header-checkbox" style="display: none; width: 18px; height: 18px; cursor: pointer;" onclick="toggleSelectAll()"></th>
+                      <th style="width: 60px;">#</th>
+                      <th style="width: 110px; text-align: center;">Barcode</th>
+                      <th style="min-width: 200px;">Item Name</th>
+                      <th style="width: 120px;">Category</th>
+                      <th style="width: 100px;">Price</th>
+                      <th style="width: 140px;">Stock Level</th>
+                      <th style="width: 100px;">Status</th>
+                      <th style="width: 120px;">Value</th>
+                      <th style="width: 120px;">Last Updated</th>
+                      <th style="width: 140px; text-align: center;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="mt-6" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div class="text-sm text-secondary" id="pagination-summary"></div>
+                <div id="pagination-controls" style="display: flex; gap: 0.25rem; align-items: center;"></div>
+              </div>
+            `;
+            loadingCard.insertAdjacentHTML('afterend', tableHtml);
+            tableContainer = document.querySelector('.inventory-table-container');
+          }
+          
+          // Update table with items
+          updateTable(data.items);
+          
+          // Update pagination
+          updatePagination(data.pagination);
+        }
+      } else {
+        throw new Error(data.error || 'Failed to load inventory');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading inventory:', error);
+      if (loadingProgress) {
+        loadingProgress.textContent = 'Error loading data. Please refresh the page.';
+        loadingProgress.style.color = 'hsl(0 74% 24%)';
+      }
+      if (typeof Toast !== 'undefined') {
+        Toast.error('Failed to load inventory data. Please refresh the page.');
+      }
+    });
+}
 </script>
 
 <?php

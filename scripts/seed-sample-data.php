@@ -143,9 +143,11 @@ function randomUtcDate(string $start = '-2 years', string $end = 'now + 30 days'
     return new UTCDateTime($timestamp * 1000);
 }
 
-function randomMoney(int $min = 500, int $max = 250000): float
+function randomMoney($min = 500, $max = 250000): float
 {
-    return round(mt_rand($min * 100, $max * 100) / 100, 2);
+    $minInt = (int)$min;
+    $maxInt = (int)$max;
+    return round(mt_rand($minInt * 100, $maxInt * 100) / 100, 2);
 }
 
 function pick(array $items)

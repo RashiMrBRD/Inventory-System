@@ -9,6 +9,11 @@ Options -Indexes
     Require all denied
 </FilesMatch>
 
+# Favicon redirect (SVG to ICO fallback)
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/favicon\.ico$
+RewriteRule ^favicon\.ico$ /assets/logo/favicon.svg [L]
+
 # Protect sensitive directories
 # Block direct access to source code, config, scripts, and legacy files
 RedirectMatch 403 ^/inventory_demo/(src|config|vendor|var|legacy|scripts)/.*$
@@ -17,7 +22,6 @@ RedirectMatch 403 ^/inventory_demo/(src|config|vendor|var|legacy|scripts)/.*$
 # But in production, consider restricting these as well
 
 # Redirect all requests to public directory
-RewriteEngine On
 RewriteCond %{REQUEST_URI} !^/public/
 RewriteCond %{REQUEST_URI} !^/api/
 RewriteCond %{REQUEST_URI} !^/docs/

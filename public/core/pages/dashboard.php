@@ -4,7 +4,9 @@
  * Overview of inventory statistics and recent activity
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -103,22 +105,20 @@ function isDashboardInRange($dateValue, $start, $end) {
 }
 
 // ============================================
-// INVENTORY MODULE
+// INVENTORY MODULE - Use aggregation
 // ============================================
 $inventoryModel = new Inventory();
-try {
-    $totalItems = $inventoryModel->count();
-    $lowStockItems = $inventoryModel->getLowStockCount();
-    $outOfStockItems = $inventoryModel->getOutOfStockCount();
-    $recentItems = $inventoryModel->getRecentItems(5);
-    $addedToday = $inventoryModel->countAddedSince(new \DateTimeImmutable('-24 hours'));
-} catch (Exception $e) {
-    $totalItems = $lowStockItems = $outOfStockItems = $addedToday = 0;
-    $recentItems = [];
-}
+$inventoryStats = $inventoryModel->getDashboardAnalytics($daysBack);
+
+$totalItems = $inventoryStats['total_items'];
+$lowStockItems = $inventoryStats['low_stock_count'];
+$outOfStockItems = $inventoryStats['out_of_stock_count'];
+$inventoryValue = $inventoryStats['total_value'];
+$recentItems = $inventoryModel->getRecentItems(5);
+$addedToday = $inventoryStats['items_added_this_period'];
 
 // ============================================
-// SALES & OPERATIONS
+// SALES & OPERATIONS - Use aggregation
 // ============================================
 $invoiceModel = new Invoice();
 $quotationModel = new Quotation();
@@ -126,148 +126,37 @@ $orderModel = new Order();
 $projectModel = new Project();
 $shipmentModel = new Shipment();
 
-try {
-    // Quotations - Show ALL current quotations (not time-filtered)
-    $quotations = $quotationModel->getAll();
-    $totalQuotations = count($quotations);
-    $pendingQuotations = 0;
-    $quotationsInPeriod = 0; // For trend calculation
-    
-    foreach ($quotations as $q) {
-        if (($q['status'] ?? '') === 'pending') {
-            $pendingQuotations++;
-        }
-        // Count quotations created in period for trends
-        $date = $q['created_at'] ?? $q['date'] ?? null;
-        if (isDashboardInRange($date, $startDate, $endDate)) {
-            $quotationsInPeriod++;
-        }
-    }
-    
-    // Invoices - Show ALL invoices and total revenue (not time-filtered)
-    $invoices = $invoiceModel->getAll();
-    $totalRevenue = 0;
-    $paidRevenue = 0;
-    $outstandingRevenue = 0;
-    $totalInvoices = count($invoices);
-    $revenueInPeriod = 0; // For trend calculation
-    
-    foreach ($invoices as $inv) {
-        $total = (float)($inv['total'] ?? 0);
-        $totalRevenue += $total;
-        
-        if (($inv['status'] ?? '') === 'paid') {
-            $paidRevenue += $total;
-        } else {
-            $outstandingRevenue += $total;
-        }
-        
-        // Count revenue in period for trends
-        $date = $inv['date'] ?? null;
-        if (isDashboardInRange($date, $startDate, $endDate)) {
-            $revenueInPeriod += $total;
-        }
-    }
-    
-    // Orders - Show ALL current orders (not time-filtered)
-    $orders = $orderModel->getAll();
-    $totalOrders = count($orders);
-    $processingOrders = 0;
-    $ordersInPeriod = 0; // For trend calculation
-    
-    foreach ($orders as $o) {
-        if (($o['status'] ?? '') === 'processing') {
-            $processingOrders++;
-        }
-        // Count orders in period for trends
-        $date = $o['created_at'] ?? $o['date'] ?? null;
-        if (isDashboardInRange($date, $startDate, $endDate)) {
-            $ordersInPeriod++;
-        }
-    }
-    
-    // Projects - Show ALL current projects (not time-filtered)
-    $projects = $projectModel->getAll();
-    $totalProjects = count($projects);
-    $activeProjects = 0;
-    $projectsInPeriod = 0; // For trend calculation
-    
-    foreach ($projects as $p) {
-        if (($p['status'] ?? '') === 'active') {
-            $activeProjects++;
-        }
-        // Count projects in period for trends
-        $date = $p['created_at'] ?? $p['date'] ?? null;
-        if (isDashboardInRange($date, $startDate, $endDate)) {
-            $projectsInPeriod++;
-        }
-    }
-    
-    // Shipments - Show ALL current shipments (not time-filtered)
-    $shipments = $shipmentModel->getAll();
-    $totalShipments = count($shipments);
-    $inTransitShipments = 0;
-    $shipmentsInPeriod = 0; // For trend calculation
-    
-    foreach ($shipments as $s) {
-        if (($s['status'] ?? '') === 'in_transit') {
-            $inTransitShipments++;
-        }
-        // Count shipments in period for trends
-        $date = $s['created_at'] ?? $s['date'] ?? null;
-        if (isDashboardInRange($date, $startDate, $endDate)) {
-            $shipmentsInPeriod++;
-        }
-    }
-} catch (Exception $e) {
-    $totalQuotations = $pendingQuotations = $quotationsInPeriod = 0;
-    $totalRevenue = $paidRevenue = $outstandingRevenue = $totalInvoices = $revenueInPeriod = 0;
-    $totalOrders = $processingOrders = $ordersInPeriod = 0;
-    $totalProjects = $activeProjects = $projectsInPeriod = 0;
-    $totalShipments = $inTransitShipments = $shipmentsInPeriod = 0;
-}
+// Use aggregation methods instead of loading all records
+$invoiceStats = $invoiceModel->getDashboardAnalytics($daysBack);
+$quotationStats = $quotationModel->getDashboardAnalytics($daysBack);
+$orderStats = $orderModel->getDashboardAnalytics($daysBack);
+$projectStats = $projectModel->getDashboardAnalytics($daysBack);
+$shipmentStats = $shipmentModel->getDashboardAnalytics($daysBack);
 
-// ============================================
-// CALCULATE TRENDS (Previous Period Comparison)
-// ============================================
-$prevStartDate = new \DateTimeImmutable("-" . ($daysBack * 2) . " days");
-$prevEndDate = $startDate;
+$totalQuotations = $quotationStats['total_count'];
+$pendingQuotations = $quotationStats['pending_count'];
+$quotationsInPeriod = $quotationStats['quotations_in_period'];
 
-$revenuePrevPeriod = 0;
-$paidRevenuePrevPeriod = 0;
+$totalRevenue = $invoiceStats['total_revenue'];
+$paidRevenue = $invoiceStats['paid_revenue'];
+$outstandingRevenue = $invoiceStats['outstanding_revenue'];
+$totalInvoices = $invoiceStats['invoice_count'];
+$revenueInPeriod = $invoiceStats['revenue_in_period'];
+$paidRevenuePrevPeriod = $invoiceStats['paid_revenue_prev_period'] ?? 0;
 
-try {
-    foreach ($invoices as $inv) {
-        $date = $inv['date'] ?? null;
-        if (isDashboardInRange($date, $prevStartDate, $prevEndDate)) {
-            $total = (float)($inv['total'] ?? 0);
-            $revenuePrevPeriod += $total;
-            
-            if (($inv['status'] ?? '') === 'paid') {
-                $paidRevenuePrevPeriod += $total;
-            }
-        }
-    }
-} catch (Exception $e) {
-    $revenuePrevPeriod = 0;
-    $paidRevenuePrevPeriod = 0;
-}
+$totalOrders = $orderStats['total_count'];
+$processingOrders = $orderStats['pending_count'];
 
-// Calculate percentage changes
-$revenueChange = 0;
-$collectionRateChange = 0;
+$totalProjects = $projectStats['total_count'];
+$activeProjects = $projectStats['active_count'];
 
-if ($revenuePrevPeriod > 0) {
-    $revenueChange = round((($revenueInPeriod - $revenuePrevPeriod) / $revenuePrevPeriod) * 100, 1);
-}
+$totalShipments = $shipmentStats['total_count'];
+$inTransitShipments = $shipmentStats['in_transit_count'];
 
-// Collection rate comparison
-$currentCollectionRate = $totalRevenue > 0 ? ($paidRevenue / $totalRevenue) * 100 : 0;
-$prevCollectionRate = $revenuePrevPeriod > 0 ? ($paidRevenuePrevPeriod / $revenuePrevPeriod) * 100 : 0;
-
-if ($prevCollectionRate > 0) {
-    $collectionRateChange = round($currentCollectionRate - $prevCollectionRate, 1);
-}
+// Calculate trends from aggregation results
+$revenueChange = $invoiceStats['revenue_trend'];
+$collectionRateChange = $invoiceStats['collection_trend'];
+$currentCollectionRate = $invoiceStats['collection_rate'];
 
 // ============================================
 // COMPLIANCE TRACKING

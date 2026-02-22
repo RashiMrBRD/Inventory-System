@@ -93,8 +93,11 @@ $timezones = [
     ],
 ];
 
-// Auto-detect currency from IP
-$detectedCurrency = CurrencyService::detectCurrencyFromIP();
+// Auto-detect currency from IP (cached in session to avoid repeated API calls)
+if (!isset($_SESSION['detected_currency'])) {
+    $_SESSION['detected_currency'] = CurrencyService::detectCurrencyFromIP();
+}
+$detectedCurrency = $_SESSION['detected_currency'];
 $detectedInfo = CurrencyService::getCurrency($detectedCurrency);
 
 // Get current currency (from session or default to detected)
@@ -3069,6 +3072,41 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Attach event listeners to modal buttons
+  const confirmBtn = document.querySelector('[data-action="confirm-theme-change"]');
+  const cancelBtn = document.querySelector('[data-action="cancel-theme-change"]');
+  
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      confirmThemeChange();
+    });
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      cancelThemeChange();
+    });
+  }
+  
+  // Close modal on overlay click
+  const modalOverlay = document.getElementById('themeWarningModal');
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', function(e) {
+      if (e.target === modalOverlay) {
+        cancelThemeChange();
+      }
+    });
+  }
+  
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('themeWarningModal')?.style.display === 'flex') {
+      cancelThemeChange();
+    }
+  });
 });
 
 function showThemeWarningModal(theme) {
@@ -3099,22 +3137,12 @@ function showThemeWarningModal(theme) {
 
 function confirmThemeChange() {
   const modal = document.getElementById('themeWarningModal');
-  const themeForm = document.getElementById('themeForm');
   
-  console.log('User confirmed theme change to:', pendingThemeSelection);
+  console.log('User confirmed theme selection:', pendingThemeSelection);
   
   if (pendingThemeSelection) {
-    // Apply the pending theme selection
-    const pendingRadio = document.querySelector(`input[name="theme"][value="${pendingThemeSelection}"]`);
-    if (pendingRadio) {
-      pendingRadio.checked = true;
-      previousThemeSelection = pendingThemeSelection;
-    }
-    
-    // Submit the form
-    if (themeForm) {
-      themeForm.submit();
-    }
+    // Keep the pending theme selection (radio button stays checked)
+    previousThemeSelection = pendingThemeSelection;
   }
   
   // Hide modal

@@ -182,4 +182,54 @@ class Shipment
             return false;
         }
     }
+
+    /**
+     * Get dashboard analytics using aggregation (efficient for large datasets)
+     */
+    public function getDashboardAnalytics(int $daysBack = 30): array
+    {
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            return ['total_count' => 0, 'in_transit_count' => 0, 'by_status' => []];
+        }
+
+        $user = (new User())->findById($userId);
+        $isAdmin = ($user['access_level'] ?? 'user') === 'admin';
+        $baseFilter = $isAdmin ? [] : ['user_id' => $userId];
+
+        // Single aggregation for shipment stats
+        $pipeline = [];
+        if (!empty($baseFilter)) {
+            $pipeline[] = ['$match' => $baseFilter];
+        }
+        $pipeline[] = ['$group' => [
+            '_id' => null,
+            'total_count' => ['$sum' => 1],
+            'in_transit_count' => ['$sum' => ['$cond' => [['$eq' => ['$status', 'in_transit']], 1, 0]]]
+        ]];
+
+        $result = $this->collection->aggregate($pipeline)->toArray();
+        $stats = !empty($result) ? (array)$result[0] : [];
+
+        // Shipments by status
+        $statusPipeline = [];
+        if (!empty($baseFilter)) {
+            $statusPipeline[] = ['$match' => $baseFilter];
+        }
+        $statusPipeline[] = ['$group' => ['_id' => '$status', 'count' => ['$sum' => 1]]];
+
+        $statusResult = $this->collection->aggregate($statusPipeline)->toArray();
+        $byStatus = [];
+        foreach ($statusResult as $r) {
+            if ($r['_id']) {
+                $byStatus[$r['_id']] = (int)$r['count'];
+            }
+        }
+
+        return [
+            'total_count' => (int)($stats['total_count'] ?? 0),
+            'in_transit_count' => (int)($stats['in_transit_count'] ?? 0),
+            'by_status' => $byStatus
+        ];
+    }
 }

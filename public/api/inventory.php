@@ -33,103 +33,30 @@ try {
             $currentPage = max(1, (int)($_GET['page'] ?? 1));
             $itemsPerPage = (int)($_GET['per_page'] ?? 6);
             
-            // Get ALL inventory items first
-            if (!empty($searchQuery)) {
-                $allItems = $inventoryModel->search($searchQuery);
-            } else {
-                $allItems = $inventoryModel->getAll();
-            }
+            // Use server-side pagination for large datasets
+            $options = [
+                'search' => $searchQuery,
+                'category' => $categoryFilter,
+                'status' => $statusFilter,
+                'sort' => $sortBy,
+                'order' => $sortOrder,
+                'page' => $currentPage,
+                'per_page' => $itemsPerPage
+            ];
             
-            // Apply filters
-            if ($categoryFilter !== 'all') {
-                $allItems = array_filter($allItems, fn($item) => ($item['type'] ?? '') === $categoryFilter);
-            }
-            
-            if ($statusFilter !== 'all') {
-                $allItems = array_filter($allItems, function($item) use ($statusFilter) {
-                    $qty = $item['quantity'] ?? 0;
-                    if ($statusFilter === 'in_stock') return $qty > 5;
-                    if ($statusFilter === 'low_stock') return $qty > 0 && $qty <= 5;
-                    if ($statusFilter === 'out_of_stock') return $qty == 0;
-                    return true;
-                });
-            }
-            
-            // Sorting with proper field mapping
-            usort($allItems, function($a, $b) use ($sortBy, $sortOrder) {
-                switch($sortBy) {
-                    case 'barcode':
-                    case 'sku':
-                        $aVal = $a['barcode'] ?? '';
-                        $bVal = $b['barcode'] ?? '';
-                        break;
-                    case 'name':
-                        $aVal = $a['name'] ?? '';
-                        $bVal = $b['name'] ?? '';
-                        break;
-                    case 'category':
-                    case 'type':
-                        $aVal = $a['type'] ?? '';
-                        $bVal = $b['type'] ?? '';
-                        break;
-                    case 'price':
-                        $aVal = (float)($a['sell_price'] ?? $a['price'] ?? 0);
-                        $bVal = (float)($b['sell_price'] ?? $b['price'] ?? 0);
-                        break;
-                    case 'quantity':
-                    case 'stock':
-                        $aVal = (int)($a['quantity'] ?? 0);
-                        $bVal = (int)($b['quantity'] ?? 0);
-                        break;
-                    case 'status':
-                        $aQty = (int)($a['quantity'] ?? 0);
-                        $bQty = (int)($b['quantity'] ?? 0);
-                        $aStatus = $aQty == 0 ? 0 : ($aQty <= 5 ? 1 : 2);
-                        $bStatus = $bQty == 0 ? 0 : ($bQty <= 5 ? 1 : 2);
-                        $aVal = $aStatus;
-                        $bVal = $bStatus;
-                        break;
-                    case 'value':
-                        $aVal = ((int)($a['quantity'] ?? 0)) * ((float)($a['sell_price'] ?? $a['price'] ?? 0));
-                        $bVal = ((int)($b['quantity'] ?? 0)) * ((float)($b['sell_price'] ?? $b['price'] ?? 0));
-                        break;
-                    case 'date':
-                    case 'updated':
-                        $aVal = isset($a['date_added']) ? $a['date_added']->toDateTime()->getTimestamp() : 0;
-                        $bVal = isset($b['date_added']) ? $b['date_added']->toDateTime()->getTimestamp() : 0;
-                        break;
-                    default:
-                        $aVal = $a[$sortBy] ?? '';
-                        $bVal = $b[$sortBy] ?? '';
-                }
-                
-                $result = $aVal <=> $bVal;
-                return $sortOrder === 'desc' ? -$result : $result;
-            });
-            
-            // Calculate totals
-            $totalValue = 0;
-            $totalQuantity = 0;
-            $lowStockCount = 0;
-            $outOfStockCount = 0;
-            foreach ($allItems as $item) {
-                $qty = $item['quantity'] ?? 0;
-                // Use sell_price field (which is stored in database) instead of price
-                $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
-                $totalValue += $qty * $price;
-                $totalQuantity += $qty;
-                if ($qty == 0) $outOfStockCount++;
-                elseif ($qty <= 5) $lowStockCount++;
-            }
-            
-            // Calculate pagination
-            $totalItems = count($allItems);
-            $totalPages = max(1, ceil($totalItems / $itemsPerPage));
-            $currentPage = min($currentPage, $totalPages);
+            $result = $inventoryModel->getPaginated($options);
+            $items = $result['items'];
+            $totalItems = $result['total'];
+            $totalPages = $result['total_pages'];
             $offset = ($currentPage - 1) * $itemsPerPage;
             
-            // Get items for current page
-            $items = array_slice($allItems, $offset, $itemsPerPage);
+            // Get stats with same filters (for accurate counts)
+            $statsFilters = [
+                'search' => $searchQuery,
+                'category' => $categoryFilter,
+                'status' => $statusFilter
+            ];
+            $stats = $inventoryModel->getStatsWithFilters($statsFilters);
             
             // Format items for JSON response
             $formattedItems = [];
@@ -137,7 +64,6 @@ try {
             foreach ($items as $item) {
                 $itemId = (string)$item['_id'];
                 $quantity = $item['quantity'] ?? 0;
-                // Use sell_price field (which is stored in database) instead of price
                 $price = (float)($item['sell_price'] ?? $item['price'] ?? 0);
                 $itemValue = $quantity * $price;
                 $dateAdded = isset($item['date_added']) ? $item['date_added']->toDateTime()->format('M d, Y') : 'N/A';
@@ -181,13 +107,14 @@ try {
                     'showing_to' => min($offset + $itemsPerPage, $totalItems)
                 ],
                 'stats' => [
-                    'total_items' => $totalItems,
-                    'total_quantity' => $totalQuantity,
-                    'total_value' => $totalValue,
-                    'total_value_formatted' => CurrencyHelper::format($totalValue),
-                    'low_stock_count' => $lowStockCount,
-                    'out_of_stock_count' => $outOfStockCount,
-                    'currency_symbol' => CurrencyHelper::symbol()
+                    'total_items' => $stats['total_items'],
+                    'total_quantity' => $stats['total_quantity'],
+                    'total_value' => $stats['total_value'],
+                    'total_value_formatted' => CurrencyHelper::format($stats['total_value']),
+                    'low_stock_count' => $stats['low_stock_count'],
+                    'out_of_stock_count' => $stats['out_of_stock_count'],
+                    'currency_symbol' => CurrencyHelper::symbol(),
+                    'categories' => $stats['categories']
                 ]
             ]);
             break;

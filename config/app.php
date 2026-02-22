@@ -4,6 +4,9 @@
  * This file contains general application settings
  */
 
+// Suppress deprecation warnings for vendor libraries (PHP 8.5 compatibility)
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 if (!function_exists('isPrivateIP')) {
     /**
      * Check if an IP address is in a private range
@@ -22,9 +25,17 @@ if (!function_exists('isPrivateIP')) {
         }
 
         foreach ($ranges as $range) {
-            list($network, $mask) = explode('/', $range);
+            $parts = explode('/', $range);
+            $network = $parts[0];
+            $mask = isset($parts[1]) ? (int)$parts[1] : 32;
+            
+            // Validate mask is in valid range
+            if ($mask < 0 || $mask > 32) {
+                continue;
+            }
+            
             $networkLong = ip2long($network);
-            $maskLong = -1 << (32 - $mask);
+            $maskLong = $mask === 0 ? 0 : (-1 << (32 - $mask));
 
             if (($ipLong & $maskLong) === ($networkLong & $maskLong)) {
                 return true;
@@ -66,7 +77,7 @@ if (!function_exists('isHostAllowed')) {
 
 return [
     'app_name' => 'Inventory Management System',
-    'app_version' => '0.4.2',
+    'app_version' => '0.4.4',
     'environment' => getenv('APP_ENV') ?: 'development',
     'debug' => getenv('APP_DEBUG') === 'true',
     'timezone' => 'UTC',
@@ -106,6 +117,7 @@ return [
         ],
         'trusted_hosts' => [
             'demo.rashlink.eu.org',
+            'live.rashlink.eu.org',
             'localhost',
             '192.168.123.10'
         ],
@@ -117,6 +129,7 @@ return [
             'demo_domain' => 'demo.rashlink.eu.org',
             'allowed_hosts' => [
                 'demo.rashlink.eu.org',
+                'live.rashlink.eu.org',
                 'localhost',
                 '127.0.0.1',
                 '::1'
